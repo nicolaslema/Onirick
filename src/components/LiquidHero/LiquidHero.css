@@ -1,0 +1,10 @@
+.liquid-hero {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  height: 100vh;
+  min-height: 600px;
+  overflow: hidden;
+  background-color: #000000;
+}
