@@ -137,7 +137,17 @@ void main() {
       uvN = uv - g * uIntensity * 0.5 * (1.0 - p);
       float grad = uDir > 0.0 ? uv.y : 1.0 - uv.y;
       float nn2 = mix(nn, grad, 0.35);
-      m = smoothstep(nn2 - 0.25, nn2 + 0.25, p);
+      // Remap nn2 so the [center-halfWidth, center+halfWidth] threshold
+      // window always stays inside [0, 1], instead of letting it spill past
+      // either end (as a plain nn2 +/- halfWidth would for nn2 near 0 or
+      // 1). Without this, whichever pixels land near the noise extremes
+      // never actually reach m=0 at p=0 or m=1 at p=1 — they're still
+      // mid-blend right when the engine commits (an instant texture swap,
+      // no tween), which reads as a visible flash/snap at the end of every
+      // transition rather than a clean settle.
+      float halfWidth = 0.25;
+      float center = mix(halfWidth, 1.0 - halfWidth, nn2);
+      m = smoothstep(center - halfWidth, center + halfWidth, p);
     }
   }
 
