@@ -5,6 +5,7 @@ import viteLogo from './assets/vite.svg'
 import Hero from './components/Hero/Hero'
 import DistortionHero from './components/DistortionHero/DistortionHero'
 import LiquidHero from './components/LiquidHero/LiquidHero'
+import FloatingLinesHero from './components/FloatingLinesHero/FloatingLinesHero'
 import './App.css'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
       <Hero />
       <DistortionHero />
       <LiquidHero />
+      <FloatingLinesHero />
 
       <section id="center">
         <div className="hero">
