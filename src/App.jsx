@@ -3,6 +3,7 @@ import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import Hero from './components/Hero/Hero'
+import DistortionHero from './components/DistortionHero/DistortionHero'
 import './App.css'
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   return (
     <>
       <Hero />
+      <DistortionHero />
 
   
 
