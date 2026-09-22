@@ -13,7 +13,7 @@ const items = [
 const SliderHero = () => {
   return (
     <section className="slider-hero">
-      <MorphSlider items={items} transition="melt" intensity={0.55} aberration={0.35} drift={0.4} autoplay />
+      <MorphSlider items={items} transition="melt" radius={1} intensity={0.55} aberration={1.35} drift={0.4} autoplay />
     </section>
   );
 };
