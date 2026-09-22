@@ -7,6 +7,7 @@ import DistortionHero from './components/DistortionHero/DistortionHero'
 import LiquidHero from './components/LiquidHero/LiquidHero'
 import FloatingLinesHero from './components/FloatingLinesHero/FloatingLinesHero'
 import SliderHero from './components/SliderHero/SliderHero'
+import GradualBlur from './components/GradualBlur/GradualBlur'
 import './App.css'
 
 function App() {
@@ -14,6 +15,9 @@ function App() {
 
   return (
     <>
+      <GradualBlur target="page" position="top" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
+      <GradualBlur target="page" position="bottom" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
+
       <Hero />
       <DistortionHero />
       <LiquidHero />
