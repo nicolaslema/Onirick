@@ -15,8 +15,8 @@ function App() {
 
   return (
     <>
-      <GradualBlur target="page" position="top" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
-      <GradualBlur target="page" position="bottom" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
+      <GradualBlur target="page" position="top" height="6rem" strength={3} divCount={5} curve="bezier" exponential={true} opacity={1} />
+      <GradualBlur target="page" position="bottom" height="4rem" strength={3} divCount={20} curve="linear" exponential={true} opacity={1} />
 
       <Hero />
       <DistortionHero />
