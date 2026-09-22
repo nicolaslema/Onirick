@@ -1,12 +1,12 @@
 import ScrollSections from './components/ScrollSections/ScrollSections'
 import Hero from './components/sections/Hero/Hero'
-import Projects from './components/sections/Projects/Projects'
+import Sound from './components/sections/Sound/Sound'
 import Gallery from './components/sections/Gallery/Gallery'
 import GradualBlur from './components/GradualBlur/GradualBlur'
 
 const SECTIONS = [
   { id: 'hero', Component: Hero },
-  { id: 'projects', Component: Projects },
+  { id: 'sound', Component: Sound },
   { id: 'gallery', Component: Gallery }
 ]
 
