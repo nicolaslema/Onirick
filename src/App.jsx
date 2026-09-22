@@ -6,6 +6,7 @@ import Hero from './components/Hero/Hero'
 import DistortionHero from './components/DistortionHero/DistortionHero'
 import LiquidHero from './components/LiquidHero/LiquidHero'
 import FloatingLinesHero from './components/FloatingLinesHero/FloatingLinesHero'
+import SliderHero from './components/SliderHero/SliderHero'
 import './App.css'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       <DistortionHero />
       <LiquidHero />
       <FloatingLinesHero />
+      <SliderHero />
 
       <section id="center">
         <div className="hero">
