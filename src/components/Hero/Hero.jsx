@@ -17,7 +17,7 @@ const Hero = () => {
         />
       </div>
       <div className="hero-content">
-        <h1 className="hero-title">Zotonic</h1>
+        <h1 className="hero-title">Nicolas Lema</h1>
         <p className="hero-subtitle">Build something extraordinary.</p>
       </div>
     </section>

@@ -9,7 +9,7 @@ const FloatingLinesHero = () => {
         lineCount={[10, 15, 20]}
         lineDistance={[8, 6, 4]}
         bendRadius={5.0}
-        bendStrength={-0.5}
+        bendStrength={-3.5}
         interactive={true}
         parallax={true}
       />

@@ -33,6 +33,7 @@
   font-size: clamp(2.5rem, 6vw, 5rem);
   font-weight: 700;
   color: #ffffff;
+  padding-bottom: 24px;
   letter-spacing: -0.02em;
 }
 
