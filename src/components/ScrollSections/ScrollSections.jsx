@@ -16,8 +16,15 @@ const RESIZE_DEBOUNCE_MS = 200;
 // wheel/trackpad scroll. Each section is rendered as real, accessible DOM
 // (only the current one is visible/interactive) and the WebGL canvas is a
 // transient overlay shown only while a transition is in progress.
+//
+// `mode` controls how a wheel gesture drives the transition:
+// - 'snap' (default): one wheel tick commits a full transition to the next
+//   /previous section via a tween, like a slide deck. Simple, and immune to
+//   the scrub mode's direction-sign bug below.
+// - 'scrub': progress tracks the wheel in real time, no auto-complete.
 export default function ScrollSections({
   sections,
+  mode = 'snap',
   transition = 'melt',
   duration = 1.1,
   ease = 'power2.inOut',
@@ -125,48 +132,6 @@ export default function ScrollSections({
     };
   }, [snapshots, setCanvasVisible]);
 
-  const handleWheel = useCallback(
-    e => {
-      e.preventDefault();
-      const engine = engineRef.current;
-      if (!engine || engine.animating) return;
-
-      const deltaPx = normalizeDelta(e);
-      if (deltaPx === 0) return;
-      const wheelDir = Math.sign(deltaPx);
-
-      if (dirRef.current === 0) {
-        const from = currentIndexRef.current;
-        const target = from + wheelDir;
-        if (target < 0 || target >= sections.length) return;
-
-        const currentCanvas = snapshots.get(from);
-        const nextCanvas = snapshots.get(target);
-        if (!currentCanvas) return;
-        if (!nextCanvas) {
-          snapshots.capture(target);
-          return;
-        }
-
-        dirRef.current = wheelDir;
-        engine.prepareTransition(currentCanvas, nextCanvas, wheelDir);
-      }
-
-      progressRef.current = scrubStrategy(deltaPx, progressRef.current, { pxPerFullTransition: PX_PER_TRANSITION });
-      engine.setProgress(progressRef.current);
-      setCanvasVisible(progressRef.current > 0);
-
-      if (progressRef.current >= 1) {
-        engine.commit();
-        settle(currentIndexRef.current + dirRef.current);
-      } else if (progressRef.current <= 0) {
-        dirRef.current = 0;
-        setCanvasVisible(false);
-      }
-    },
-    [sections.length, snapshots, setCanvasVisible, settle]
-  );
-
   const goToIndex = useCallback(
     (targetIndex, dir) => {
       const engine = engineRef.current;
@@ -194,6 +159,77 @@ export default function ScrollSections({
     },
     [sections.length, snapshots, setCanvasVisible, settle]
   );
+
+  // 'snap': one wheel tick commits a whole transition via goToIndex's tween.
+  // While that tween is in flight, engine.animating (and dirRef, set inside
+  // goToIndex) block further calls, so the many wheel events a single
+  // scroll gesture fires don't trigger multiple section changes.
+  const handleSnapWheel = useCallback(
+    e => {
+      e.preventDefault();
+      const engine = engineRef.current;
+      if (!engine || engine.animating || dirRef.current !== 0) return;
+
+      const deltaPx = normalizeDelta(e);
+      if (deltaPx === 0) return;
+      const wheelDir = Math.sign(deltaPx);
+
+      goToIndex(currentIndexRef.current + wheelDir, wheelDir);
+    },
+    [goToIndex]
+  );
+
+  // 'scrub': progress follows the wheel in real time. `deltaPx` is signed
+  // relative to dirRef (not the raw wheel delta) before being handed to
+  // scrubStrategy — see the comment on scrubStrategy for why: passing the
+  // raw delta makes a backward transition's progress go negative and clamp
+  // to 0 on the very first tick, i.e. scrolling back never appears to work.
+  const handleScrubWheel = useCallback(
+    e => {
+      e.preventDefault();
+      const engine = engineRef.current;
+      if (!engine || engine.animating) return;
+
+      const deltaPx = normalizeDelta(e);
+      if (deltaPx === 0) return;
+      const wheelDir = Math.sign(deltaPx);
+
+      if (dirRef.current === 0) {
+        const from = currentIndexRef.current;
+        const target = from + wheelDir;
+        if (target < 0 || target >= sections.length) return;
+
+        const currentCanvas = snapshots.get(from);
+        const nextCanvas = snapshots.get(target);
+        if (!currentCanvas) return;
+        if (!nextCanvas) {
+          snapshots.capture(target);
+          return;
+        }
+
+        dirRef.current = wheelDir;
+        engine.prepareTransition(currentCanvas, nextCanvas, wheelDir);
+      }
+
+      const signedDeltaPx = deltaPx * dirRef.current;
+      progressRef.current = scrubStrategy(signedDeltaPx, progressRef.current, {
+        pxPerFullTransition: PX_PER_TRANSITION
+      });
+      engine.setProgress(progressRef.current);
+      setCanvasVisible(progressRef.current > 0);
+
+      if (progressRef.current >= 1) {
+        engine.commit();
+        settle(currentIndexRef.current + dirRef.current);
+      } else if (progressRef.current <= 0) {
+        dirRef.current = 0;
+        setCanvasVisible(false);
+      }
+    },
+    [sections.length, snapshots, setCanvasVisible, settle]
+  );
+
+  const handleWheel = mode === 'scrub' ? handleScrubWheel : handleSnapWheel;
 
   const handleKeyDown = useCallback(
     e => {
