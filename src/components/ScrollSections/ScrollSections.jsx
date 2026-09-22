@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { MorphEngine, makeTextureFromSource, getSourceSize } from '../../lib/morph';
 import { useSectionSnapshots } from './useSectionSnapshots';
@@ -98,12 +98,24 @@ export default function ScrollSections({
       setCurrentIndex(newIndex);
       progressRef.current = 0;
       dirRef.current = 0;
-      setCanvasVisible(false);
+      // Canvas hide is intentionally NOT done here — see the layout effect
+      // below keyed on `currentIndex`. Hiding it synchronously in this same
+      // tick (a raw DOM write) could momentarily run ahead of React actually
+      // committing the new section's visibility swap (a state update), which
+      // would flash the previous section's real DOM for a frame before the
+      // new one settles in.
       snapshots.capture(newIndex - 1);
       snapshots.capture(newIndex + 1);
     },
-    [snapshots, setCanvasVisible]
+    [snapshots]
   );
+
+  // Hides the transition canvas only once React has committed the DOM for
+  // the newly-current section, so the canvas-hide and the section-swap
+  // always land in the same paint.
+  useLayoutEffect(() => {
+    setCanvasVisible(false);
+  }, [currentIndex, setCanvasVisible]);
 
   // Mount the shared morph engine into the fixed canvas layer, and prime it
   // with a snapshot of the first section once layout/fonts have settled.
