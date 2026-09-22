@@ -1,13 +1,13 @@
 import ScrollSections from './components/ScrollSections/ScrollSections'
 import Hero from './components/sections/Hero/Hero'
 import Sound from './components/sections/Sound/Sound'
-import Gallery from './components/sections/Gallery/Gallery'
+import Craft from './components/sections/Craft/Craft'
 import GradualBlur from './components/GradualBlur/GradualBlur'
 
 const SECTIONS = [
   { id: 'hero', Component: Hero },
   { id: 'sound', Component: Sound },
-  { id: 'gallery', Component: Gallery }
+  { id: 'craft', Component: Craft }
 ]
 
 function App() {
