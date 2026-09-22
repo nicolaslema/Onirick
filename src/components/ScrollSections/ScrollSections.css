@@ -15,6 +15,18 @@
   overflow: hidden;
 }
 
+/* Moves a non-current section fully out of the viewport instead of hiding
+   it — see the comment in ScrollSections.jsx for why visibility/opacity/
+   display can't be used here (it would break DOM snapshot capture). */
+.scroll-sections-host[data-offscreen] {
+  transform: translateX(-200vw);
+}
+
+.scroll-sections-capture {
+  width: 100%;
+  height: 100%;
+}
+
 .scroll-sections-canvas-host {
   position: fixed;
   inset: 0;

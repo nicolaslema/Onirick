@@ -94,8 +94,9 @@ void main() {
 
   vec2 uv = vUv;
 
-  uv += vec2(sin(uTime * 0.25 + uv.y * 4.0), cos(uTime * 0.22 + uv.x * 4.0)) * uDrift * 0.008;
-  uv = (uv - 0.5) * (1.0 - uDrift * 0.02 * sin(uTime * 0.4)) + 0.5;
+  float driftEnv = mix(0.15, 1.0, env);
+  uv += vec2(sin(uTime * 0.25 + uv.y * 4.0), cos(uTime * 0.22 + uv.x * 4.0)) * uDrift * 0.008 * driftEnv;
+  uv = (uv - 0.5) * (1.0 - uDrift * 0.02 * sin(uTime * 0.4) * driftEnv) + 0.5;
 
   vec2 uvC = uv;
   vec2 uvN = uv;
@@ -134,7 +135,9 @@ void main() {
       vec2 g = vec2(nn, warp) - 0.5;
       uvC = uv + g * uIntensity * 0.5 * p;
       uvN = uv - g * uIntensity * 0.5 * (1.0 - p);
-      m = smoothstep(nn - 0.15, nn + 0.15, p);
+      float grad = uDir > 0.0 ? uv.y : 1.0 - uv.y;
+      float nn2 = mix(nn, grad, 0.35);
+      m = smoothstep(nn2 - 0.25, nn2 + 0.25, p);
     }
   }
 
@@ -157,7 +160,7 @@ void main() {
   vec3 col = mix(colC, colN, m);
 
   float vig = smoothstep(1.25, 0.25, length(uv - 0.5));
-  col = mix(col, uOverlay, (1.0 - vig) * 0.28);
+  col = mix(col, uOverlay, (1.0 - vig) * 0.28 * env);
 
   gl_FragColor = vec4(col, 1.0);
 }
