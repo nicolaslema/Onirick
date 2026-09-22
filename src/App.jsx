@@ -4,6 +4,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import Hero from './components/Hero/Hero'
 import DistortionHero from './components/DistortionHero/DistortionHero'
+import LiquidHero from './components/LiquidHero/LiquidHero'
 import './App.css'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
     <>
       <Hero />
       <DistortionHero />
+      <LiquidHero />
 
   
 
