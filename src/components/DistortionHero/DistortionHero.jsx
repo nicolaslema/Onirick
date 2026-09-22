@@ -1,5 +1,5 @@
 import GridDistortion from '../GridDistortion/GridDistortion';
-import heroImg from '../../assets/hero.png';
+import heroImg from '../../assets/nicoymagui.jpg';
 import './DistortionHero.css';
 
 const DistortionHero = () => {
@@ -7,9 +7,9 @@ const DistortionHero = () => {
     <section className="distortion-hero">
       <GridDistortion
         imageSrc={heroImg}
-        grid={10}
+        grid={30}
         mouse={0.1}
-        strength={0.15}
+        strength={2.15}
         relaxation={0.9}
       />
     </section>
