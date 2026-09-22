@@ -1,19 +1,19 @@
-import { useState } from 'react'
-import Hero from './components/Hero/Hero'
-import SliderHero from './components/SliderHero/SliderHero'
+import ScrollSections from './components/ScrollSections/ScrollSections'
+import Hero from './components/sections/Hero/Hero'
+import Projects from './components/sections/Projects/Projects'
+import GradualBlur from './components/GradualBlur/GradualBlur'
 
-
-import './App.css'
+const SECTIONS = [
+  { id: 'hero', Component: Hero },
+  { id: 'projects', Component: Projects }
+]
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-    
-      <Hero />
-      <SliderHero />  
-     
+      <GradualBlur target="page" position="top" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
+      <GradualBlur target="page" position="bottom" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
+      <ScrollSections sections={SECTIONS} />
     </>
   )
 }

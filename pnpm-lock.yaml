@@ -23,6 +23,9 @@ importers:
       mathjs:
         specifier: ^15.2.0
         version: 15.2.0
+      modern-screenshot:
+        specifier: ^4.7.0
+        version: 4.7.0
       ogl:
         specifier: ^1.0.11
         version: 1.0.11
@@ -559,6 +562,9 @@ packages:
 
   meshoptimizer@1.1.1:
     resolution: {integrity: sha512-oRFNWJRDA/WTrVj7NWvqa5HqE1t9MYDj2VaWirQCzCCrAd2GHrqR/sQezCxiWATPNlKTcRaPRHPJwIRoPBAp5g==}
+
+  modern-screenshot@4.7.0:
+    resolution: {integrity: sha512-9YxN+ddPSMMlhylOv25VHzXrl9u67QRxoh7+SEewGtgUw7t6hHTrjptSDJUSne9oG4Xk/h2cwG15nIt4Hc9ujg==}
 
   nanoid@3.3.19:
     resolution: {integrity: sha512-Y2tUNy4ouw6tq5oDSKeQYGOyhkUBhNOcGV/02KC+6kd9eDGqdZd++mjMiIDilrBYvjEnCYvVtsuHCuP+okSfug==}
@@ -1164,6 +1170,8 @@ snapshots:
       three: 0.186.0
 
   meshoptimizer@1.1.1: {}
+
+  modern-screenshot@4.7.0: {}
 
   nanoid@3.3.19: {}
 
