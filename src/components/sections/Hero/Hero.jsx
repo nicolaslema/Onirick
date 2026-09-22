@@ -1,36 +1,22 @@
 import Beams from '../../Beams/Beams';
-import RotatingText from '../../RotatingText/RotatingText';
+import ShinyText from '../../ShinyText/ShinyText';
 import './Hero.css';
 
-const ROLES = ['Musician', 'Designer', 'Artist', 'Developer', 'Entrepreneur'];
-
-// Placeholder copy — swap in the real name/bio/CTA.
+// Placeholder copy — swap in real product name/tagline/CTA.
 const Hero = () => {
   return (
-    <section className="portfolio-hero">
-      <div className="portfolio-hero-bg">
+    <section className="nova-hero">
+      <div className="nova-hero-bg">
         <Beams beamWidth={2} beamHeight={18} beamNumber={14} lightColor="#ffffff" speed={1.6} noiseIntensity={1.6} scale={0.22} rotation={12} />
       </div>
-      <div className="portfolio-hero-content">
-        <p className="portfolio-hero-eyebrow">Portfolio</p>
-        <h1 className="portfolio-hero-title">Your Name</h1>
-        <p className="portfolio-hero-role">
-          I work as a{' '}
-          <RotatingText
-            texts={ROLES}
-            mainClassName="portfolio-hero-role-rotate"
-            staggerFrom="last"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '-120%' }}
-            staggerDuration={0.02}
-            splitLevelClassName="portfolio-hero-role-split"
-            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-            rotationInterval={2200}
-          />
-        </p>
-        <button type="button" className="portfolio-hero-cta">
-          View work
+      <div className="nova-hero-content">
+        <p className="nova-hero-eyebrow">Introducing</p>
+        <h1 className="nova-hero-title">
+          <ShinyText text="NOVA" speed={2.4} color="#7a7a82" shineColor="#ffffff" spread={110} direction="left" />
+        </h1>
+        <p className="nova-hero-tagline">Spatial audio. Redefined.</p>
+        <button type="button" className="nova-hero-cta">
+          Pre-order now
         </button>
       </div>
     </section>

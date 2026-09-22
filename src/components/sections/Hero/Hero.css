@@ -1,4 +1,4 @@
-.portfolio-hero {
+.nova-hero {
   position: relative;
   width: 100%;
   height: 100%;
@@ -13,7 +13,7 @@
   overflow: hidden;
 }
 
-.portfolio-hero-bg {
+.nova-hero-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -21,13 +21,13 @@
   opacity: 0.6;
 }
 
-.portfolio-hero-content {
+.nova-hero-content {
   position: relative;
   z-index: 1;
   max-width: 640px;
 }
 
-.portfolio-hero-eyebrow {
+.nova-hero-eyebrow {
   margin: 0 0 0.75rem;
   font-size: 0.85rem;
   letter-spacing: 0.28em;
@@ -35,42 +35,20 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
-.portfolio-hero-title {
+.nova-hero-title {
   margin: 0;
-  font-size: clamp(2.75rem, 7vw, 5.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: clamp(3.5rem, 10vw, 8rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
-.portfolio-hero-role {
+.nova-hero-tagline {
   margin: 1.25rem 0 2rem;
   font-size: clamp(1.1rem, 2.4vw, 1.5rem);
-  color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4em;
-  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.75);
 }
 
-.portfolio-hero-role-rotate {
-  color: #0b0b10;
-  background-color: var(--portfolio-accent, #d4af6a);
-  padding: 0.1em 0.5em;
-  border-radius: 0.4em;
-  font-weight: 600;
-  overflow: hidden;
-  white-space: nowrap;
-  justify-content: center;
-  align-items: center;
-  /* Fixed wide enough for "Entrepreneur" (the longest role) so the pill
-     never needs to resize between words — motion's `layout` animation on
-     this element combined with the per-character enter/exit spring was
-     causing mid-word overflow/skew while it resized for a longer word. */
-  min-width: 8.5em;
-}
-
-.portfolio-hero-cta {
+.nova-hero-cta {
   display: inline-block;
   padding: 0.75rem 1.75rem;
   border: none;
@@ -86,7 +64,7 @@
     opacity 0.2s ease;
 }
 
-.portfolio-hero-cta:hover {
+.nova-hero-cta:hover {
   transform: translateY(-2px);
   opacity: 0.9;
 }
