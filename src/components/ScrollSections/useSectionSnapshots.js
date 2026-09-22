@@ -19,7 +19,10 @@ export function useSectionSnapshots(hostRefs) {
       if (!el) return Promise.resolve(null);
 
       const scale = Math.min(window.devicePixelRatio || 1, 2);
-      const promise = domToCanvas(el, { scale })
+      // backgroundColor is a fallback only — every section already paints its
+      // own opaque background — so a capture can never come back transparent
+      // (which the morph shader would render as solid black).
+      const promise = domToCanvas(el, { scale, backgroundColor: '#0b0b10' })
         .then(canvas => {
           cacheRef.current.set(index, canvas);
           pendingRef.current.delete(index);

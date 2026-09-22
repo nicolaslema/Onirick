@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { MorphEngine } from '../../lib/morph';
+import { MorphEngine, makeTextureFromSource, getSourceSize } from '../../lib/morph';
 import { useSectionSnapshots } from './useSectionSnapshots';
 import { normalizeDelta, scrubStrategy } from './useWheelProgress';
 
@@ -26,10 +26,10 @@ export default function ScrollSections({
   sections,
   mode = 'snap',
   transition = 'melt',
-  duration = 1.1,
+  duration = 1.5,
   ease = 'power2.inOut',
-  intensity = 0.55,
-  scale = 2.4,
+  intensity = 0.85,
+  scale = 5,
   aberration = 0.35,
   drift = 0.4,
   overlayColor = '#000000'
@@ -48,6 +48,42 @@ export default function ScrollSections({
   optsRef.current = { transition, duration, ease, intensity, scale, aberration, drift, overlayColor };
 
   const snapshots = useSectionSnapshots(sectionHostRefs);
+
+  // ogl doesn't dispose textures on its own (Texture has no delete path), and
+  // wrapping the same snapshot canvas in a brand new Texture on every
+  // prepareTransition()/setCurrent() call leaks GPU memory fast at
+  // full-viewport size. Cache one Texture per section index and only rebuild
+  // it if the underlying canvas actually changed (i.e. after a re-snapshot
+  // on resize), deleting the stale one first.
+  const textureCacheRef = useRef(new Map());
+
+  const disposeTextureCache = useCallback(() => {
+    const gl = engineRef.current?.gl;
+    textureCacheRef.current.forEach(({ oglTexture }) => {
+      if (gl && oglTexture?.texture) gl.deleteTexture(oglTexture.texture);
+    });
+    textureCacheRef.current.clear();
+  }, []);
+
+  const getTextureDescriptor = useCallback(
+    index => {
+      const canvas = snapshots.get(index);
+      const engine = engineRef.current;
+      if (!canvas || !engine) return null;
+
+      const cached = textureCacheRef.current.get(index);
+      if (cached && cached.canvas === canvas) return cached;
+
+      if (cached?.oglTexture?.texture) {
+        engine.gl.deleteTexture(cached.oglTexture.texture);
+      }
+
+      const descriptor = { oglTexture: makeTextureFromSource(engine.gl, canvas), size: getSourceSize(canvas), canvas };
+      textureCacheRef.current.set(index, descriptor);
+      return descriptor;
+    },
+    [snapshots]
+  );
 
   const setCanvasVisible = useCallback(visible => {
     const canvas = engineRef.current?.canvas;
@@ -89,7 +125,9 @@ export default function ScrollSections({
       requestAnimationFrame(() => {
         if (cancelled) return;
         snapshots.capture(0).then(canvas => {
-          if (!cancelled && canvas) engine.setCurrent(canvas);
+          if (cancelled || !canvas) return;
+          const descriptor = getTextureDescriptor(0);
+          if (descriptor) engine.setCurrent(descriptor);
         });
         if (sections.length > 1) snapshots.capture(1);
       });
@@ -97,6 +135,7 @@ export default function ScrollSections({
 
     return () => {
       cancelled = true;
+      disposeTextureCache();
       engine.destroy();
       engineRef.current = null;
     };
@@ -120,8 +159,11 @@ export default function ScrollSections({
           setCanvasVisible(false);
         }
         snapshots.invalidateAll();
+        disposeTextureCache();
         snapshots.capture(currentIndexRef.current).then(canvas => {
-          if (canvas) engine.setCurrent(canvas);
+          if (!canvas) return;
+          const descriptor = getTextureDescriptor(currentIndexRef.current);
+          if (descriptor) engine.setCurrent(descriptor);
         });
       }, RESIZE_DEBOUNCE_MS);
     };
@@ -130,7 +172,7 @@ export default function ScrollSections({
       clearTimeout(timeout);
       window.removeEventListener('resize', onResize);
     };
-  }, [snapshots, setCanvasVisible]);
+  }, [snapshots, setCanvasVisible, getTextureDescriptor, disposeTextureCache]);
 
   const goToIndex = useCallback(
     (targetIndex, dir) => {
@@ -138,15 +180,17 @@ export default function ScrollSections({
       if (!engine || engine.animating || dirRef.current !== 0) return;
       if (targetIndex < 0 || targetIndex >= sections.length) return;
 
-      const currentCanvas = snapshots.get(currentIndexRef.current);
-      const nextCanvas = snapshots.get(targetIndex);
-      if (!currentCanvas || !nextCanvas) {
+      if (!snapshots.get(currentIndexRef.current) || !snapshots.get(targetIndex)) {
         snapshots.capture(targetIndex);
         return;
       }
 
+      const currentDesc = getTextureDescriptor(currentIndexRef.current);
+      const nextDesc = getTextureDescriptor(targetIndex);
+      if (!currentDesc || !nextDesc) return;
+
       dirRef.current = dir;
-      engine.prepareTransition(currentCanvas, nextCanvas, dir);
+      engine.prepareTransition(currentDesc, nextDesc, dir);
       setCanvasVisible(true);
       engine.animateProgress(1, {
         duration: optsRef.current.duration,
@@ -157,7 +201,7 @@ export default function ScrollSections({
         }
       });
     },
-    [sections.length, snapshots, setCanvasVisible, settle]
+    [sections.length, snapshots, setCanvasVisible, settle, getTextureDescriptor]
   );
 
   // 'snap': one wheel tick commits a whole transition via goToIndex's tween.
@@ -199,16 +243,18 @@ export default function ScrollSections({
         const target = from + wheelDir;
         if (target < 0 || target >= sections.length) return;
 
-        const currentCanvas = snapshots.get(from);
-        const nextCanvas = snapshots.get(target);
-        if (!currentCanvas) return;
-        if (!nextCanvas) {
+        if (!snapshots.get(from)) return;
+        if (!snapshots.get(target)) {
           snapshots.capture(target);
           return;
         }
 
+        const currentDesc = getTextureDescriptor(from);
+        const nextDesc = getTextureDescriptor(target);
+        if (!currentDesc || !nextDesc) return;
+
         dirRef.current = wheelDir;
-        engine.prepareTransition(currentCanvas, nextCanvas, wheelDir);
+        engine.prepareTransition(currentDesc, nextDesc, wheelDir);
       }
 
       const signedDeltaPx = deltaPx * dirRef.current;
@@ -226,7 +272,7 @@ export default function ScrollSections({
         setCanvasVisible(false);
       }
     },
-    [sections.length, snapshots, setCanvasVisible, settle]
+    [sections.length, snapshots, setCanvasVisible, settle, getTextureDescriptor]
   );
 
   const handleWheel = mode === 'scrub' ? handleScrubWheel : handleSnapWheel;
@@ -255,20 +301,29 @@ export default function ScrollSections({
       {sections.map((section, i) => {
         const isCurrent = i === currentIndex;
         return (
+          // Non-current sections are moved off-screen (not visibility/opacity/
+          // display: hidden) so modern-screenshot can still capture them
+          // correctly — it clones computed styles onto whatever it rasterizes,
+          // so visibility:hidden (or opacity:0/display:none) on the captured
+          // element makes the snapshot itself blank, which the shader then
+          // renders as solid black. `transform` is on this outer wrapper only;
+          // the ref'd capture div underneath carries no hiding style at all.
           <div
             key={section.id}
-            ref={el => {
-              sectionHostRefs.current[i] = el;
-            }}
             className="scroll-sections-host"
-            style={{
-              visibility: isCurrent ? 'visible' : 'hidden',
-              pointerEvents: isCurrent ? 'auto' : 'none'
-            }}
+            data-offscreen={isCurrent ? undefined : true}
+            style={{ pointerEvents: isCurrent ? 'auto' : 'none' }}
             aria-hidden={isCurrent ? undefined : true}
             inert={!isCurrent}
           >
-            <section.Component />
+            <div
+              ref={el => {
+                sectionHostRefs.current[i] = el;
+              }}
+              className="scroll-sections-capture"
+            >
+              <section.Component />
+            </div>
           </div>
         );
       })}
