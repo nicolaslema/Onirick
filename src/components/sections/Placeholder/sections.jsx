@@ -1,6 +1,10 @@
 import PlaceholderSection from './PlaceholderSection';
 import RippleDistortion from '../../RippleDistortion/RippleDistortion';
-import rippleImage from '../../../assets/Slider/digital-digital-art-artwork-painting-drawing-hd-wallpaper-f4f3c52c24b9b5c33430781cded1b351.jpg';
+// The other Slider wallpaper (digital-art one) is ~2MB — heavy enough that
+// its onload regularly landed after ScrollSections' capture timeout,
+// leaving the morph texture permanently black until a later refresh caught
+// up. This one is ~100KB and loads near-instantly.
+import rippleImage from '../../../assets/Slider/animals-birds-kingfisher-low-poly-wallpaper-790078ad012a3d8b1677f8bfe081d6dd.jpg';
 
 // Four zero-cost stand-ins (solid/gradient CSS only) simulating distinct
 // sections, so ScrollSections has something to morph between while the
