@@ -10,6 +10,13 @@ import './ScrollSections.css';
 // sections. Starting point, needs on-device tuning.
 const PX_PER_TRANSITION = 900;
 const RESIZE_DEBOUNCE_MS = 200;
+// How often an in-progress transition's two sections are re-captured (see
+// useSectionTextures' refresh()) so an animated section's background doesn't
+// visibly freeze for the whole transition and then "pop" once it completes.
+// A compromise, not literal per-frame accuracy: modern-screenshot has real
+// cost, so this re-captures often enough that the freeze isn't perceptible
+// without doing it every single rendered frame (which would stutter).
+const LIVE_REFRESH_INTERVAL_MS = 120;
 
 // Scroll-driven version of MorphSlider: instead of morphing between slide
 // images on click/drag, this morphs between whole page sections on
@@ -38,6 +45,7 @@ export default function ScrollSections({
   const canvasHostRef = useRef(null);
   const sectionHostRefs = useRef([]);
   const engineRef = useRef(null);
+  const refreshTimerRef = useRef(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentIndexRef = useRef(0);
@@ -48,9 +56,9 @@ export default function ScrollSections({
   optsRef.current = { transition, duration, ease, intensity, scale, aberration, drift, overlayColor };
 
   // Resolves each section into a texture the morph engine can sample — a
-  // section's own live <canvas> if it renders one (kept continuously
-  // up to date, see MorphEngine's liveSource handling), otherwise a one-time
-  // DOM snapshot for plain content. See useSectionTextures.js.
+  // full DOM capture (background shader + real content composited), kept
+  // fresh via periodic re-capture while actively part of a transition. See
+  // useSectionTextures.js.
   const sectionTextures = useSectionTextures(sectionHostRefs);
 
   const setCanvasVisible = useCallback(visible => {
@@ -60,8 +68,27 @@ export default function ScrollSections({
     canvas.style.visibility = visible ? 'visible' : 'hidden';
   }, []);
 
+  const stopLiveRefresh = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
+
+  const startLiveRefresh = useCallback(
+    (fromIndex, toIndex) => {
+      stopLiveRefresh();
+      refreshTimerRef.current = setInterval(() => {
+        sectionTextures.refresh(fromIndex);
+        sectionTextures.refresh(toIndex);
+      }, LIVE_REFRESH_INTERVAL_MS);
+    },
+    [sectionTextures, stopLiveRefresh]
+  );
+
   const settle = useCallback(
     newIndex => {
+      stopLiveRefresh();
       currentIndexRef.current = newIndex;
       setCurrentIndex(newIndex);
       progressRef.current = 0;
@@ -72,10 +99,10 @@ export default function ScrollSections({
       // committing the new section's visibility swap (a state update), which
       // would flash the previous section's real DOM for a frame before the
       // new one settles in.
-      sectionTextures.ensureReady(newIndex - 1);
-      sectionTextures.ensureReady(newIndex + 1);
+      sectionTextures.capture(newIndex - 1);
+      sectionTextures.capture(newIndex + 1);
     },
-    [sectionTextures]
+    [sectionTextures, stopLiveRefresh]
   );
 
   // Hides the transition canvas only once React has committed the DOM for
@@ -104,17 +131,18 @@ export default function ScrollSections({
     fontsReady.then(() => {
       requestAnimationFrame(() => {
         if (cancelled) return;
-        sectionTextures.ensureReady(0).then(ready => {
-          if (cancelled || !ready) return;
+        sectionTextures.capture(0).then(canvas => {
+          if (cancelled || !canvas) return;
           const descriptor = sectionTextures.getTexture(0, engine.gl);
           if (descriptor) engine.setCurrent(descriptor);
         });
-        if (sections.length > 1) sectionTextures.ensureReady(1);
+        if (sections.length > 1) sectionTextures.capture(1);
       });
     });
 
     return () => {
       cancelled = true;
+      stopLiveRefresh();
       sectionTextures.invalidateAll(engine.gl);
       engine.destroy();
       engineRef.current = null;
@@ -122,11 +150,9 @@ export default function ScrollSections({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resizing mid-transition invalidates a snapshot-backed section's pixel
-  // dimensions (live-canvas sections resize themselves independently, so
-  // they don't strictly need this, but re-priming is cheap and keeps things
-  // uniform), so hard-reset to the settled section rather than trying to
-  // resize textures mid-morph, then re-resolve once things stop moving.
+  // Resizing mid-transition invalidates a section's captured pixel
+  // dimensions, so hard-reset to the settled section rather than trying to
+  // resize textures mid-morph, then re-capture once things stop moving.
   useEffect(() => {
     let timeout;
     const onResize = () => {
@@ -135,14 +161,15 @@ export default function ScrollSections({
         const engine = engineRef.current;
         if (!engine) return;
         if (dirRef.current !== 0 || engine.animating) {
+          stopLiveRefresh();
           engine.reset();
           dirRef.current = 0;
           progressRef.current = 0;
           setCanvasVisible(false);
         }
         sectionTextures.invalidateAll(engine.gl);
-        sectionTextures.ensureReady(currentIndexRef.current).then(ready => {
-          if (!ready) return;
+        sectionTextures.capture(currentIndexRef.current).then(canvas => {
+          if (!canvas) return;
           const descriptor = sectionTextures.getTexture(currentIndexRef.current, engine.gl);
           if (descriptor) engine.setCurrent(descriptor);
         });
@@ -153,7 +180,7 @@ export default function ScrollSections({
       clearTimeout(timeout);
       window.removeEventListener('resize', onResize);
     };
-  }, [sectionTextures, setCanvasVisible]);
+  }, [sectionTextures, setCanvasVisible, stopLiveRefresh]);
 
   const goToIndex = useCallback(
     (targetIndex, dir) => {
@@ -162,7 +189,7 @@ export default function ScrollSections({
       if (targetIndex < 0 || targetIndex >= sections.length) return;
 
       if (!sectionTextures.isReady(currentIndexRef.current) || !sectionTextures.isReady(targetIndex)) {
-        sectionTextures.ensureReady(targetIndex);
+        sectionTextures.capture(targetIndex);
         return;
       }
 
@@ -173,6 +200,7 @@ export default function ScrollSections({
       dirRef.current = dir;
       engine.prepareTransition(currentDesc, nextDesc, dir);
       setCanvasVisible(true);
+      startLiveRefresh(currentIndexRef.current, targetIndex);
       engine.animateProgress(1, {
         duration: optsRef.current.duration,
         ease: optsRef.current.ease,
@@ -182,7 +210,7 @@ export default function ScrollSections({
         }
       });
     },
-    [sections.length, sectionTextures, setCanvasVisible, settle]
+    [sections.length, sectionTextures, setCanvasVisible, settle, startLiveRefresh]
   );
 
   // 'snap': one wheel tick commits a whole transition via goToIndex's tween.
@@ -226,7 +254,7 @@ export default function ScrollSections({
 
         if (!sectionTextures.isReady(from)) return;
         if (!sectionTextures.isReady(target)) {
-          sectionTextures.ensureReady(target);
+          sectionTextures.capture(target);
           return;
         }
 
@@ -236,6 +264,7 @@ export default function ScrollSections({
 
         dirRef.current = wheelDir;
         engine.prepareTransition(currentDesc, nextDesc, wheelDir);
+        startLiveRefresh(from, target);
       }
 
       const signedDeltaPx = deltaPx * dirRef.current;
@@ -249,11 +278,12 @@ export default function ScrollSections({
         engine.commit();
         settle(currentIndexRef.current + dirRef.current);
       } else if (progressRef.current <= 0) {
+        stopLiveRefresh();
         dirRef.current = 0;
         setCanvasVisible(false);
       }
     },
-    [sections.length, sectionTextures, setCanvasVisible, settle]
+    [sections.length, sectionTextures, setCanvasVisible, settle, startLiveRefresh, stopLiveRefresh]
   );
 
   const handleWheel = mode === 'scrub' ? handleScrubWheel : handleSnapWheel;
