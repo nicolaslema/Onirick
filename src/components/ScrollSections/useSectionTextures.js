@@ -6,13 +6,19 @@ import { makeTextureFromSource, getSourceSize } from '../../lib/morph';
 // ...) doesn't get its real pixel dimensions until its ResizeObserver-driven
 // resize logic has actually run at least once after mount — until then it
 // sits at the browser's 300x150 default. Wait for it to reach a real,
-// container-matching size before treating it as usable.
-function waitForCanvasReady(canvasEl, { maxWaitMs = 1500, intervalMs = 40 } = {}) {
+// container-matching size before the section is snapshotted, so the very
+// first capture isn't taken of a blank canvas.
+function waitForCanvasesReady(el, { maxWaitMs = 1500, intervalMs = 40 } = {}) {
   return new Promise(resolve => {
     const start = performance.now();
     const check = () => {
-      const rect = canvasEl.getBoundingClientRect();
-      const ready = canvasEl.width > 2 && canvasEl.height > 2 && Math.abs(canvasEl.width - rect.width) < rect.width * 0.5 + 4;
+      const canvases = el.querySelectorAll('canvas');
+      const ready =
+        canvases.length === 0 ||
+        Array.from(canvases).every(c => {
+          const rect = c.getBoundingClientRect();
+          return c.width > 2 && c.height > 2 && Math.abs(c.width - rect.width) < rect.width * 0.5 + 4;
+        });
       if (ready || performance.now() - start > maxWaitMs) {
         resolve();
         return;
@@ -23,50 +29,52 @@ function waitForCanvasReady(canvasEl, { maxWaitMs = 1500, intervalMs = 40 } = {}
   });
 }
 
-// Resolves each section into a texture source for the morph engine:
-// - If the section renders its own <canvas> (an animated WebGL background),
-//   that live canvas element is tracked directly and re-sampled every frame
-//   it's in use (see MorphEngine's liveSource handling) — so the shader
-//   keeps animating in sync all the way through a transition instead of
-//   freezing on a one-time snapshot and then "popping" to whatever frame the
-//   live animation had actually reached by the time the transition ends.
-// - Otherwise (plain DOM/text content, no canvas of its own), falls back to
-//   a one-time modern-screenshot capture — static content has no "live"
-//   state to fall out of sync with, so a snapshot is equivalent forever.
+// Captures a full DOM snapshot (via modern-screenshot) of each section —
+// this is what the morph engine samples as a texture. A whole-section
+// snapshot, rather than grabbing a section's own <canvas> directly, is
+// deliberate: a section is a composite of a WebGL background *and* real DOM
+// content on top of it (headings, buttons, cards, ...); sampling just the
+// canvas silently drops all of that overlaid content from the transition.
+//
+// A snapshot is inherently a frozen instant, though, and an animated
+// section (anything with its own <canvas> background) would visibly "freeze
+// then pop" once a transition finished revealing its now-far-ahead-in-time
+// live version — see refresh() below, which callers use to re-capture a
+// section periodically while it's actively part of a transition, keeping it
+// close enough to live that the freeze/pop is no longer perceptible without
+// re-capturing every single frame (which would be far too expensive).
 export function useSectionTextures(hostRefs) {
-  // index -> { canvasEl } | { snapshot } | { canvasEl, oglTexture, size } | { snapshot, oglTexture, size }
-  const sourceRef = useRef(new Map());
+  const cacheRef = useRef(new Map()); // index -> HTMLCanvasElement (latest capture)
+  const textureCacheRef = useRef(new Map()); // index -> ogl Texture (reused in place)
   const pendingRef = useRef(new Map());
 
-  const ensureReady = useCallback(
+  const capture = useCallback(
     index => {
-      if (sourceRef.current.has(index)) return Promise.resolve(true);
+      if (cacheRef.current.has(index)) return Promise.resolve(cacheRef.current.get(index));
       if (pendingRef.current.has(index)) return pendingRef.current.get(index);
 
       const el = hostRefs.current[index];
-      if (!el) return Promise.resolve(false);
+      if (!el) return Promise.resolve(null);
 
-      const canvasEl = el.querySelector('canvas');
-
-      const promise = (
-        canvasEl
-          ? waitForCanvasReady(canvasEl).then(() => ({ canvasEl }))
-          : domToCanvas(el, {
-              scale: Math.min(window.devicePixelRatio || 1, 2),
-              // Fallback only — every section paints its own opaque
-              // background, so a capture can never come back transparent
-              // (which the morph shader would render as solid black).
-              backgroundColor: '#0b0b10'
-            }).then(snapshot => ({ snapshot }))
-      )
-        .then(result => {
-          sourceRef.current.set(index, result);
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      const promise = waitForCanvasesReady(el)
+        .then(() =>
+          domToCanvas(el, {
+            scale,
+            // Fallback only — every section paints its own opaque
+            // background, so a capture can never come back transparent
+            // (which the morph shader would render as solid black).
+            backgroundColor: '#0b0b10'
+          })
+        )
+        .then(canvas => {
+          cacheRef.current.set(index, canvas);
           pendingRef.current.delete(index);
-          return true;
+          return canvas;
         })
         .catch(() => {
           pendingRef.current.delete(index);
-          return false;
+          return null;
         });
 
       pendingRef.current.set(index, promise);
@@ -75,37 +83,52 @@ export function useSectionTextures(hostRefs) {
     [hostRefs]
   );
 
-  const isReady = useCallback(index => sourceRef.current.has(index), []);
+  const isReady = useCallback(index => cacheRef.current.has(index), []);
 
-  // Builds (and caches) the ogl Texture for a section. For a live canvas the
-  // Texture wrapper itself is created once and reused forever — MorphEngine
-  // re-uploads its pixels every frame via needsUpdate, so there's nothing to
-  // rebuild later, but `size` is recomputed on every call (cheap) so an
-  // aspect-ratio change (e.g. a window resize) is picked up next time this
-  // section is used in a transition without needing an explicit invalidation.
+  // Builds (and caches) the ogl Texture for a section. The Texture instance
+  // itself is created once per index and reused forever — refresh() below
+  // mutates its `.image` in place rather than swapping the uniform value, so
+  // MorphEngine doesn't need to know anything about "live" sections at all.
   const getTexture = useCallback((index, gl) => {
-    const source = sourceRef.current.get(index);
-    if (!source || !gl) return null;
+    const canvas = cacheRef.current.get(index);
+    if (!canvas || !gl) return null;
 
-    if (source.canvasEl) {
-      if (!source.oglTexture) source.oglTexture = makeTextureFromSource(gl, source.canvasEl);
-      return { oglTexture: source.oglTexture, size: getSourceSize(source.canvasEl), liveSource: source.canvasEl };
+    let oglTexture = textureCacheRef.current.get(index);
+    if (!oglTexture) {
+      oglTexture = makeTextureFromSource(gl, canvas);
+      textureCacheRef.current.set(index, oglTexture);
     }
-
-    if (!source.oglTexture) {
-      source.oglTexture = makeTextureFromSource(gl, source.snapshot);
-      source.size = getSourceSize(source.snapshot);
-    }
-    return { oglTexture: source.oglTexture, size: source.size };
+    return { oglTexture, size: getSourceSize(canvas) };
   }, []);
 
+  // Re-captures a section and updates its already-built Texture's `.image`
+  // in place. Callers (ScrollSections) poll this on an interval while a
+  // section is actively part of an in-progress transition, not every frame —
+  // domToCanvas has real cost, and the goal is "close enough to live that a
+  // freeze isn't perceptible", not literal per-frame accuracy.
+  const refresh = useCallback(index => {
+    const el = hostRefs.current[index];
+    const oglTexture = textureCacheRef.current.get(index);
+    if (!el || !oglTexture) return Promise.resolve(false);
+
+    const scale = Math.min(window.devicePixelRatio || 1, 2);
+    return domToCanvas(el, { scale, backgroundColor: '#0b0b10' })
+      .then(canvas => {
+        cacheRef.current.set(index, canvas);
+        oglTexture.image = canvas; // reference change alone makes ogl re-upload on next render
+        return true;
+      })
+      .catch(() => false);
+  }, [hostRefs]);
+
   const invalidateAll = useCallback(gl => {
-    sourceRef.current.forEach(source => {
-      if (gl && source.oglTexture?.texture) gl.deleteTexture(source.oglTexture.texture);
+    textureCacheRef.current.forEach(oglTexture => {
+      if (gl && oglTexture?.texture) gl.deleteTexture(oglTexture.texture);
     });
-    sourceRef.current.clear();
+    textureCacheRef.current.clear();
+    cacheRef.current.clear();
     pendingRef.current.clear();
   }, []);
 
-  return { ensureReady, isReady, getTexture, invalidateAll };
+  return { capture, isReady, getTexture, refresh, invalidateAll };
 }
