@@ -23,6 +23,15 @@ export class MorphEngine {
     this.animating = false;
     this.tween = null;
 
+    // When a texture's source is a still-animating <canvas> (e.g. a WebGL
+    // background), its pixels must be re-sampled every frame for the whole
+    // duration it's visible — a one-time upload would freeze it at whatever
+    // moment it was captured, then "pop" to its real, current frame the
+    // instant the transition ends (since the source never stopped animating
+    // underneath). loop() re-flags these for re-upload every frame instead.
+    this._liveCurrentSource = null;
+    this._liveNextSource = null;
+
     this.renderer = new Renderer({
       alpha: false,
       antialias: true,
@@ -87,6 +96,8 @@ export class MorphEngine {
     this.program.uniforms.uCurrentSize.value = c.size;
     this.program.uniforms.uNextSize.value = n.size;
     this.program.uniforms.uDir.value = dir;
+    this._liveCurrentSource = c.liveSource;
+    this._liveNextSource = n.liveSource;
   }
 
   // Targeted updates for priming tCurrent/tNext individually without
@@ -136,6 +147,8 @@ export class MorphEngine {
     this.program.uniforms.tCurrent.value = this.program.uniforms.tNext.value;
     this.program.uniforms.uCurrentSize.value = this.program.uniforms.uNextSize.value;
     this.program.uniforms.uProgress.value = 0;
+    this._liveCurrentSource = this._liveNextSource;
+    this._liveNextSource = null;
   }
 
   // Hard-resets progress to 0 and cancels any in-flight tween, without
@@ -149,6 +162,8 @@ export class MorphEngine {
     }
     this.animating = false;
     this.dragging = false;
+    this._liveCurrentSource = null;
+    this._liveNextSource = null;
     this.setProgress(0);
   }
 
@@ -177,6 +192,8 @@ export class MorphEngine {
   loop(t) {
     this.program.uniforms.uTime.value = t * 0.001;
     if (!this.dragging && !this.animating) this.syncOptions();
+    if (this._liveCurrentSource) this.program.uniforms.tCurrent.value.needsUpdate = true;
+    if (this._liveNextSource) this.program.uniforms.tNext.value.needsUpdate = true;
     this.renderer.render({ scene: this.mesh });
     this.raf = requestAnimationFrame(this.loop);
   }
