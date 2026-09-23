@@ -45,7 +45,12 @@ export function getSourceSize(source) {
 // WebGLTexture handle), so `texture` would collide with a bare Texture input.
 export function resolveTextureSource(gl, input) {
   if (input && input.oglTexture) {
-    return { texture: input.oglTexture, size: input.size || [1, 1] };
+    // liveSource (an HTMLCanvasElement that's still actively rendering, e.g.
+    // an animated WebGL background) is passed through so MorphEngine knows to
+    // keep re-sampling it every frame instead of treating the texture as a
+    // one-time-uploaded static image — see MorphEngine's _liveCurrentSource/
+    // _liveNextSource.
+    return { texture: input.oglTexture, size: input.size || [1, 1], liveSource: input.liveSource || null };
   }
-  return { texture: makeTextureFromSource(gl, input), size: getSourceSize(input) };
+  return { texture: makeTextureFromSource(gl, input), size: getSourceSize(input), liveSource: null };
 }

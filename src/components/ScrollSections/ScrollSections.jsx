@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { MorphEngine, makeTextureFromSource, getSourceSize } from '../../lib/morph';
-import { useSectionSnapshots } from './useSectionSnapshots';
+import { MorphEngine } from '../../lib/morph';
+import { useSectionTextures } from './useSectionTextures';
 import { normalizeDelta, scrubStrategy } from './useWheelProgress';
 
 import './ScrollSections.css';
@@ -47,43 +47,11 @@ export default function ScrollSections({
   const optsRef = useRef();
   optsRef.current = { transition, duration, ease, intensity, scale, aberration, drift, overlayColor };
 
-  const snapshots = useSectionSnapshots(sectionHostRefs);
-
-  // ogl doesn't dispose textures on its own (Texture has no delete path), and
-  // wrapping the same snapshot canvas in a brand new Texture on every
-  // prepareTransition()/setCurrent() call leaks GPU memory fast at
-  // full-viewport size. Cache one Texture per section index and only rebuild
-  // it if the underlying canvas actually changed (i.e. after a re-snapshot
-  // on resize), deleting the stale one first.
-  const textureCacheRef = useRef(new Map());
-
-  const disposeTextureCache = useCallback(() => {
-    const gl = engineRef.current?.gl;
-    textureCacheRef.current.forEach(({ oglTexture }) => {
-      if (gl && oglTexture?.texture) gl.deleteTexture(oglTexture.texture);
-    });
-    textureCacheRef.current.clear();
-  }, []);
-
-  const getTextureDescriptor = useCallback(
-    index => {
-      const canvas = snapshots.get(index);
-      const engine = engineRef.current;
-      if (!canvas || !engine) return null;
-
-      const cached = textureCacheRef.current.get(index);
-      if (cached && cached.canvas === canvas) return cached;
-
-      if (cached?.oglTexture?.texture) {
-        engine.gl.deleteTexture(cached.oglTexture.texture);
-      }
-
-      const descriptor = { oglTexture: makeTextureFromSource(engine.gl, canvas), size: getSourceSize(canvas), canvas };
-      textureCacheRef.current.set(index, descriptor);
-      return descriptor;
-    },
-    [snapshots]
-  );
+  // Resolves each section into a texture the morph engine can sample — a
+  // section's own live <canvas> if it renders one (kept continuously
+  // up to date, see MorphEngine's liveSource handling), otherwise a one-time
+  // DOM snapshot for plain content. See useSectionTextures.js.
+  const sectionTextures = useSectionTextures(sectionHostRefs);
 
   const setCanvasVisible = useCallback(visible => {
     const canvas = engineRef.current?.canvas;
@@ -104,10 +72,10 @@ export default function ScrollSections({
       // committing the new section's visibility swap (a state update), which
       // would flash the previous section's real DOM for a frame before the
       // new one settles in.
-      snapshots.capture(newIndex - 1);
-      snapshots.capture(newIndex + 1);
+      sectionTextures.ensureReady(newIndex - 1);
+      sectionTextures.ensureReady(newIndex + 1);
     },
-    [snapshots]
+    [sectionTextures]
   );
 
   // Hides the transition canvas only once React has committed the DOM for
@@ -118,7 +86,7 @@ export default function ScrollSections({
   }, [currentIndex, setCanvasVisible]);
 
   // Mount the shared morph engine into the fixed canvas layer, and prime it
-  // with a snapshot of the first section once layout/fonts have settled.
+  // with the first section's texture once layout/fonts have settled.
   useEffect(() => {
     if (!canvasHostRef.current) return undefined;
     let cancelled = false;
@@ -136,27 +104,29 @@ export default function ScrollSections({
     fontsReady.then(() => {
       requestAnimationFrame(() => {
         if (cancelled) return;
-        snapshots.capture(0).then(canvas => {
-          if (cancelled || !canvas) return;
-          const descriptor = getTextureDescriptor(0);
+        sectionTextures.ensureReady(0).then(ready => {
+          if (cancelled || !ready) return;
+          const descriptor = sectionTextures.getTexture(0, engine.gl);
           if (descriptor) engine.setCurrent(descriptor);
         });
-        if (sections.length > 1) snapshots.capture(1);
+        if (sections.length > 1) sectionTextures.ensureReady(1);
       });
     });
 
     return () => {
       cancelled = true;
-      disposeTextureCache();
+      sectionTextures.invalidateAll(engine.gl);
       engine.destroy();
       engineRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resizing mid-transition invalidates the snapshots' pixel dimensions, so
-  // hard-reset to the settled section rather than trying to resize textures
-  // mid-morph, then re-capture once things stop moving.
+  // Resizing mid-transition invalidates a snapshot-backed section's pixel
+  // dimensions (live-canvas sections resize themselves independently, so
+  // they don't strictly need this, but re-priming is cheap and keeps things
+  // uniform), so hard-reset to the settled section rather than trying to
+  // resize textures mid-morph, then re-resolve once things stop moving.
   useEffect(() => {
     let timeout;
     const onResize = () => {
@@ -170,11 +140,10 @@ export default function ScrollSections({
           progressRef.current = 0;
           setCanvasVisible(false);
         }
-        snapshots.invalidateAll();
-        disposeTextureCache();
-        snapshots.capture(currentIndexRef.current).then(canvas => {
-          if (!canvas) return;
-          const descriptor = getTextureDescriptor(currentIndexRef.current);
+        sectionTextures.invalidateAll(engine.gl);
+        sectionTextures.ensureReady(currentIndexRef.current).then(ready => {
+          if (!ready) return;
+          const descriptor = sectionTextures.getTexture(currentIndexRef.current, engine.gl);
           if (descriptor) engine.setCurrent(descriptor);
         });
       }, RESIZE_DEBOUNCE_MS);
@@ -184,7 +153,7 @@ export default function ScrollSections({
       clearTimeout(timeout);
       window.removeEventListener('resize', onResize);
     };
-  }, [snapshots, setCanvasVisible, getTextureDescriptor, disposeTextureCache]);
+  }, [sectionTextures, setCanvasVisible]);
 
   const goToIndex = useCallback(
     (targetIndex, dir) => {
@@ -192,13 +161,13 @@ export default function ScrollSections({
       if (!engine || engine.animating || dirRef.current !== 0) return;
       if (targetIndex < 0 || targetIndex >= sections.length) return;
 
-      if (!snapshots.get(currentIndexRef.current) || !snapshots.get(targetIndex)) {
-        snapshots.capture(targetIndex);
+      if (!sectionTextures.isReady(currentIndexRef.current) || !sectionTextures.isReady(targetIndex)) {
+        sectionTextures.ensureReady(targetIndex);
         return;
       }
 
-      const currentDesc = getTextureDescriptor(currentIndexRef.current);
-      const nextDesc = getTextureDescriptor(targetIndex);
+      const currentDesc = sectionTextures.getTexture(currentIndexRef.current, engine.gl);
+      const nextDesc = sectionTextures.getTexture(targetIndex, engine.gl);
       if (!currentDesc || !nextDesc) return;
 
       dirRef.current = dir;
@@ -213,7 +182,7 @@ export default function ScrollSections({
         }
       });
     },
-    [sections.length, snapshots, setCanvasVisible, settle, getTextureDescriptor]
+    [sections.length, sectionTextures, setCanvasVisible, settle]
   );
 
   // 'snap': one wheel tick commits a whole transition via goToIndex's tween.
@@ -255,14 +224,14 @@ export default function ScrollSections({
         const target = from + wheelDir;
         if (target < 0 || target >= sections.length) return;
 
-        if (!snapshots.get(from)) return;
-        if (!snapshots.get(target)) {
-          snapshots.capture(target);
+        if (!sectionTextures.isReady(from)) return;
+        if (!sectionTextures.isReady(target)) {
+          sectionTextures.ensureReady(target);
           return;
         }
 
-        const currentDesc = getTextureDescriptor(from);
-        const nextDesc = getTextureDescriptor(target);
+        const currentDesc = sectionTextures.getTexture(from, engine.gl);
+        const nextDesc = sectionTextures.getTexture(target, engine.gl);
         if (!currentDesc || !nextDesc) return;
 
         dirRef.current = wheelDir;
@@ -284,7 +253,7 @@ export default function ScrollSections({
         setCanvasVisible(false);
       }
     },
-    [sections.length, snapshots, setCanvasVisible, settle, getTextureDescriptor]
+    [sections.length, sectionTextures, setCanvasVisible, settle]
   );
 
   const handleWheel = mode === 'scrub' ? handleScrubWheel : handleSnapWheel;

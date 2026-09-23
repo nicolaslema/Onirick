@@ -51,7 +51,12 @@ function extendMaterial(BaseMaterial, cfg) {
 }
 
 const CanvasWrapper = ({ children }) => (
-  <Canvas dpr={[1, 2]} frameloop="always" className="beams-container">
+  <Canvas
+    dpr={[1, 2]}
+    frameloop="always"
+    className="beams-container"
+    gl={{ preserveDrawingBuffer: true }}
+  >
     {children}
   </Canvas>
 );
