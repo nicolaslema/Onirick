@@ -2,6 +2,13 @@ import { useCallback, useRef } from 'react';
 import { domToCanvas } from 'modern-screenshot';
 import { makeTextureFromSource, getSourceSize } from '../../lib/morph';
 
+// Every section paints its own opaque background (behind any live WebGL
+// canvas) in exactly this color — used both as domToCanvas's fallback
+// backgroundColor and, in prepareOverlay() below, as the chroma key that
+// turns that same flat color back into real transparency afterward.
+const SECTION_BG = '#0b0b10';
+const SECTION_BG_RGB = [0x0b, 0x0b, 0x10];
+
 // A WebGL canvas (three.js/ogl backgrounds like Beams, Strands, LiquidChrome,
 // ...) doesn't get its real pixel dimensions until its ResizeObserver-driven
 // resize logic has actually run at least once after mount — until then it
@@ -29,6 +36,26 @@ function waitForCanvasesReady(el, { maxWaitMs = 1500, intervalMs = 40 } = {}) {
   });
 }
 
+// Turns every pixel close to `key` fully transparent, in place. Used to
+// recover real alpha for prepareOverlay()'s capture: the section's own root
+// background is forced to this exact flat color (with its live canvas
+// hidden) before capturing, so anything that survives this key is real DOM
+// content (headings, cards, ...), not background.
+function chromaKeyToTransparent(canvas, [kr, kg, kb], tolerance = 12) {
+  const { width, height } = canvas;
+  if (!width || !height) return canvas;
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (Math.abs(d[i] - kr) <= tolerance && Math.abs(d[i + 1] - kg) <= tolerance && Math.abs(d[i + 2] - kb) <= tolerance) {
+      d[i + 3] = 0;
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
 // Captures a full DOM snapshot (via modern-screenshot) of each section —
 // this is what the morph engine samples as a texture. A whole-section
 // snapshot, rather than grabbing a section's own <canvas> directly, is
@@ -39,14 +66,25 @@ function waitForCanvasesReady(el, { maxWaitMs = 1500, intervalMs = 40 } = {}) {
 // A snapshot is inherently a frozen instant, though, and an animated
 // section (anything with its own <canvas> background) would visibly "freeze
 // then pop" once a transition finished revealing its now-far-ahead-in-time
-// live version — see refresh() below, which callers use to re-capture a
-// section periodically while it's actively part of a transition, keeping it
-// close enough to live that the freeze/pop is no longer perceptible without
-// re-capturing every single frame (which would be far too expensive).
+// live version. refresh() below keeps a section close to live while it's
+// part of an active transition — but NOT by re-running domToCanvas on an
+// interval, as an earlier version of this file did: any <canvas> inside the
+// captured subtree gets rasterized via canvas.toDataURL(), which forces a
+// synchronous GPU readback + PNG encode at the canvas's own native pixel
+// size, regardless of domToCanvas's `scale` option (confirmed against
+// modern-screenshot's source) — ~130-190ms per call on a modest viewport,
+// enough to visibly stutter every refresh tick. Instead, prepareOverlay()
+// captures the section's static DOM content *once* per transition (with the
+// live canvas hidden, so only headings/cards are captured, not the
+// animation), and refresh() then just composites the live canvas underneath
+// that cached overlay with a plain 2D drawImage — a cheap canvas-to-canvas
+// blit, not a DOM rasterization.
 export function useSectionTextures(hostRefs) {
-  const cacheRef = useRef(new Map()); // index -> HTMLCanvasElement (latest capture)
+  const cacheRef = useRef(new Map()); // index -> HTMLCanvasElement (latest capture; refresh() mutates this in place)
   const textureCacheRef = useRef(new Map()); // index -> ogl Texture (reused in place)
   const pendingRef = useRef(new Map());
+  const overlayCacheRef = useRef(new Map()); // index -> content-only canvas (background chroma-keyed to transparent)
+  const overlayPendingRef = useRef(new Map());
 
   const capture = useCallback(
     index => {
@@ -64,7 +102,7 @@ export function useSectionTextures(hostRefs) {
             // Fallback only — every section paints its own opaque
             // background, so a capture can never come back transparent
             // (which the morph shader would render as solid black).
-            backgroundColor: '#0b0b10'
+            backgroundColor: SECTION_BG
           })
         )
         .then(canvas => {
@@ -87,8 +125,9 @@ export function useSectionTextures(hostRefs) {
 
   // Builds (and caches) the ogl Texture for a section. The Texture instance
   // itself is created once per index and reused forever — refresh() below
-  // mutates its `.image` in place rather than swapping the uniform value, so
-  // MorphEngine doesn't need to know anything about "live" sections at all.
+  // mutates its backing canvas's pixels in place (and flags needsUpdate)
+  // rather than swapping the uniform value, so MorphEngine doesn't need to
+  // know anything about "live" sections at all.
   const getTexture = useCallback((index, gl) => {
     const canvas = cacheRef.current.get(index);
     if (!canvas || !gl) return null;
@@ -101,25 +140,87 @@ export function useSectionTextures(hostRefs) {
     return { oglTexture, size: getSourceSize(canvas) };
   }, []);
 
-  // Re-captures a section and updates its already-built Texture's `.image`
-  // in place. Callers (ScrollSections) poll this on an interval while a
-  // section is actively part of an in-progress transition, not every frame —
-  // domToCanvas has real cost, and the goal is "close enough to live that a
-  // freeze isn't perceptible", not literal per-frame accuracy.
-  const refresh = useCallback(index => {
-    const el = hostRefs.current[index];
-    const oglTexture = textureCacheRef.current.get(index);
-    if (!el || !oglTexture) return Promise.resolve(false);
+  // One-time-per-transition capture of a section's static DOM content
+  // (headings, buttons, cards) with its own live <canvas> background hidden
+  // and its section root's opaque background forced transparent — the
+  // chroma key above is a safety net for anything that still comes back
+  // filled with that flat color instead of true alpha. This is the only
+  // domToCanvas call refresh() needs for the section for the rest of the
+  // transition; everything after it is a cheap canvas-to-canvas blit.
+  // No-ops (resolves null) for a section with no <canvas> of its own —
+  // static content has nothing to fall out of sync with in the first place.
+  const prepareOverlay = useCallback(
+    index => {
+      if (overlayCacheRef.current.has(index)) return Promise.resolve(overlayCacheRef.current.get(index));
+      if (overlayPendingRef.current.has(index)) return overlayPendingRef.current.get(index);
 
-    const scale = Math.min(window.devicePixelRatio || 1, 2);
-    return domToCanvas(el, { scale, backgroundColor: '#0b0b10' })
-      .then(canvas => {
-        cacheRef.current.set(index, canvas);
-        oglTexture.image = canvas; // reference change alone makes ogl re-upload on next render
-        return true;
-      })
-      .catch(() => false);
-  }, [hostRefs]);
+      const el = hostRefs.current[index];
+      if (!el) return Promise.resolve(null);
+      const root = el.firstElementChild;
+      const canvasEl = el.querySelector('canvas');
+      if (!canvasEl) return Promise.resolve(null);
+
+      const prevRootBg = root ? root.style.backgroundColor : null;
+      const prevCanvasVisibility = canvasEl.style.visibility;
+      // Imperative DOM style toggling on a live element reached via a ref —
+      // not a React state/props mutation — restored in .finally() below
+      // regardless of outcome, so this is safe despite the linter flagging
+      // anything reached through hostRefs as if it were owned state.
+      // eslint-disable-next-line react/immutability
+      if (root) root.style.backgroundColor = 'transparent';
+      canvasEl.style.visibility = 'hidden';
+
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      const promise = domToCanvas(el, { scale, backgroundColor: SECTION_BG })
+        .then(canvas => {
+          chromaKeyToTransparent(canvas, SECTION_BG_RGB);
+          overlayCacheRef.current.set(index, canvas);
+          return canvas;
+        })
+        .catch(() => null)
+        .finally(() => {
+          if (root) root.style.backgroundColor = prevRootBg;
+          canvasEl.style.visibility = prevCanvasVisibility;
+          overlayPendingRef.current.delete(index);
+        });
+
+      overlayPendingRef.current.set(index, promise);
+      return promise;
+    },
+    [hostRefs]
+  );
+
+  // Keeps a section's texture close to live while it's actively part of a
+  // transition: draws the section's live <canvas> pixels straight onto its
+  // cached capture, then layers prepareOverlay()'s cached content snapshot
+  // back on top so headings/cards aren't covered by the fresh background.
+  // Callers (ScrollSections) poll this on an interval, not every frame — a
+  // compromise, not literal per-frame accuracy, but a much cheaper one now
+  // than the old domToCanvas-per-tick approach.
+  const refresh = useCallback(
+    index => {
+      const el = hostRefs.current[index];
+      const oglTexture = textureCacheRef.current.get(index);
+      const base = cacheRef.current.get(index);
+      if (!el || !oglTexture || !base) return false;
+
+      const liveCanvas = el.querySelector('canvas');
+      if (!liveCanvas || liveCanvas.width < 2 || liveCanvas.height < 2) return false;
+
+      const ctx = base.getContext('2d');
+      ctx.clearRect(0, 0, base.width, base.height);
+      ctx.drawImage(liveCanvas, 0, 0, base.width, base.height);
+      const overlay = overlayCacheRef.current.get(index);
+      if (overlay) ctx.drawImage(overlay, 0, 0, base.width, base.height);
+
+      // Mutating the same canvas object in place, so ogl's own
+      // reference-change check (this.image === this.store.image) won't
+      // detect anything changed on its own — flag it explicitly instead.
+      oglTexture.needsUpdate = true;
+      return true;
+    },
+    [hostRefs]
+  );
 
   const invalidateAll = useCallback(gl => {
     textureCacheRef.current.forEach(oglTexture => {
@@ -128,7 +229,9 @@ export function useSectionTextures(hostRefs) {
     textureCacheRef.current.clear();
     cacheRef.current.clear();
     pendingRef.current.clear();
+    overlayCacheRef.current.clear();
+    overlayPendingRef.current.clear();
   }, []);
 
-  return { capture, isReady, getTexture, refresh, invalidateAll };
+  return { capture, isReady, getTexture, prepareOverlay, refresh, invalidateAll };
 }
