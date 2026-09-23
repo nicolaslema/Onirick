@@ -12,10 +12,18 @@
   overflow: hidden;
 }
 
+.placeholder-section-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+}
+
 .placeholder-section-content {
   position: relative;
   z-index: 1;
   max-width: 640px;
+  pointer-events: none;
 }
 
 .placeholder-section-eyebrow {
