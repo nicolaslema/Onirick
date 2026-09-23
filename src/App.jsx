@@ -1,13 +1,15 @@
 import ScrollSections from './components/ScrollSections/ScrollSections'
-import Hero from './components/sections/Hero/Hero'
-import Sound from './components/sections/Sound/Sound'
-import Craft from './components/sections/Craft/Craft'
+import { SectionAlpha, SectionBeta, SectionGamma, SectionDelta } from './components/sections/Placeholder/sections'
 import GradualBlur from './components/GradualBlur/GradualBlur'
 
+// Temporarily swapped in for the shader-backed sections (Hero/Sound/Craft —
+// still on disk, unused) to isolate the scroll-morph transition itself from
+// the animated WebGL backgrounds while chasing a performance issue.
 const SECTIONS = [
-  { id: 'hero', Component: Hero },
-  { id: 'sound', Component: Sound },
-  { id: 'craft', Component: Craft }
+  { id: 'alpha', Component: SectionAlpha },
+  { id: 'beta', Component: SectionBeta },
+  { id: 'gamma', Component: SectionGamma },
+  { id: 'delta', Component: SectionDelta }
 ]
 
 function App() {
