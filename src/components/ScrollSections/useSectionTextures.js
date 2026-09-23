@@ -2,12 +2,10 @@ import { useCallback, useRef } from 'react';
 import { domToCanvas } from 'modern-screenshot';
 import { makeTextureFromSource, getSourceSize } from '../../lib/morph';
 
-// Every section paints its own opaque background (behind any live WebGL
-// canvas) in exactly this color — used both as domToCanvas's fallback
-// backgroundColor and, in prepareOverlay() below, as the chroma key that
-// turns that same flat color back into real transparency afterward.
+// Fallback background for a capture that comes back genuinely transparent
+// (no opaque background anywhere in the captured subtree) — every current
+// section paints its own opaque background, so this is only a safety net.
 const SECTION_BG = '#0b0b10';
-const SECTION_BG_RGB = [0x0b, 0x0b, 0x10];
 
 // A WebGL canvas (three.js/ogl backgrounds like Beams, Strands, LiquidChrome,
 // ...) doesn't get its real pixel dimensions until its ResizeObserver-driven
@@ -42,17 +40,25 @@ function waitForCanvasesReady(el, { maxWaitMs = 2500, intervalMs = 40 } = {}) {
   });
 }
 
-// Turns every pixel close to `key` fully transparent, in place. Used to
-// recover real alpha for prepareOverlay()'s capture: the section's own root
-// background is forced to this exact flat color (with its live canvas
-// hidden) before capturing, so anything that survives this key is real DOM
-// content (headings, cards, ...), not background.
-function chromaKeyToTransparent(canvas, [kr, kg, kb], tolerance = 12) {
+// Turns every pixel close to the canvas's own top-left corner color fully
+// transparent, in place. Used to recover real alpha for prepareOverlay()'s
+// capture: the section's own root background is forced transparent (with
+// its live canvas hidden) before capturing, so in principle the result
+// should already be transparent there — but any opaque background painted
+// by markup *inside* the section (e.g. a component's own container
+// background, unrelated to the section root) still shows through instead.
+// Sampling the actual resulting corner color, rather than assuming a fixed
+// one, keys out whatever that turns out to be without needing to know every
+// such background up front. The corner is assumed to be background, never
+// content — true for centered text/cards, which is all this currently
+// composites over.
+function chromaKeyToTransparent(canvas, tolerance = 12) {
   const { width, height } = canvas;
   if (!width || !height) return canvas;
   const ctx = canvas.getContext('2d');
   const imageData = ctx.getImageData(0, 0, width, height);
   const d = imageData.data;
+  const [kr, kg, kb] = [d[0], d[1], d[2]];
   for (let i = 0; i < d.length; i += 4) {
     if (Math.abs(d[i] - kr) <= tolerance && Math.abs(d[i + 1] - kg) <= tolerance && Math.abs(d[i + 2] - kb) <= tolerance) {
       d[i + 3] = 0;
@@ -167,26 +173,32 @@ export function useSectionTextures(hostRefs) {
       if (!canvasEl) return Promise.resolve(null);
 
       const prevRootBg = root ? root.style.backgroundColor : null;
-      const prevCanvasVisibility = canvasEl.style.visibility;
+      const prevCanvasOpacity = canvasEl.style.opacity;
       // Imperative DOM style toggling on a live element reached via a ref —
       // not a React state/props mutation — restored in .finally() below
       // regardless of outcome, so this is safe despite the linter flagging
       // anything reached through hostRefs as if it were owned state.
+      //
+      // opacity, not visibility: this canvas can still be actively read by
+      // refresh() below (via drawImage) on the same 80ms interval while this
+      // capture is in flight, and opacity keeps it actively composited (so
+      // refresh() keeps reading real pixels) while still making it come
+      // back transparent in domToCanvas's clone, same as visibility would.
       // eslint-disable-next-line react/immutability
       if (root) root.style.backgroundColor = 'transparent';
-      canvasEl.style.visibility = 'hidden';
+      canvasEl.style.opacity = '0';
 
       const scale = Math.min(window.devicePixelRatio || 1, 2);
       const promise = domToCanvas(el, { scale, backgroundColor: SECTION_BG })
         .then(canvas => {
-          chromaKeyToTransparent(canvas, SECTION_BG_RGB);
+          chromaKeyToTransparent(canvas);
           overlayCacheRef.current.set(index, canvas);
           return canvas;
         })
         .catch(() => null)
         .finally(() => {
           if (root) root.style.backgroundColor = prevRootBg;
-          canvasEl.style.visibility = prevCanvasVisibility;
+          canvasEl.style.opacity = prevCanvasOpacity;
           overlayPendingRef.current.delete(index);
         });
 
