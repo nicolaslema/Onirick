@@ -14,8 +14,12 @@ const SECTION_BG_RGB = [0x0b, 0x0b, 0x10];
 // resize logic has actually run at least once after mount — until then it
 // sits at the browser's 300x150 default. Wait for it to reach a real,
 // container-matching size before the section is snapshotted, so the very
-// first capture isn't taken of a blank canvas.
-function waitForCanvasesReady(el, { maxWaitMs = 1500, intervalMs = 40 } = {}) {
+// first capture isn't taken of a blank canvas. A canvas can also opt into a
+// second gate via `data-async-ready` (e.g. RippleDistortion, whose source
+// image loads asynchronously and paints solid black until it does) — when
+// present, also wait for it to read 'true' before considering the canvas
+// ready.
+function waitForCanvasesReady(el, { maxWaitMs = 2500, intervalMs = 40 } = {}) {
   return new Promise(resolve => {
     const start = performance.now();
     const check = () => {
@@ -24,7 +28,9 @@ function waitForCanvasesReady(el, { maxWaitMs = 1500, intervalMs = 40 } = {}) {
         canvases.length === 0 ||
         Array.from(canvases).every(c => {
           const rect = c.getBoundingClientRect();
-          return c.width > 2 && c.height > 2 && Math.abs(c.width - rect.width) < rect.width * 0.5 + 4;
+          const sized = c.width > 2 && c.height > 2 && Math.abs(c.width - rect.width) < rect.width * 0.5 + 4;
+          const asyncReady = c.dataset.asyncReady === undefined || c.dataset.asyncReady === 'true';
+          return sized && asyncReady;
         });
       if (ready || performance.now() - start > maxWaitMs) {
         resolve();
