@@ -10,13 +10,14 @@ import './ScrollSections.css';
 // sections. Starting point, needs on-device tuning.
 const PX_PER_TRANSITION = 900;
 const RESIZE_DEBOUNCE_MS = 200;
-// How often an in-progress transition's two sections are re-captured (see
+// How often an in-progress transition's two sections are re-composited (see
 // useSectionTextures' refresh()) so an animated section's background doesn't
 // visibly freeze for the whole transition and then "pop" once it completes.
-// A compromise, not literal per-frame accuracy: modern-screenshot has real
-// cost, so this re-captures often enough that the freeze isn't perceptible
-// without doing it every single rendered frame (which would stutter).
-const LIVE_REFRESH_INTERVAL_MS = 120;
+// refresh() is a cheap canvas-to-canvas drawImage (no DOM rasterization), so
+// this can run often without the frame-rate cost a domToCanvas-per-tick
+// approach had; still not literal per-frame, since there's no visible
+// benefit to it once it's already well under a frame's worth of latency.
+const LIVE_REFRESH_INTERVAL_MS = 80;
 
 // Scroll-driven version of MorphSlider: instead of morphing between slide
 // images on click/drag, this morphs between whole page sections on
@@ -78,6 +79,12 @@ export default function ScrollSections({
   const startLiveRefresh = useCallback(
     (fromIndex, toIndex) => {
       stopLiveRefresh();
+      // One-time content-only capture per section per transition (cheap
+      // relative to the old per-tick domToCanvas calls, and only needed
+      // once since none of this content animates on its own) — refresh()
+      // layers it back on top of the live canvas on every tick below.
+      sectionTextures.prepareOverlay(fromIndex);
+      sectionTextures.prepareOverlay(toIndex);
       refreshTimerRef.current = setInterval(() => {
         sectionTextures.refresh(fromIndex);
         sectionTextures.refresh(toIndex);
