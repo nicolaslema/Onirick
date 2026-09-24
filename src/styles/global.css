@@ -1,0 +1,25 @@
+/* Minimal reset. Fonts, color and body styling live in components.css
+   (which needs tokens.css's variables); this only sets up the page shell —
+   full-bleed, no scroll of its own (ScrollSections owns the viewport). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+}
+
+/* Reduced motion is handled per-feature (melt's uReduce uniform, the plain
+   crossfade's own override, R3F scene idle speed, ...), not with a single
+   blanket rule here — see motion.md / PLAN.md section 5.3. */

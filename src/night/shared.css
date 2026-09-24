@@ -1,0 +1,25 @@
+/* Shared shell for the five dream sections. In later phases the 3D scene
+   fills .night-dream, full-bleed, behind the title slot; Phase 0 has no
+   scene yet, so this is just the surface ground. */
+.night-dream {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.night-dream-title-slot {
+  position: absolute;
+  left: var(--space-12);
+  right: var(--space-12);
+  bottom: calc(var(--space-24) + var(--space-4));
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .night-dream-title-slot {
+    left: var(--space-4);
+    right: var(--space-4);
+  }
+}
