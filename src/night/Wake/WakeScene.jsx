@@ -5,7 +5,9 @@ import DR1 from '../../three/DR1';
 import { FLAT, readToken } from '../../three/materials';
 import { useCameraDrift } from '../../three/useCameraDrift';
 
-const TARGET = [0, 0.05, 0];
+// Frames the DR-1 + ejected tape in the bottom ~30% of the screen, under
+// the copy (Wake.css keeps the copy in the top ~70%).
+const TARGET = [0, 1.05, 0];
 
 const DEVICE_Y = -0.75;
 const TABLE_TOP = DEVICE_Y - 0.48; // DR-1 is 0.96 tall

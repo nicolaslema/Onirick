@@ -4,7 +4,7 @@ import { useScrollSections } from '../../components/ScrollSections/ScrollSection
 import WakeScene from './WakeScene';
 import './Wake.css';
 
-const WAKE_CAMERA = { position: [0, 0.35, 4.4], fov: 32 };
+const WAKE_CAMERA = { position: [0, 1.1, 7.6], fov: 32 };
 
 const Wake = () => {
   const { goTo } = useScrollSections();

@@ -9,7 +9,10 @@ import { pointer, trackPointer } from '../../three/pointer';
 import { useCameraDrift } from '../../three/useCameraDrift';
 import { useReducedMotion } from '../../three/useReducedMotion';
 
-const BASE_YAW = -0.35; // ~20°, front turned toward the copy on the left
+// ~20° turned toward the copy on the left, relative to the line of sight:
+// sitting center-right, the camera already sees it from ~19° to its left,
+// so -20° alone would read as square-on.
+const BASE_YAW = -0.68;
 const TILT = 0.14; // ±8° with the pointer (PLAN.md 6.0)
 
 // Center-right on a landscape screen (the copy owns the left). On a

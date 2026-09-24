@@ -86,6 +86,9 @@ export default function ScrollSections({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [plainTransition, setPlainTransition] = useState(null); // { from, to } | null
   const [activeTransition, setActiveTransition] = useState(null); // { from, to } | null — morph or plain
+  // Bumped when every cached capture is thrown away (resize), so the
+  // pre-capture effect below runs again for the current section's neighbours.
+  const [captureEpoch, setCaptureEpoch] = useState(0);
   const currentIndexRef = useRef(0);
   const progressRef = useRef(0);
   const dirRef = useRef(0);
@@ -227,6 +230,15 @@ export default function ScrollSections({
   // always land in the same paint.
   useLayoutEffect(() => {
     setCanvasVisible(false);
+    // A button that triggered the change (BEGIN RECORDING, REPLAY THE
+    // NIGHT, ...) now sits inside an inert, off-screen section; the browser
+    // drops its focus to <body> on the next frame, where arrow keys no
+    // longer reach the stage. Hand focus to the stage before that happens.
+    const focused = document.activeElement;
+    const inCurrent = sectionHostRefs.current[currentIndex]?.contains(focused);
+    if (!inCurrent && (focused === document.body || stageRef.current?.contains(focused))) {
+      stageRef.current?.focus({ preventScroll: true });
+    }
   }, [currentIndex, setCanvasVisible]);
 
   // Pre-captures the current section and its morph-kind neighbours (the only
@@ -249,7 +261,7 @@ export default function ScrollSections({
     return () => {
       cancelled = true;
     };
-  }, [currentIndex, sections.length, sectionTextures, kindOf]);
+  }, [currentIndex, captureEpoch, sections.length, sectionTextures, kindOf]);
 
   // Mirrors { currentIndex, activeTransition } out to a sibling that can't
   // reach ScrollSectionsContext (e.g. a Hud rendered next to
@@ -325,6 +337,7 @@ export default function ScrollSections({
           setCanvasVisible(false);
         }
         sectionTextures.invalidateAll(engine.gl);
+        setCaptureEpoch(epoch => epoch + 1);
         if (kindOf(currentIndexRef.current) === 'morph') {
           sectionTextures.capture(currentIndexRef.current).then(canvas => {
             if (!canvas) return;

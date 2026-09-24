@@ -170,3 +170,27 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
 
 - **Bundle is now ~1.28 MB minified (three + drei)**; Vite warns about the chunk size.
   Code-splitting belongs with the Phase 6 performance pass.
+
+- **Hero yaw is -0.68 rad, not -0.35.** Sitting center-right, the camera already sees the DR-1 from
+  ~19° to its left, so a literal -20° made it read square-on. -0.68 turns it ~20° toward the copy
+  *relative to the line of sight*, which is what "girado unos 20°" looks like.
+
+- **Wake camera pulled back** (`[0, 1.1, 7.6]`, looking at `y = 1.05`) so the DR-1 + ejected tape
+  fit in the bottom ~30% of the frame under the copy; the copy's top padding is `--space-24`.
+
+- **Two Phase 1 bugs found while verifying Phase 2, fixed here:**
+  - After navigating with a button (BEGIN RECORDING, REPLAY THE NIGHT, …) the button ends up inside
+    an inert section and the browser drops focus to `<body>`, so arrow keys stopped working until a
+    click. The layout effect on `currentIndex` now hands focus to the stage when it was inside a
+    no-longer-current section.
+  - A window resize invalidated every capture but only re-captured the current section, so the
+    first gesture toward a neighbour after any resize was silently dropped. A `captureEpoch` bump
+    now re-runs the neighbour pre-capture effect.
+
+- **Verified live (Chrome, dpr 1):** hero renders the DR-1 (reels spinning, LED blinking, keys sink
+  on hover, tilt + camera parallax); the Hero ↔ Dream 01 melt samples 189 frames with mean
+  luminance never below 11 (no black frame) while `refresh()` blits the live R3F canvas every 80 ms
+  for the whole transition; max 3 `<canvas>` (hero + wake + melt) during the Hero → Wake jump, 2
+  otherwise. Console: `THREE.Clock` deprecation warnings come from R3F 9 itself with three 0.186,
+  and "Context Lost" logs are R3F disposing an offstage scene — both informational; worth a look in
+  the Phase 6 "no console warnings" pass.
