@@ -390,3 +390,14 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   its 40 s lap. In portrait it now swims a 2.2 × 7 ellipse (mostly toward and away from the camera)
   at 0.75 scale: 100% of the lap in frame at 390 × 844 (projected against the same camera). The
   landscape route is unchanged.
+
+- **Hero on portrait screens** (user-reported: the DR-1 sat under the HUD and over the tape label).
+  It was placed at a fixed 28% of the view height at 0.75 scale while the copy was vertically
+  centered. In portrait the copy is now anchored to the bottom (just above the scroll hint), and
+  `DeviceScene` measures the live DOM — the bottom of the HUD's top corners and the top of the copy
+  (`offsetTop`, so the entrance transform doesn't skew it) — and fits the DR-1 into that band,
+  re-measuring on resize and font reflow. Centered, it turns the plain ~20° (-0.35 rad) instead of
+  the landscape -0.68. On short phones (≤ 720 px tall) the copy's gap tightens to `--space-4` to
+  leave a usable band; if a band is ever too small for the device to read (< 0.15 scale) it isn't
+  drawn rather than overlap the HUD or the copy. Checked at 390 × 844 and 375 × 667; landscape is
+  unchanged.
