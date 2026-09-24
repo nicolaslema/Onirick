@@ -1,4 +1,4 @@
-.eddy-process {
+.current-process {
   position: relative;
   width: 100%;
   height: 100%;
@@ -12,29 +12,36 @@
   text-align: left;
 }
 
-.eddy-process-title {
-  margin: 0 0 2.75rem;
+.current-process-title {
+  margin: 0 0 2.5rem;
   font-family: var(--display);
   font-weight: 600;
   font-size: clamp(1.4rem, 2.6vw, 1.9rem);
   letter-spacing: -0.01em;
 }
 
-.eddy-process-steps {
+.current-process-body {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 3rem;
+  align-items: stretch;
+}
+
+.current-process-steps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3rem;
+  gap: 2rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.eddy-process-step {
+.current-process-step {
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   padding-top: 1.25rem;
 }
 
-.eddy-process-n {
+.current-process-n {
   display: block;
   font-family: var(--display);
   font-size: 0.9rem;
@@ -42,26 +49,39 @@
   margin-bottom: 0.75rem;
 }
 
-.eddy-process-step-title {
+.current-process-step-title {
   margin: 0 0 0.6rem;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #ffffff;
 }
 
-.eddy-process-step-desc {
+.current-process-step-desc {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.65);
 }
 
-@media (max-width: 720px) {
-  .eddy-process {
-    padding: 3rem 1.5rem;
-  }
-  .eddy-process-steps {
+.current-process-diagram {
+  min-height: 12rem;
+}
+
+@media (max-width: 900px) {
+  .current-process-body {
     grid-template-columns: 1fr;
-    gap: 1.75rem;
+  }
+  .current-process-steps {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .current-process-diagram {
+    min-height: 8rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .current-process {
+    padding: 3rem 1.5rem;
   }
 }

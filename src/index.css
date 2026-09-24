@@ -11,7 +11,7 @@
   /* Single accent used consistently across the portfolio sections
      (Hero, Developer, Designer, ...) instead of a color per discipline. */
   --portfolio-accent: #d4af6a;
-  /* Display face for the eddy product site's wordmark/headlines — a
+  /* Display face for the Current product site's wordmark/headlines — a
      technical, code-adjacent identity for a tool aimed at developers.
      Body copy stays on the system sans below. */
   --display: 'JetBrains Mono', ui-monospace, Consolas, monospace;
