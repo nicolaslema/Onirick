@@ -10,15 +10,17 @@ const Hero = () => (
   <section className="current-hero">
     <div className="current-hero-bg">
       <RippleDistortion
+        enabled={true}
         src={rippleImage}
-        brushSize={180}
-        strength={0.25}
-        swirl={1.2}
+        brushSize={100}
+        strength={0.000}
+        swirl={0.5 }
         rings={4}
-        grayscale
-        tint="#d4af6a"
+        grayscale={false}
+        tint="#5e5b5b3d"
         tintAmount={0.15}
-        trigger="hover"
+        clickStrength={10}
+        trigger="both"
         quality="medium"
       />
     </div>
