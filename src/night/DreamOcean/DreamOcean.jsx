@@ -1,9 +1,9 @@
-import DreamPlaceholder from '../DreamPlaceholder';
+import DreamFrame from '../DreamFrame';
 
 // Phase 0: placeholder. Phase 5 replaces this with the rising-water R3F
 // scene (see PLAN.md 6.5).
 const DreamOcean = () => (
-  <DreamPlaceholder
+  <DreamFrame
     tint="tide"
     tape={4}
     time="04:58 AM"

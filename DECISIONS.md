@@ -194,3 +194,47 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   otherwise. Console: `THREE.Clock` deprecation warnings come from R3F 9 itself with three 0.186,
   and "Context Lost" logs are R3F disposing an offstage scene — both informational; worth a look in
   the Phase 6 "no console warnings" pass.
+
+## Phase 3
+
+- **Worktree:** Phase 3 lives in `.claude/worktrees/phase-3-dreams` on `phase-3-dreams`, branched off
+  `develop` after Phase 2 was merged. (The previous worktree lost its git link mid-session; the user
+  recreated this one.)
+
+- **`DreamPlaceholder` → `DreamFrame`**: same markup, plus an optional R3F scene (`children`) mounted
+  full-bleed through `SceneCanvas`. Ocean and Fall use it without a scene until Phase 5.
+
+- **`sceneBackground` mixes in sRGB.** `Color.lerp` works in linear space, where 15% of a bright tint
+  came out as a mid brown instead of a near-black and broke the log text's AA contrast. The mix now
+  matches the tokens' own (sRGB) space, as PLAN.md 4.4's "mezclado 15%" intends.
+
+- **Fog = full tint, background = surface + 15% tint** (both literal PLAN.md 4.4). Distant geometry
+  therefore glows in the dream's color. Since the title is that same color, each camera is framed so
+  far-off (fogged) geometry stays out from behind the title block: the whale scene looks up steeply
+  so the rooftops sit in the bottom strip; the staircase and hallway converge toward screen center.
+
+- **`useCameraDrift` gained `pivot: 'camera'`** — the eye stays put and only the look direction
+  turns. The default ('target') orbits a point ahead of the camera; in the hallway that point is
+  13 units away, so 0.15 rad of yaw carried the camera ~2 units sideways, straight through a wall
+  (reported by the user). Staircase and whale keep orbiting.
+
+- **Staircase:** 120 instanced steps, 24 per turn, rising 0.18 each around a central column; the
+  "same window, same moon" repeats every 12 steps facing outward. Spins 0.02 rad/s; the pointer adds
+  up to ±0.5 rad on top, eased.
+
+- **Whale:** a 12×12 seeded rooftop grid (`three/random.js`, so the city is identical on every load
+  and in every melt capture) with instanced tanks, antennas and ~1-in-6 lit windows in the tint.
+  The whale loops an elliptical 40 s route above the roofs; "turns one eye toward you" is a small
+  eased yaw/roll toward the cursor. Clouds are radial-gradient alpha planes the pointer pushes.
+
+- **Hallway:** 22 instanced doors in wall bays that scroll toward the camera and wrap every bay, so
+  the hallway never ends while the kitchen doorway (a lit plane behind the far wall, unfogged) stays
+  at a fixed distance. Sodium light is a glow plane behind each door (visible through the edge gaps
+  and when ajar) plus a floor spill. Doors ease up to 0.55 rad ajar as the pointer nears their
+  on-screen position. The kitchen is just its lit doorway: a table silhouette and an open door leaf
+  in front of the glow read as a black line through it (reported by the user) and were removed.
+
+- **Verified live (Chrome, 144 Hz display):** all three scenes plus hero render at the display's
+  144 fps cap. All six transitions Hero ↔ Stair ↔ Whale ↔ House, both directions, advance on the
+  first key; each melt samples 193–230 frames with mean luminance ≥ 17.9 (no black frame). Max 4
+  `<canvas>` (3 scenes + melt). Titles take their tint (amber / teal / sodium orange).

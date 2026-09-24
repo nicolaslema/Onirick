@@ -1,9 +1,9 @@
-import DreamPlaceholder from '../DreamPlaceholder';
+import DreamFrame from '../DreamFrame';
 
 // Phase 0: placeholder. Phase 5 replaces this with the infinite-fall
 // particle scene (see PLAN.md 6.6).
 const DreamFall = () => (
-  <DreamPlaceholder
+  <DreamFrame
     tint="fall"
     tape={5}
     time="06:41 AM"
