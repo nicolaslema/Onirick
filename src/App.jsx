@@ -10,10 +10,16 @@ import GradualBlur from './components/GradualBlur/GradualBlur'
 // for developers to drop into a page. The scroll-morph transition between
 // these sections and the RippleDistortion hero background are the only two
 // effects actually running here — everything else is plain markup/CSS.
+//
+// Proof is deliberately a 'scroll'-kind section (see ScrollSections.jsx) —
+// a first, minimal proof-of-concept that morph and plain-scroll sections can
+// coexist in the same flow: its content scrolls natively and reveals itself
+// on scroll instead of melting in, and the transitions on either side of it
+// are a plain crossfade rather than the WebGL melt.
 const SECTIONS = [
   { id: 'hero', Component: Hero },
   { id: 'features', Component: Features },
-  { id: 'proof', Component: Proof },
+  { id: 'proof', Component: Proof, kind: 'scroll' },
   { id: 'process', Component: Process },
   { id: 'cta', Component: CTA }
 ]

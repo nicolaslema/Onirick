@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import './shared.css';
 import './Proof.css';
 
@@ -12,17 +13,61 @@ const STATS = [
   { value: '0', label: 'shader lines you have to write yourself' }
 ];
 
+// This is Current's one 'scroll'-kind section (see App.jsx) — its content
+// runs taller than the viewport and scrolls natively rather than melting
+// into its neighbors, so each stat gets its own reveal-on-scroll instead of
+// all four appearing at once.
+function useReveal() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.classList.add('is-visible');
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add('is-visible');
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
+const Reveal = ({ className = '', children }) => {
+  const ref = useReveal();
+  return (
+    <div ref={ref} className={`current-reveal ${className}`}>
+      {children}
+    </div>
+  );
+};
+
 const Proof = () => (
   <section className="current-proof">
+    <p className="current-proof-intro">
+      Numbers, for what a fabricated product's numbers are worth — this section scrolls on its own
+      instead of melting into the next one.
+    </p>
     <div className="current-proof-stats">
       {STATS.map(s => (
-        <div className="current-stat" key={s.label}>
+        <Reveal className="current-stat" key={s.label}>
           <span className="current-stat-value">{s.value}</span>
           <span className="current-stat-label">{s.label}</span>
-        </div>
+        </Reveal>
       ))}
     </div>
-    <div className="current-proof-logos">
+    <Reveal className="current-placeholder current-testimonial">
+      <span className="current-placeholder-label">testimonial</span>
+    </Reveal>
+    <Reveal className="current-proof-logos">
       <p className="current-proof-logos-label">In production at</p>
       <div className="current-proof-logos-row">
         {[0, 1, 2, 3, 4].map(i => (
@@ -31,7 +76,7 @@ const Proof = () => (
           </div>
         ))}
       </div>
-    </div>
+    </Reveal>
   </section>
 );
 

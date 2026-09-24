@@ -30,11 +30,24 @@ const LIVE_REFRESH_INTERVAL_MS = 80;
 //   /previous section via a tween, like a slide deck. Simple, and immune to
 //   the scrub mode's direction-sign bug below.
 // - 'scrub': progress tracks the wheel in real time, no auto-complete.
+//
+// Each entry in `sections` can also declare a `kind`:
+// - 'morph' (default): behaves as above — captured as a texture, melts into
+//   its neighbor via the WebGL engine.
+// - 'scroll': a plain section that can be taller than the viewport and
+//   scrolls internally with native browser scroll (see
+//   .scroll-sections-capture--scroll) instead of being captured/melted. A
+//   transition into or out of a 'scroll' section never touches the WebGL
+//   engine at all — it's a lightweight CSS crossfade instead (see
+//   runPlainTransition below), and only fires once that section's own
+//   internal scroll has reached the edge the wheel is pushing against.
+//   'scroll' kind is currently only wired up for mode 'snap'.
 export default function ScrollSections({
   sections,
   mode = 'snap',
   transition = 'melt',
   duration = 1.5,
+  plainDuration = 0.6,
   ease = 'power2.inOut',
   intensity = 0.85,
   scale = 5,
@@ -47,14 +60,18 @@ export default function ScrollSections({
   const sectionHostRefs = useRef([]);
   const engineRef = useRef(null);
   const refreshTimerRef = useRef(null);
+  const plainTimeoutRef = useRef(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [plainTransition, setPlainTransition] = useState(null); // { from, to } | null
   const currentIndexRef = useRef(0);
   const progressRef = useRef(0);
   const dirRef = useRef(0);
 
   const optsRef = useRef();
-  optsRef.current = { transition, duration, ease, intensity, scale, aberration, drift, overlayColor };
+  optsRef.current = { transition, duration, plainDuration, ease, intensity, scale, aberration, drift, overlayColor };
+
+  const kindOf = useCallback(index => sections[index]?.kind ?? 'morph', [sections]);
 
   // Resolves each section into a texture the morph engine can sample — a
   // full DOM capture (background shader + real content composited), kept
@@ -93,8 +110,14 @@ export default function ScrollSections({
     [sectionTextures, stopLiveRefresh]
   );
 
+  // `dir` (1 forward, -1 backward, 0 unknown) is only used to decide, for a
+  // 'scroll'-kind section becoming current, which end of its own content to
+  // land on — arriving from above starts at its top, arriving from below
+  // (scrolling backward past it) starts at its bottom, so continuing to
+  // scroll in that same direction doesn't require re-crossing content
+  // that's already been seen.
   const settle = useCallback(
-    newIndex => {
+    (newIndex, dir = 0) => {
       stopLiveRefresh();
       currentIndexRef.current = newIndex;
       setCurrentIndex(newIndex);
@@ -106,10 +129,34 @@ export default function ScrollSections({
       // committing the new section's visibility swap (a state update), which
       // would flash the previous section's real DOM for a frame before the
       // new one settles in.
-      sectionTextures.capture(newIndex - 1);
-      sectionTextures.capture(newIndex + 1);
+      if (kindOf(newIndex) === 'scroll') {
+        const scroller = sectionHostRefs.current[newIndex];
+        if (scroller) scroller.scrollTop = dir < 0 ? scroller.scrollHeight : 0;
+      }
+      // Only prefetch morph-kind neighbors — a 'scroll' section is never
+      // used as a melt texture, so capturing it would just be wasted work.
+      if (kindOf(newIndex - 1) === 'morph') sectionTextures.capture(newIndex - 1);
+      if (kindOf(newIndex + 1) === 'morph') sectionTextures.capture(newIndex + 1);
     },
-    [sectionTextures, stopLiveRefresh]
+    [sectionTextures, stopLiveRefresh, kindOf]
+  );
+
+  // Lightweight alternative to the WebGL melt for any transition touching a
+  // 'scroll'-kind section: both the outgoing and incoming section are kept
+  // on-screen (stacked, see the render below) for `plainDuration` while a
+  // pure CSS opacity crossfade (see ScrollSections.css) plays, then settle()
+  // runs exactly as it would after a morph transition completes.
+  const runPlainTransition = useCallback(
+    (fromIndex, toIndex, dir) => {
+      dirRef.current = dir;
+      setPlainTransition({ from: fromIndex, to: toIndex });
+      clearTimeout(plainTimeoutRef.current);
+      plainTimeoutRef.current = setTimeout(() => {
+        setPlainTransition(null);
+        settle(toIndex, dir);
+      }, optsRef.current.plainDuration * 1000);
+    },
+    [settle]
   );
 
   // Hides the transition canvas only once React has committed the DOM for
@@ -138,18 +185,23 @@ export default function ScrollSections({
     fontsReady.then(() => {
       requestAnimationFrame(() => {
         if (cancelled) return;
-        sectionTextures.capture(0).then(canvas => {
-          if (cancelled || !canvas) return;
-          const descriptor = sectionTextures.getTexture(0, engine.gl);
-          if (descriptor) engine.setCurrent(descriptor);
-        });
-        if (sections.length > 1) sectionTextures.capture(1);
+        // Only worth priming the engine if section 0 itself is a morph
+        // section — a 'scroll' first section never becomes a melt texture.
+        if (kindOf(0) === 'morph') {
+          sectionTextures.capture(0).then(canvas => {
+            if (cancelled || !canvas) return;
+            const descriptor = sectionTextures.getTexture(0, engine.gl);
+            if (descriptor) engine.setCurrent(descriptor);
+          });
+        }
+        if (sections.length > 1 && kindOf(1) === 'morph') sectionTextures.capture(1);
       });
     });
 
     return () => {
       cancelled = true;
       stopLiveRefresh();
+      clearTimeout(plainTimeoutRef.current);
       sectionTextures.invalidateAll(engine.gl);
       engine.destroy();
       engineRef.current = null;
@@ -170,16 +222,20 @@ export default function ScrollSections({
         if (dirRef.current !== 0 || engine.animating) {
           stopLiveRefresh();
           engine.reset();
+          clearTimeout(plainTimeoutRef.current);
+          setPlainTransition(null);
           dirRef.current = 0;
           progressRef.current = 0;
           setCanvasVisible(false);
         }
         sectionTextures.invalidateAll(engine.gl);
-        sectionTextures.capture(currentIndexRef.current).then(canvas => {
-          if (!canvas) return;
-          const descriptor = sectionTextures.getTexture(currentIndexRef.current, engine.gl);
-          if (descriptor) engine.setCurrent(descriptor);
-        });
+        if (kindOf(currentIndexRef.current) === 'morph') {
+          sectionTextures.capture(currentIndexRef.current).then(canvas => {
+            if (!canvas) return;
+            const descriptor = sectionTextures.getTexture(currentIndexRef.current, engine.gl);
+            if (descriptor) engine.setCurrent(descriptor);
+          });
+        }
       }, RESIZE_DEBOUNCE_MS);
     };
     window.addEventListener('resize', onResize);
@@ -187,13 +243,24 @@ export default function ScrollSections({
       clearTimeout(timeout);
       window.removeEventListener('resize', onResize);
     };
-  }, [sectionTextures, setCanvasVisible, stopLiveRefresh]);
+  }, [sectionTextures, setCanvasVisible, stopLiveRefresh, kindOf]);
 
   const goToIndex = useCallback(
     (targetIndex, dir) => {
-      const engine = engineRef.current;
-      if (!engine || engine.animating || dirRef.current !== 0) return;
       if (targetIndex < 0 || targetIndex >= sections.length) return;
+      if (engineRef.current?.animating || dirRef.current !== 0) return;
+
+      // A transition only runs the WebGL melt when BOTH sides are 'morph' —
+      // capturing/texturing a 'scroll' section as a melt target doesn't make
+      // sense for something meant to read as plain scrolling content, so
+      // either side being 'scroll' falls back to the plain CSS crossfade.
+      if (kindOf(currentIndexRef.current) !== 'morph' || kindOf(targetIndex) !== 'morph') {
+        runPlainTransition(currentIndexRef.current, targetIndex, dir);
+        return;
+      }
+
+      const engine = engineRef.current;
+      if (!engine) return;
 
       if (!sectionTextures.isReady(currentIndexRef.current) || !sectionTextures.isReady(targetIndex)) {
         sectionTextures.capture(targetIndex);
@@ -213,30 +280,46 @@ export default function ScrollSections({
         ease: optsRef.current.ease,
         onComplete: () => {
           engine.commit();
-          settle(targetIndex);
+          settle(targetIndex, dir);
         }
       });
     },
-    [sections.length, sectionTextures, setCanvasVisible, settle, startLiveRefresh]
+    [sections.length, sectionTextures, setCanvasVisible, settle, startLiveRefresh, kindOf, runPlainTransition]
   );
 
   // 'snap': one wheel tick commits a whole transition via goToIndex's tween.
   // While that tween is in flight, engine.animating (and dirRef, set inside
-  // goToIndex) block further calls, so the many wheel events a single
-  // scroll gesture fires don't trigger multiple section changes.
+  // goToIndex or runPlainTransition) block further calls, so the many wheel
+  // events a single scroll gesture fires don't trigger multiple section
+  // changes.
   const handleSnapWheel = useCallback(
     e => {
-      e.preventDefault();
-      const engine = engineRef.current;
-      if (!engine || engine.animating || dirRef.current !== 0) return;
+      if (engineRef.current?.animating || dirRef.current !== 0) {
+        e.preventDefault();
+        return;
+      }
 
       const deltaPx = normalizeDelta(e);
       if (deltaPx === 0) return;
       const wheelDir = Math.sign(deltaPx);
 
+      // A 'scroll'-kind current section owns the wheel until its own
+      // content has reached the edge being pushed against — let the browser
+      // scroll it natively (no preventDefault) instead of advancing to the
+      // next/previous section.
+      if (kindOf(currentIndexRef.current) === 'scroll') {
+        const scroller = sectionHostRefs.current[currentIndexRef.current];
+        if (scroller) {
+          const atTop = scroller.scrollTop <= 0;
+          const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
+          if ((wheelDir < 0 && !atTop) || (wheelDir > 0 && !atBottom)) return;
+        }
+      }
+
+      e.preventDefault();
       goToIndex(currentIndexRef.current + wheelDir, wheelDir);
     },
-    [goToIndex]
+    [goToIndex, kindOf]
   );
 
   // 'scrub': progress follows the wheel in real time. `deltaPx` is signed
@@ -283,7 +366,7 @@ export default function ScrollSections({
 
       if (progressRef.current >= 1) {
         engine.commit();
-        settle(currentIndexRef.current + dirRef.current);
+        settle(currentIndexRef.current + dirRef.current, dirRef.current);
       } else if (progressRef.current <= 0) {
         stopLiveRefresh();
         dirRef.current = 0;
@@ -312,12 +395,20 @@ export default function ScrollSections({
     <div
       ref={stageRef}
       className="scroll-sections"
+      style={{ '--scroll-sections-plain-duration': `${plainDuration}s` }}
       onWheel={handleWheel}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
       {sections.map((section, i) => {
         const isCurrent = i === currentIndex;
+        // During a plain (non-morph) transition, both the outgoing and
+        // incoming section are kept on-screen at once — stacked, crossfading
+        // via the CSS animations below — instead of the instant off-screen
+        // swap a normal index change does.
+        const isPlainFrom = plainTransition?.from === i;
+        const isPlainTo = plainTransition?.to === i;
+        const isVisible = isCurrent || isPlainFrom || isPlainTo;
         return (
           // Non-current sections are moved off-screen (not visibility/opacity/
           // display: hidden) so modern-screenshot can still capture them
@@ -329,7 +420,9 @@ export default function ScrollSections({
           <div
             key={section.id}
             className="scroll-sections-host"
-            data-offscreen={isCurrent ? undefined : true}
+            data-offscreen={isVisible ? undefined : true}
+            data-plain-exit={isPlainFrom ? true : undefined}
+            data-plain-enter={isPlainTo ? true : undefined}
             style={{ pointerEvents: isCurrent ? 'auto' : 'none' }}
             aria-hidden={isCurrent ? undefined : true}
             inert={!isCurrent}
@@ -338,7 +431,11 @@ export default function ScrollSections({
               ref={el => {
                 sectionHostRefs.current[i] = el;
               }}
-              className="scroll-sections-capture"
+              className={
+                (section.kind ?? 'morph') === 'scroll'
+                  ? 'scroll-sections-capture scroll-sections-capture--scroll'
+                  : 'scroll-sections-capture'
+              }
             >
               <section.Component />
             </div>
