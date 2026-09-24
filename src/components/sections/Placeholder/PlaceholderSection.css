@@ -1,0 +1,49 @@
+.placeholder-section {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  text-align: center;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.placeholder-section-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+}
+
+.placeholder-section-content {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  pointer-events: none;
+}
+
+.placeholder-section-eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.placeholder-section-title {
+  margin: 0;
+  font-size: clamp(2.75rem, 7vw, 5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.placeholder-section-body {
+  margin: 1.25rem 0 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}

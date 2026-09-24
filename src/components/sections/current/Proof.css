@@ -1,0 +1,108 @@
+.current-proof {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  /* Deliberately taller than one viewport — this section scrolls natively
+     (see .scroll-sections-capture--scroll in ScrollSections.css) rather
+     than being captured for a melt transition. */
+  padding: 7rem 8vw 10rem;
+  background: #0b0b10;
+  color: #ffffff;
+  text-align: left;
+}
+
+.current-proof-intro {
+  margin: 0;
+  max-width: 32rem;
+  font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.current-proof-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.current-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 2.25rem 0;
+}
+
+.current-stat-value {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  color: var(--portfolio-accent, #d4af6a);
+  letter-spacing: -0.01em;
+}
+
+.current-stat-label {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 22rem;
+}
+
+.current-testimonial {
+  height: 10rem;
+}
+
+.current-proof-logos-label {
+  margin: 0 0 1.1rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.current-proof-logos-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.current-logo-slot {
+  height: 3.25rem;
+}
+
+/* Reveal-on-scroll for this section's own content — see useReveal() in
+   Proof.jsx. One consistent treatment (fade + slight rise) for every piece
+   rather than a different effect per element. */
+.current-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.current-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .current-reveal {
+    transition: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .current-proof-logos-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .current-proof {
+    padding: 6rem 1.5rem 8rem;
+    gap: 2.5rem;
+  }
+}
