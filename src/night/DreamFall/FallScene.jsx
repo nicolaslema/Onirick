@@ -142,7 +142,8 @@ const FallScene = ({ camera }) => {
       <FallCamera position={camera.position} />
       <Tiled time={time} speed={SPEED}>
         <points geometry={points}>
-          <pointsMaterial color={colors.ink} size={0.06} sizeAttenuation transparent opacity={0.8} depthWrite={false} />
+          {/* soft round dots — bare points render as squares, very visibly up close */}
+          <pointsMaterial map={texture} color={colors.ink} size={0.09} sizeAttenuation transparent opacity={0.85} depthWrite={false} />
         </points>
       </Tiled>
       <Tiled time={time} speed={SPEED * 0.7}>

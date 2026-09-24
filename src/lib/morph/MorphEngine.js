@@ -58,7 +58,8 @@ export class MorphEngine {
         uTime: { value: 0 },
         uReduce: { value: reducedMotion ? 1 : 0 },
         uPointer: { value: [0.5, 0.5] },
-        uOverlay: { value: hexToRgb(opts.overlayColor) }
+        uOverlay: { value: hexToRgb(opts.overlayColor) },
+        uBurn: { value: opts.burn ?? 0 }
       }
     });
 
@@ -172,6 +173,7 @@ export class MorphEngine {
     this.program.uniforms.uAberration.value = opts.aberration;
     this.program.uniforms.uDrift.value = opts.drift;
     this.program.uniforms.uOverlay.value = hexToRgb(opts.overlayColor);
+    this.program.uniforms.uBurn.value = opts.burn ?? 0;
   }
 
   loop(t) {

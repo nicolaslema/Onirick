@@ -27,7 +27,7 @@ const RIPPLE_AMP = 0.14;
 const STEP = 1 / 60;
 
 const waterLevel = t => LOW + (HIGH - LOW) * (0.5 - 0.5 * Math.cos((Math.PI * t) / RISE));
-const swell = (x, z, t) => 0.03 * Math.sin(x * 1.3 + t * 1.1) + 0.025 * Math.sin(z * 1.7 - t * 0.9);
+const swell = (x, z, t) => 0.06 * Math.sin(x * 1.3 + t * 1.1) + 0.05 * Math.sin(z * 1.7 - t * 0.9);
 
 function useClock() {
   const t = useRef(0);
@@ -126,7 +126,7 @@ function useCausticTexture() {
     }
     const tex = new CanvasTexture(canvas);
     tex.wrapS = tex.wrapT = RepeatWrapping;
-    tex.repeat.set(3, 1);
+    tex.repeat.set(7, 2);
     return tex;
   }, []);
   useEffect(() => () => texture.dispose(), [texture]);
@@ -150,7 +150,7 @@ const Caustics = ({ time, color }) => {
       {walls.map(w => (
         <mesh key={w.position.join()} position={w.position} rotation={w.rotation}>
           <planeGeometry args={[w.width, 1.2]} />
-          <meshBasicMaterial map={texture} color={color} transparent opacity={0.14} blending={AdditiveBlending} depthWrite={false} />
+          <meshBasicMaterial map={texture} color={color} transparent opacity={0.06} blending={AdditiveBlending} depthWrite={false} />
         </mesh>
       ))}
     </group>

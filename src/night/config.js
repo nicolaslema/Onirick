@@ -86,6 +86,7 @@ export const NIGHT = [
     Component: Wake,
     title: 'Wake',
     hud: { state: 'stop', clock: '07:02 AM', counter: '00:58:40' },
-    melt: { duration: 2.2, ease: 'power3.inOut', intensity: 1.25, scale: 7, aberration: 0.7, drift: 0.6, overlayColor: '#f2efe8' }
+    // burn: the last melt burns to white before Wake appears (PLAN.md 1).
+    melt: { duration: 2.2, ease: 'power3.inOut', intensity: 1.25, scale: 7, aberration: 0.7, drift: 0.6, overlayColor: '#f2efe8', burn: 1 }
   }
 ];

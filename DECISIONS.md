@@ -263,3 +263,37 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   in the manual. All 10 reveal blocks end visible after one pass. Momentum-tail rule checked with
   synthetic wheel events. **Not verified:** native touch scroll on a real iOS device (PLAN.md risk
   table) — the swipe edge logic is shared with the wheel's; worth a pass on hardware in Phase 7.
+
+## Phase 5
+
+- **Transition 7's white-out is a new melt parameter, `burn`** (0 by default, `burn: 1` on Wake's
+  `melt`). The shader only ever used `overlayColor` as an edge vignette (≤ 28%), so the Fall → Wake
+  melt measured at most 55/255 mean luminance — it never burned to white, which PLAN.md 1 and 5.1
+  require (also Phase 1's one unverified criterion). `burn` mixes the whole frame into the overlay
+  color along the melt's own envelope (full at p = 0.5, gone at both ends), so the frame goes to
+  `#f2efe8` and Wake emerges from it. Same in both directions, like every other melt parameter.
+
+- **Ocean:** a room (inverted box) whose water rises for 12 s and drains for 12 s, between 0.3 and
+  2 units above the floor (below the camera and the window). The surface is a 56×56 height field
+  running the discrete wave equation at a fixed 60 Hz; the pointer's ray meeting the water drops a
+  disturbance as it moves (PLAN.md's "buffer de ondas", on the CPU rather than a shader — ~3k
+  vertices, flat shading derives normals itself). Caustics are a faint additive web texture on a band
+  hugging the waterline. Chair, lamp and book rest on the floor until the water reaches them, then
+  ride and rock on it. Camera pivots on the eye, as in the hallway. The book uses `--line-strong`,
+  not `--rec` (the single accent is reserved for REC, PLAN.md 4.1).
+
+- **Fall:** looking down a 40-unit column that scrolls up forever: 2000 soft points, 26 alpha cloud
+  planes and 140 speed lines, each layer drawn twice and wrapping every 40 units, at different
+  speeds for depth. The pointer steers (camera X/Z, eased); a 0.002 tremor. Points use the cloud
+  texture as a sprite — bare `Points` render as squares, glaringly so up close.
+
+- **Fall is not "casi blanca".** Its title is `--dream-fall` (#f2efe8), so a near-white frame would
+  make the title and log unreadable (PLAN.md 4.1's AA rule). The frame stays the tinted night surface
+  with white clouds, points and streaks rushing past; the actual white comes from the burn of
+  transition 7 right after it.
+
+- **Verified live (Chrome, visible tab):** Ocean 144 fps, Fall 136 fps (with 4 `<canvas>`: fall,
+  ocean, wake, melt — at PLAN.md 3.2's cap). Melt 7 peaks at 238/255 mean luminance at p = 0.5 and
+  settles into Wake (■ STOP · 07:02 AM). Melt 6 vs melt 3 compared side by side at p ≈ 0.5: visibly
+  stronger split and fragmentation (its params are higher across the board). REPLAY THE NIGHT
+  crossfades Wake → Hero in 1200 ms, and arrow keys keep working afterwards. No console errors.

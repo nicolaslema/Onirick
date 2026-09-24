@@ -54,8 +54,8 @@ const CANVAS_FADE_MS = 150;
 //   internal scroll has reached the edge being pushed against. 'scroll'
 //   kind and touch swiping are currently only wired up for mode 'snap'.
 // - `melt`: overrides (duration, ease, intensity, scale, aberration, drift,
-//   overlayColor) for the transition whose destination is this section —
-//   i.e. transition i (between sections i-1 and i) always uses section i's
+//   overlayColor, burn — a full-frame fade into overlayColor mid-melt) for
+//   the transition whose destination is this section — i.e. transition i (between sections i-1 and i) always uses section i's
 //   `melt`, in both directions. Falls back to this component's own props.
 // - `plainDuration`: same idea for a crossfade whose destination is this
 //   section (used whenever either side of the transition is 'scroll', or
@@ -78,6 +78,7 @@ export default function ScrollSections({
   aberration = 0.35,
   drift = 0.4,
   overlayColor = '#000000',
+  burn = 0,
   onStateChange
 }) {
   const stageRef = useRef(null);
@@ -107,7 +108,7 @@ export default function ScrollSections({
   // mid-transition. settle() resets it back to the base props once a
   // transition finishes.
   const basePropsRef = useRef();
-  basePropsRef.current = { transition, duration, plainDuration, ease, intensity, scale, aberration, drift, overlayColor };
+  basePropsRef.current = { transition, duration, plainDuration, ease, intensity, scale, aberration, drift, overlayColor, burn };
   const optsRef = useRef({ ...basePropsRef.current });
 
   const kindOf = useCallback(index => sections[index]?.kind ?? 'morph', [sections]);
