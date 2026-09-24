@@ -1,15 +1,19 @@
 import ScrollSections from './components/ScrollSections/ScrollSections'
-import { SectionAlpha, SectionBeta, SectionGamma, SectionDelta } from './components/sections/Placeholder/sections'
+import Hero from './components/sections/eddy/Hero'
+import Features from './components/sections/eddy/Features'
+import Process from './components/sections/eddy/Process'
+import CTA from './components/sections/eddy/CTA'
 import GradualBlur from './components/GradualBlur/GradualBlur'
 
-// Temporarily swapped in for the shader-backed sections (Hero/Sound/Craft —
-// still on disk, unused) to isolate the scroll-morph transition itself from
-// the animated WebGL backgrounds while chasing a performance issue.
+// eddy: a small toolkit of pointer-reactive effects (ripple, melt, drift)
+// for developers to drop into a page. The scroll-morph transition between
+// these sections and the RippleDistortion hero background are the only two
+// effects actually running here — everything else is plain markup/CSS.
 const SECTIONS = [
-  { id: 'alpha', Component: SectionAlpha },
-  { id: 'beta', Component: SectionBeta },
-  { id: 'gamma', Component: SectionGamma },
-  { id: 'delta', Component: SectionDelta }
+  { id: 'hero', Component: Hero },
+  { id: 'features', Component: Features },
+  { id: 'process', Component: Process },
+  { id: 'cta', Component: CTA }
 ]
 
 function App() {

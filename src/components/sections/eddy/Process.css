@@ -1,0 +1,67 @@
+.eddy-process {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem 8vw;
+  background: #0b0b10;
+  color: #ffffff;
+  text-align: left;
+}
+
+.eddy-process-title {
+  margin: 0 0 2.75rem;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  letter-spacing: -0.01em;
+}
+
+.eddy-process-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eddy-process-step {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-top: 1.25rem;
+}
+
+.eddy-process-n {
+  display: block;
+  font-family: var(--display);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.75rem;
+}
+
+.eddy-process-step-title {
+  margin: 0 0 0.6rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.eddy-process-step-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+@media (max-width: 720px) {
+  .eddy-process {
+    padding: 3rem 1.5rem;
+  }
+  .eddy-process-steps {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+}

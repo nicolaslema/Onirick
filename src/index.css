@@ -11,6 +11,10 @@
   /* Single accent used consistently across the portfolio sections
      (Hero, Developer, Designer, ...) instead of a color per discipline. */
   --portfolio-accent: #d4af6a;
+  /* Display face for the eddy product site's wordmark/headlines — a
+     technical, code-adjacent identity for a tool aimed at developers.
+     Body copy stays on the system sans below. */
+  --display: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
