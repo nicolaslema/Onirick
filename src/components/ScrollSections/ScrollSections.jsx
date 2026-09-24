@@ -32,7 +32,7 @@ const LIVE_REFRESH_INTERVAL_MS = 80;
 // - 'scrub': progress tracks the wheel in real time, no auto-complete.
 export default function ScrollSections({
   sections,
-  mode = 'snap',
+  mode = 'scrub',
   transition = 'melt',
   duration = 1.5,
   ease = 'power2.inOut',
