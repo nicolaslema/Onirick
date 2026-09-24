@@ -1,13 +1,18 @@
 import TapeLabel from '../../components/TapeLabel/TapeLabel';
+import SceneCanvas from '../../components/SceneCanvas/SceneCanvas';
 import { useScrollSections } from '../../components/ScrollSections/ScrollSectionsContext';
+import WakeScene from './WakeScene';
 import './Wake.css';
 
-// Phase 0: placeholder. Phase 2/5 add the DR-1 on a nightstand, dawn light,
-// the ejected tape labelled TAPE 05.
+const WAKE_CAMERA = { position: [0, 0.35, 4.4], fov: 32 };
+
 const Wake = () => {
   const { goTo } = useScrollSections();
   return (
     <section className="night-wake" aria-label="Wake">
+      <SceneCanvas camera={WAKE_CAMERA}>
+        <WakeScene camera={WAKE_CAMERA} />
+      </SceneCanvas>
       <div className="night-wake-content">
         <TapeLabel>07:02 AM · Recording saved</TapeLabel>
         <h1 className="night-wake-display">Did you keep anything?</h1>

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { MorphEngine } from '../../lib/morph';
 import { useSectionTextures } from './useSectionTextures';
 import { normalizeDelta, scrubStrategy } from './useWheelProgress';
-import { ScrollSectionsContext } from './ScrollSectionsContext';
+import { ScrollSectionsContext, SectionIndexContext } from './ScrollSectionsContext';
 
 import './ScrollSections.css';
 
@@ -186,12 +186,12 @@ export default function ScrollSections({
         const scroller = sectionHostRefs.current[newIndex];
         if (scroller) scroller.scrollTop = dir < 0 ? scroller.scrollHeight : 0;
       }
-      // Only prefetch morph-kind neighbors — a 'scroll' section is never
-      // used as a melt texture, so capturing it would just be wasted work.
-      if (kindOf(newIndex - 1) === 'morph') sectionTextures.capture(newIndex - 1);
-      if (kindOf(newIndex + 1) === 'morph') sectionTextures.capture(newIndex + 1);
+      // Neighbour prefetch happens in the effect keyed on currentIndex below,
+      // not here: a neighbour's 3D scene (SceneCanvas) only mounts once React
+      // commits this index change, so capturing it from here would snapshot
+      // the section before its scene exists and cache that forever.
     },
-    [sectionTextures, stopLiveRefresh, kindOf]
+    [stopLiveRefresh, kindOf]
   );
 
   // Lightweight alternative to the WebGL melt for any transition touching a
@@ -228,6 +228,28 @@ export default function ScrollSections({
   useLayoutEffect(() => {
     setCanvasVisible(false);
   }, [currentIndex, setCanvasVisible]);
+
+  // Pre-captures the current section and its morph-kind neighbours (the only
+  // sections the next gesture can melt between), plus their text-only
+  // overlays, so a transition can start without waiting on domToCanvas.
+  // Runs after commit, so any SceneCanvas a neighbour just mounted is already
+  // in the DOM and capture() waits for it to render (waitForCanvasesReady).
+  // A 'scroll' section is never a melt texture, so it's skipped.
+  useEffect(() => {
+    let cancelled = false;
+    const fontsReady = document.fonts?.ready ?? Promise.resolve();
+    fontsReady.then(() => {
+      if (cancelled) return;
+      for (const i of [currentIndex, currentIndex - 1, currentIndex + 1]) {
+        if (i < 0 || i >= sections.length || kindOf(i) !== 'morph') continue;
+        sectionTextures.capture(i);
+        sectionTextures.prepareOverlay(i);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentIndex, sections.length, sectionTextures, kindOf]);
 
   // Mirrors { currentIndex, activeTransition } out to a sibling that can't
   // reach ScrollSectionsContext (e.g. a Hud rendered next to
@@ -612,7 +634,9 @@ export default function ScrollSections({
                     : 'scroll-sections-capture'
                 }
               >
-                <section.Component />
+                <SectionIndexContext.Provider value={i}>
+                  <section.Component />
+                </SectionIndexContext.Provider>
               </div>
             </div>
           );

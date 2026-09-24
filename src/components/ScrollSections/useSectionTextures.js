@@ -7,26 +7,25 @@ import { makeTextureFromSource, getSourceSize } from '../../lib/morph';
 // section paints its own opaque background, so this is only a safety net.
 const SECTION_BG = '#07080d';
 
-// A WebGL canvas (three.js/ogl backgrounds like Beams, Strands, LiquidChrome,
-// ...) doesn't get its real pixel dimensions until its ResizeObserver-driven
-// resize logic has actually run at least once after mount — until then it
-// sits at the browser's 300x150 default. Wait for it to reach a real,
-// container-matching size before the section is snapshotted, so the very
-// first capture isn't taken of a blank canvas. A canvas can also opt into a
-// second gate via `data-async-ready` (e.g. RippleDistortion, whose source
-// image loads asynchronously and paints solid black until it does) — when
-// present, also wait for it to read 'true' before considering the canvas
-// ready.
+// A WebGL canvas doesn't get its real pixel dimensions until its
+// ResizeObserver-driven resize logic has run at least once after mount —
+// until then it sits at the browser's 300x150 default. Wait for it to leave
+// that default before the section is snapshotted, so the first capture isn't
+// taken of a blank canvas. (Comparing its pixel width to its CSS width
+// instead would never pass on a HiDPI screen, where the backing store is
+// dpr times wider.) A canvas can also opt into a second gate via
+// `data-async-ready`, and a SceneCanvas wrapper via `data-scene-ready` (set
+// before its <canvas> even exists) — when present, wait for 'true'.
 function waitForCanvasesReady(el, { maxWaitMs = 2500, intervalMs = 40 } = {}) {
   return new Promise(resolve => {
     const start = performance.now();
     const check = () => {
       const canvases = el.querySelectorAll('canvas');
+      const scenesReady = el.querySelector('[data-scene-ready="false"]') === null;
       const ready =
-        canvases.length === 0 ||
+        scenesReady &&
         Array.from(canvases).every(c => {
-          const rect = c.getBoundingClientRect();
-          const sized = c.width > 2 && c.height > 2 && Math.abs(c.width - rect.width) < rect.width * 0.5 + 4;
+          const sized = c.width > 2 && c.height > 2 && !(c.width === 300 && c.height === 150);
           const asyncReady = c.dataset.asyncReady === undefined || c.dataset.asyncReady === 'true';
           return sized && asyncReady;
         });
@@ -42,8 +41,8 @@ function waitForCanvasesReady(el, { maxWaitMs = 2500, intervalMs = 40 } = {}) {
 
 // Turns every pixel close to the canvas's own top-left corner color fully
 // transparent, in place. Used to recover real alpha for prepareOverlay()'s
-// capture: the section's own root background is forced transparent (with
-// its live canvas hidden) before capturing, so in principle the result
+// capture: the section's own root background is forced transparent (and its
+// <canvas> left out) in the captured clone, so in principle the result
 // should already be transparent there — but any opaque background painted
 // by markup *inside* the section (e.g. a component's own container
 // background, unrelated to the section root) still shows through instead.
@@ -86,8 +85,8 @@ function chromaKeyToTransparent(canvas, tolerance = 12) {
 // size, regardless of domToCanvas's `scale` option (confirmed against
 // modern-screenshot's source) — ~130-190ms per call on a modest viewport,
 // enough to visibly stutter every refresh tick. Instead, prepareOverlay()
-// captures the section's static DOM content *once* per transition (with the
-// live canvas hidden, so only headings/cards are captured, not the
+// captures the section's static DOM content *once* (with the canvas left out
+// of the captured clone, so only headings/cards are captured, not the
 // animation), and refresh() then just composites the live canvas underneath
 // that cached overlay with a plain 2D drawImage — a cheap canvas-to-canvas
 // blit, not a DOM rasterization.
@@ -152,44 +151,33 @@ export function useSectionTextures(hostRefs) {
     return { oglTexture, size: getSourceSize(canvas) };
   }, []);
 
-  // One-time-per-transition capture of a section's static DOM content
-  // (headings, buttons, cards) with its own live <canvas> background hidden
-  // and its section root's opaque background forced transparent — the
-  // chroma key above is a safety net for anything that still comes back
-  // filled with that flat color instead of true alpha. This is the only
-  // domToCanvas call refresh() needs for the section for the rest of the
-  // transition; everything after it is a cheap canvas-to-canvas blit.
-  // No-ops (resolves null) for a section with no <canvas> of its own —
-  // static content has nothing to fall out of sync with in the first place.
+  // One-time capture of a section's static DOM content (headings, buttons,
+  // cards) without its <canvas> background: the canvas is filtered out of
+  // the captured clone and the clone's section root is made transparent, so
+  // the live page is never touched (hiding the real canvas instead would
+  // flash the visible section's 3D scene off while this runs). The chroma
+  // key above is a safety net for anything that still comes back filled
+  // with a flat color instead of true alpha. Cached per section; refresh()
+  // only ever blits it. No-ops (resolves null, uncached, so it's retried
+  // later) for a section with no <canvas> — static content has nothing to
+  // fall out of sync with in the first place.
   const prepareOverlay = useCallback(
     index => {
       if (overlayCacheRef.current.has(index)) return Promise.resolve(overlayCacheRef.current.get(index));
       if (overlayPendingRef.current.has(index)) return overlayPendingRef.current.get(index);
 
       const el = hostRefs.current[index];
-      if (!el) return Promise.resolve(null);
-      const root = el.firstElementChild;
-      const canvasEl = el.querySelector('canvas');
-      if (!canvasEl) return Promise.resolve(null);
-
-      const prevRootBg = root ? root.style.backgroundColor : null;
-      const prevCanvasOpacity = canvasEl.style.opacity;
-      // Imperative DOM style toggling on a live element reached via a ref —
-      // not a React state/props mutation — restored in .finally() below
-      // regardless of outcome, so this is safe despite the linter flagging
-      // anything reached through hostRefs as if it were owned state.
-      //
-      // opacity, not visibility: this canvas can still be actively read by
-      // refresh() below (via drawImage) on the same 80ms interval while this
-      // capture is in flight, and opacity keeps it actively composited (so
-      // refresh() keeps reading real pixels) while still making it come
-      // back transparent in domToCanvas's clone, same as visibility would.
-      // eslint-disable-next-line react/immutability
-      if (root) root.style.backgroundColor = 'transparent';
-      canvasEl.style.opacity = '0';
+      if (!el || !el.querySelector('canvas')) return Promise.resolve(null);
 
       const scale = Math.min(window.devicePixelRatio || 1, 2);
-      const promise = domToCanvas(el, { scale, backgroundColor: SECTION_BG })
+      const promise = domToCanvas(el, {
+        scale,
+        backgroundColor: SECTION_BG,
+        filter: node => node.nodeName !== 'CANVAS',
+        onCloneNode: clone => {
+          clone.firstElementChild?.style.setProperty('background-color', 'transparent', 'important');
+        }
+      })
         .then(canvas => {
           chromaKeyToTransparent(canvas);
           overlayCacheRef.current.set(index, canvas);
@@ -197,8 +185,6 @@ export function useSectionTextures(hostRefs) {
         })
         .catch(() => null)
         .finally(() => {
-          if (root) root.style.backgroundColor = prevRootBg;
-          canvasEl.style.opacity = prevCanvasOpacity;
           overlayPendingRef.current.delete(index);
         });
 
@@ -224,12 +210,15 @@ export function useSectionTextures(hostRefs) {
 
       const liveCanvas = el.querySelector('canvas');
       if (!liveCanvas || liveCanvas.width < 2 || liveCanvas.height < 2) return false;
+      // Until the text-only overlay exists, drawing the live canvas would
+      // wipe the section's text out of its texture — keep the full capture.
+      const overlay = overlayCacheRef.current.get(index);
+      if (!overlay) return false;
 
       const ctx = base.getContext('2d');
       ctx.clearRect(0, 0, base.width, base.height);
       ctx.drawImage(liveCanvas, 0, 0, base.width, base.height);
-      const overlay = overlayCacheRef.current.get(index);
-      if (overlay) ctx.drawImage(overlay, 0, 0, base.width, base.height);
+      ctx.drawImage(overlay, 0, 0, base.width, base.height);
 
       // Mutating the same canvas object in place, so ogl's own
       // reference-change check (this.image === this.store.image) won't

@@ -114,3 +114,59 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   the same code path already exercised successfully for Ocean's tint and Hero's/Manual's
   `plainDuration`, so this is a coverage gap in this session's testing, not a known-broken path —
   worth a direct look before calling Phase 1 fully signed off.
+
+## Phase 2
+
+- **`phase-2-scene` branches off `develop`** (which the user fast-forwarded to Phase 1 plus its two
+  post-review fixes), same one-step-later convention as Phase 1.
+
+- **Neighbour pre-capture moved out of `settle()`** into an effect keyed on `currentIndex` in
+  `ScrollSections.jsx`. `settle()` runs before React commits the new index, so a neighbour's
+  `SceneCanvas` (mounted only once it becomes a neighbour, PLAN.md 3.2) didn't exist yet when it was
+  captured, and the scene-less snapshot stayed cached forever. The effect also pre-builds each
+  neighbour's text-only overlay so a melt never waits on `domToCanvas` at its start.
+
+- **`prepareOverlay()` no longer touches the live DOM.** It used to hide the section's real canvas
+  and clear its root background while capturing — harmless with no 3D, but with a live R3F scene it
+  would flash the visible scene off at the start of every melt. It now uses modern-screenshot's
+  `filter` (drop `<canvas>` nodes) and `onCloneNode` (transparent root) so only the captured clone
+  changes. `refresh()` also skips until that overlay exists, instead of blitting the live canvas
+  over the section's text.
+
+- **`waitForCanvasesReady` readiness check** now means "left the 300×150 default" instead of
+  "pixel width within 50% of CSS width" — the old check never passed on a HiDPI screen (the backing
+  store is dpr × wider), so every capture sat out the full 2.5 s timeout. It also waits on
+  `[data-scene-ready="false"]`, which `SceneCanvas` puts on its wrapper from the first commit (before
+  R3F has even created the `<canvas>`).
+
+- **Lazy mounting (`useSectionPresence`)**: current ± 1 are live, as PLAN.md 3.2 says; during a
+  non-adjacent `goTo()` jump only its two ends stay live, so the jump target never pushes the count
+  to 4 R3F contexts + the melt's own. Sections on either side of an in-flight transition run
+  `frameloop="always"` (not "demand" + an 80 ms `invalidate`, the plan's alternative) — same result,
+  one less timer.
+
+- **Each section learns its index through `SectionIndexContext`**, provided by `ScrollSections`
+  around every section component, instead of each section looking itself up in `NIGHT`.
+
+- **Pointer tracking is window-wide** (`three/pointer.js`), not R3F's `state.pointer`: every
+  section's copy sits on top of its canvas, so R3F's own pointer would freeze whenever the cursor is
+  over text. Hover raycasts (the DR-1's keys) still use R3F events on the canvas.
+
+- **Scene colors are read from `tokens.css` at runtime** (`readToken`) instead of repeated as hex
+  in JS. Device body = `--ink` (the "hueso" of PLAN.md 6.0 — the only bone-colored token), window
+  and cassette = `--surface-raised`, reels/table = `--line`, dial = `--line-strong`, LED = `--rec`.
+  Keys stay neutral (`--ink-muted`) so `rec` stays the single accent (PLAN.md 4.1). Wake's dawn key
+  light uses `--dream-stair` (the warm amber token) — PLAN.md only says "luz cálida".
+
+- **`<Canvas flat>`** (no tone mapping), so token colors render as their hex instead of being
+  shifted by ACES.
+
+- **Wake's copy moved to the upper part of the frame** (`padding-top: var(--space-32)`), with the
+  DR-1 + nightstand below it. PLAN.md 6.7 says both the copy and the composition are centered; with
+  both centered the device sits behind the display type.
+
+- **Hero on a portrait screen**: the DR-1 moves above the copy and scales to 0.75 — "center-right"
+  has no room there.
+
+- **Bundle is now ~1.28 MB minified (three + drei)**; Vite warns about the chunk size.
+  Code-splitting belongs with the Phase 6 performance pass.
