@@ -401,3 +401,40 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   leave a usable band; if a band is ever too small for the device to read (< 0.15 scale) it isn't
   drawn rather than overlap the HUD or the copy. Checked at 390 × 844 and 375 × 667; landscape is
   unchanged.
+
+## Phase 7
+
+- **Deploy target: Vercel** (user's choice). `vercel.json` pins the framework, pnpm install/build and
+  `dist/`, and adds `immutable` caching for hashed `/assets/*` (1-day for posters). The deploy itself
+  runs from the user's Vercel account; `og:image` stays relative until the domain exists (README says
+  where to make it absolute). `public/robots.txt` allows everything. Wake's author line and
+  VIEW SOURCE link (inferred in Phase 0) confirmed by the user as-is.
+
+- **README** rewritten: what it is, how to run it, how the melt works (PLAN.md 3.1 and 7 condensed),
+  deploy and credits. All 3D is procedural, so there's no `CREDITS.md` of external models; typefaces
+  (OFL) and libraries are credited in the README.
+
+- **QA (PLAN.md 9) found three bugs, all fixed here:**
+  - React registers `onWheel`/`onTouchMove` as *passive* listeners, so every `preventDefault()` in the
+    wheel and swipe handlers was ignored and Chrome logged an error per event (41 in one pass —
+    earlier console checks only used synthetic key events). Both are now native listeners with
+    `{ passive: false }`; a touchmove the browser no longer allows cancelling is left alone.
+  - Arrow/Page/Home/End keys were heard on the stage, which only has focus after a click: arriving
+    by keyboard, or after only using the wheel, the keys did nothing. They're now heard on `window`
+    (ignoring modified keys, i.e. browser shortcuts).
+  - Buttons were 39 px tall; on touch devices / narrow screens they now have a 44 px minimum
+    (PLAN.md 9). `components.css` stays verbatim — the rule lives in `global.css`.
+
+- **QA results, Chrome (headless, production build):** a 40-event wheel burst (trackpad momentum) =
+  one section; one arrow press = one section; one touch swipe on a 390 × 844 touch viewport = one
+  section; no HUD corner overlaps any copy in any section at 390 px; all dream titles fit; all
+  buttons 44 px; all 14 adjacent transitions (forward and back) without a black frame (min mean
+  luminance 14.9/255, on the white-burning melt 7); a resize mid-melt resets cleanly to the settled
+  section and the next gesture works; the manual scrolls natively to its bottom under a long
+  flick and only a fresh gesture leaves it; reduced motion and no-WebGL2 walk the whole night; no
+  console errors or warnings anywhere.
+
+- **Not verifiable here:** Safari (desktop and iOS), Firefox and Chrome Android on real hardware —
+  this machine has Chrome only, and no devices. Most worth checking on them: `backdrop-filter` in the
+  GradualBlur bands on Safari (PLAN.md risk table), native scroll + swipe edges inside the manual on
+  iOS, and WebGL2 availability/performance on mid-range phones.

@@ -20,6 +20,16 @@ button {
   font: inherit;
 }
 
+/* Touch targets (PLAN.md 9: buttons at least 44px tall on a phone). The
+   design-system buttons come out ~39px; components.css itself is kept
+   verbatim, so the floor lives here. */
+@media (pointer: coarse), (max-width: 640px) {
+  .onk-btn,
+  .onk-btn-secondary {
+    min-height: 44px;
+  }
+}
+
 /* Visually hidden but still reachable by assistive tech — the Hud's
    aria-live section announcement (Hud.jsx). */
 .sr-only {
