@@ -27,6 +27,52 @@
   height: 100%;
 }
 
+/* A 'scroll'-kind section's own content can be taller than the viewport and
+   scrolls natively within this div, instead of being captured/melted. */
+.scroll-sections-capture--scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Lightweight crossfade for any transition touching a 'scroll' section —
+   see runPlainTransition in ScrollSections.jsx. z-index on the entering
+   section keeps it visually on top so the crossfade reads correctly
+   regardless of the two sections' array order. */
+@keyframes scroll-sections-plain-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scroll-sections-plain-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.scroll-sections-host[data-plain-enter] {
+  z-index: 1;
+  animation: scroll-sections-plain-in var(--scroll-sections-plain-duration, 0.6s) ease both;
+}
+
+.scroll-sections-host[data-plain-exit] {
+  animation: scroll-sections-plain-out var(--scroll-sections-plain-duration, 0.6s) ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-sections-host[data-plain-enter],
+  .scroll-sections-host[data-plain-exit] {
+    animation: none;
+  }
+}
+
 .scroll-sections-canvas-host {
   position: fixed;
   inset: 0;
