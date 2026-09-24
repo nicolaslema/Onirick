@@ -13,7 +13,8 @@ export const SectionIndexContext = createContext(null);
 // ...and its id from the NIGHT config (e.g. to find its poster).
 export const SectionIdContext = createContext(null);
 
-// { currentIndex, activeTransition: {from,to} | null, goTo(idOrIndex) }
+// { currentIndex, activeTransition: {from,to} | null, goTo(idOrIndex),
+//   inDetour: the current section was reached as a detour (see ScrollSections) }
 export function useScrollSections() {
   const ctx = useContext(ScrollSectionsContext);
   if (!ctx) throw new Error('useScrollSections must be called from a section rendered inside <ScrollSections>');

@@ -60,6 +60,9 @@ export const NIGHT = [
     kind: 'scroll',
     theme: 'paper',
     title: 'The manual',
+    // Opened straight from the hero (READ THE MANUAL), it's a side trip:
+    // leaving it returns to the hero, so the night is always walked in order.
+    detour: true,
     plainDuration: 0.45,
     hud: { state: 'standby', clock: '03:40 AM', counter: '00:21:48' }
   },

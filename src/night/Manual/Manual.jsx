@@ -1,6 +1,7 @@
 import Reveal from '../../components/Reveal/Reveal';
 import SpecTable from '../../components/SpecTable/SpecTable';
 import TapeLabel from '../../components/TapeLabel/TapeLabel';
+import { useScrollSections } from '../../components/ScrollSections/ScrollSectionsContext';
 import './Manual.css';
 
 const STEPS = [
@@ -27,46 +28,52 @@ const WARNINGS = [
 // The one 'scroll'-kind section (see night/config.js) — paper theme, no 3D,
 // native scroll. data-theme="paper" here flips every color token for this
 // subtree only (see tokens.css). Each block reveals as it scrolls in.
-const Manual = () => (
-  <section className="night-manual" data-theme="paper" aria-label="Manual">
-    <div className="night-manual-inner">
-      <Reveal className="night-manual-intro">
-        <TapeLabel>03:40 AM · You woke up</TapeLabel>
-        <h2 className="night-manual-heading">You woke up. Here&rsquo;s how it works.</h2>
-        <p className="night-manual-lede">
-          The DR-1 listens for the moment your breathing slows, then records until morning. It
-          keeps one dream. Usually the right one.
-        </p>
-      </Reveal>
+const Manual = () => {
+  // Opened from the hero it's a side trip, and leaving it goes back there —
+  // see `detour` in night/config.js. The closing line says so instead of
+  // promising the next dream.
+  const { inDetour } = useScrollSections();
+  return (
+    <section className="night-manual" data-theme="paper" aria-label="Manual">
+      <div className="night-manual-inner">
+        <Reveal className="night-manual-intro">
+          <TapeLabel>03:40 AM · You woke up</TapeLabel>
+          <h2 className="night-manual-heading">You woke up. Here&rsquo;s how it works.</h2>
+          <p className="night-manual-lede">
+            The DR-1 listens for the moment your breathing slows, then records until morning. It
+            keeps one dream. Usually the right one.
+          </p>
+        </Reveal>
 
-      <Reveal className="night-manual-block">
-        <h3 className="night-manual-block-title">How the DR-1 listens</h3>
-        <ol className="night-manual-steps">
-          {STEPS.map(s => (
-            <li key={s.n}>
-              <span className="night-manual-step-n">{s.n}</span>
-              <span>{s.text}</span>
-            </li>
-          ))}
-        </ol>
-      </Reveal>
+        <Reveal className="night-manual-block">
+          <h3 className="night-manual-block-title">How the DR-1 listens</h3>
+          <ol className="night-manual-steps">
+            {STEPS.map(s => (
+              <li key={s.n}>
+                <span className="night-manual-step-n">{s.n}</span>
+                <span>{s.text}</span>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
 
-      <SpecTable rows={SPECS} />
+        <SpecTable rows={SPECS} />
 
-      <Reveal className="night-manual-block">
-        <h3 className="night-manual-block-title">Warnings</h3>
-        <ul className="night-manual-warnings">
-          {WARNINGS.map(w => (
-            <li key={w}>{w}</li>
-          ))}
-        </ul>
-      </Reveal>
+        <Reveal className="night-manual-block">
+          <h3 className="night-manual-block-title">Warnings</h3>
+          <ul className="night-manual-warnings">
+            {WARNINGS.map(w => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </Reveal>
 
-      <Reveal>
-        <TapeLabel>Go back to sleep ↓</TapeLabel>
-      </Reveal>
-    </div>
-  </section>
-);
+        <Reveal>
+          <TapeLabel>{inDetour ? 'Back to the device ↑' : 'Go back to sleep ↓'}</TapeLabel>
+        </Reveal>
+      </div>
+    </section>
+  );
+};
 
 export default Manual;
