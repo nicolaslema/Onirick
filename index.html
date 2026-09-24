@@ -6,9 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- crossorigin: lets the melt's domToCanvas capture read these @font-face
+         rules and embed the fonts; without it the stylesheet is opaque to JS
+         and captured text falls back to a default serif/mono. -->
     <link
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
+      crossorigin="anonymous"
     />
     <title>Onirick — DR-1 Dream Recorder</title>
   </head>
