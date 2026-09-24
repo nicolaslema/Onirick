@@ -1,0 +1,7 @@
+/* Full-bleed behind the section's own content, which must sit above it
+   (position + z-index 1) — see Hero.css / Wake.css. */
+.scene-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}

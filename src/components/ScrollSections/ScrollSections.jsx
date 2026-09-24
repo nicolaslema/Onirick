@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { MorphEngine } from '../../lib/morph';
 import { useSectionTextures } from './useSectionTextures';
 import { normalizeDelta, scrubStrategy } from './useWheelProgress';
-import { ScrollSectionsContext } from './ScrollSectionsContext';
+import { ScrollSectionsContext, SectionIndexContext } from './ScrollSectionsContext';
 
 import './ScrollSections.css';
 
@@ -86,6 +86,9 @@ export default function ScrollSections({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [plainTransition, setPlainTransition] = useState(null); // { from, to } | null
   const [activeTransition, setActiveTransition] = useState(null); // { from, to } | null — morph or plain
+  // Bumped when every cached capture is thrown away (resize), so the
+  // pre-capture effect below runs again for the current section's neighbours.
+  const [captureEpoch, setCaptureEpoch] = useState(0);
   const currentIndexRef = useRef(0);
   const progressRef = useRef(0);
   const dirRef = useRef(0);
@@ -146,16 +149,20 @@ export default function ScrollSections({
   const startLiveRefresh = useCallback(
     (fromIndex, toIndex) => {
       stopLiveRefresh();
-      // One-time content-only capture per section per transition (cheap
-      // relative to the old per-tick domToCanvas calls, and only needed
-      // once since none of this content animates on its own) — refresh()
-      // layers it back on top of the live canvas on every tick below.
+      // Text-only overlays (normally already pre-built by the pre-capture
+      // effect) that refresh() layers back on top of the live canvas.
       sectionTextures.prepareOverlay(fromIndex);
       sectionTextures.prepareOverlay(toIndex);
-      refreshTimerRef.current = setInterval(() => {
+      const tick = () => {
         sectionTextures.refresh(fromIndex);
         sectionTextures.refresh(toIndex);
-      }, LIVE_REFRESH_INTERVAL_MS);
+      };
+      // Once right away, not just on the first interval tick: the cached
+      // capture is from whenever the section was last settled, so an
+      // animated scene (the hero's reels) would otherwise show that old
+      // pose for the melt's first 80 ms, then jump to the live one.
+      tick();
+      refreshTimerRef.current = setInterval(tick, LIVE_REFRESH_INTERVAL_MS);
     },
     [sectionTextures, stopLiveRefresh]
   );
@@ -186,12 +193,12 @@ export default function ScrollSections({
         const scroller = sectionHostRefs.current[newIndex];
         if (scroller) scroller.scrollTop = dir < 0 ? scroller.scrollHeight : 0;
       }
-      // Only prefetch morph-kind neighbors — a 'scroll' section is never
-      // used as a melt texture, so capturing it would just be wasted work.
-      if (kindOf(newIndex - 1) === 'morph') sectionTextures.capture(newIndex - 1);
-      if (kindOf(newIndex + 1) === 'morph') sectionTextures.capture(newIndex + 1);
+      // Neighbour prefetch happens in the effect keyed on currentIndex below,
+      // not here: a neighbour's 3D scene (SceneCanvas) only mounts once React
+      // commits this index change, so capturing it from here would snapshot
+      // the section before its scene exists and cache that forever.
     },
-    [sectionTextures, stopLiveRefresh, kindOf]
+    [stopLiveRefresh, kindOf]
   );
 
   // Lightweight alternative to the WebGL melt for any transition touching a
@@ -227,7 +234,38 @@ export default function ScrollSections({
   // always land in the same paint.
   useLayoutEffect(() => {
     setCanvasVisible(false);
+    // A button that triggered the change (BEGIN RECORDING, REPLAY THE
+    // NIGHT, ...) now sits inside an inert, off-screen section; the browser
+    // drops its focus to <body> on the next frame, where arrow keys no
+    // longer reach the stage. Hand focus to the stage before that happens.
+    const focused = document.activeElement;
+    const inCurrent = sectionHostRefs.current[currentIndex]?.contains(focused);
+    if (!inCurrent && (focused === document.body || stageRef.current?.contains(focused))) {
+      stageRef.current?.focus({ preventScroll: true });
+    }
   }, [currentIndex, setCanvasVisible]);
+
+  // Pre-captures the current section and its morph-kind neighbours (the only
+  // sections the next gesture can melt between), plus their text-only
+  // overlays, so a transition can start without waiting on domToCanvas.
+  // Runs after commit, so any SceneCanvas a neighbour just mounted is already
+  // in the DOM and capture() waits for it to render (waitForCanvasesReady).
+  // A 'scroll' section is never a melt texture, so it's skipped.
+  useEffect(() => {
+    let cancelled = false;
+    const fontsReady = document.fonts?.ready ?? Promise.resolve();
+    fontsReady.then(() => {
+      if (cancelled) return;
+      for (const i of [currentIndex, currentIndex - 1, currentIndex + 1]) {
+        if (i < 0 || i >= sections.length || kindOf(i) !== 'morph') continue;
+        sectionTextures.capture(i);
+        sectionTextures.prepareOverlay(i);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentIndex, captureEpoch, sections.length, sectionTextures, kindOf]);
 
   // Mirrors { currentIndex, activeTransition } out to a sibling that can't
   // reach ScrollSectionsContext (e.g. a Hud rendered next to
@@ -303,6 +341,7 @@ export default function ScrollSections({
           setCanvasVisible(false);
         }
         sectionTextures.invalidateAll(engine.gl);
+        setCaptureEpoch(epoch => epoch + 1);
         if (kindOf(currentIndexRef.current) === 'morph') {
           sectionTextures.capture(currentIndexRef.current).then(canvas => {
             if (!canvas) return;
@@ -612,7 +651,9 @@ export default function ScrollSections({
                     : 'scroll-sections-capture'
                 }
               >
-                <section.Component />
+                <SectionIndexContext.Provider value={i}>
+                  <section.Component />
+                </SectionIndexContext.Provider>
               </div>
             </div>
           );
