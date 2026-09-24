@@ -438,3 +438,17 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   this machine has Chrome only, and no devices. Most worth checking on them: `backdrop-filter` in the
   GradualBlur bands on Safari (PLAN.md risk table), native scroll + swipe edges inside the manual on
   iOS, and WebGL2 availability/performance on mid-range phones.
+
+## After release
+
+- **The manual as a detour** (user request). READ THE MANUAL jumped from the hero straight to 03:40,
+  skipping the first three dreams, and from there the only ways on were into the hallway or the
+  ocean — the night could no longer be walked from its start. A section can now be marked
+  `detour: true` (the manual is): reached by a forward `goTo()` jump that skips sections, leaving it
+  by either edge crossfades back to where the jump came from (the hero), after which the night runs
+  in order. Reached normally (from the hallway or the ocean) it behaves exactly as before. While in a
+  detour its closing line reads "Back to the device ↑" instead of "Go back to sleep ↓" (user
+  approved the copy change), since leaving no longer leads to the next dream. Home/End still jump
+  and end the detour. Verified headless: detour in, long flick stays in the manual, a fresh gesture
+  or ArrowUp at the top returns to the hero, the next step from there is Dream 01; the normal walk
+  and its label are unchanged; no console errors.
