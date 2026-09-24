@@ -1,6 +1,10 @@
-// Fully styled by the shared .onk-hud rules in styles/components.css — no
-// component-local CSS needed here (.sr-only lives in styles/global.css).
-const STATE_LABEL = { standby: 'Standby', rec: '● Rec', stop: '■ Stop' };
+import ScrambleCounter from './ScrambleCounter';
+import './Hud.css';
+
+// Styled by the shared .onk-hud rules in styles/components.css, plus Hud.css
+// for the state line. REC uses the same blinking .onk-rec dot as TapeLabel
+// (1.2s steps(2), static under reduced motion).
+const STATE_LABEL = { standby: 'Standby', rec: 'Rec', stop: '■ Stop' };
 
 // Driven by App.jsx's lifted ScrollSections state (see the comment there) —
 // no longer static: follows the actual current section, including flipping
@@ -29,12 +33,15 @@ const Hud = ({
           <span>DR-1</span>
         </div>
         <div className="onk-hud-tr">
-          <span>{STATE_LABEL[hud.state] ?? hud.state}</span>
+          <span className="onk-hud-state">
+            {hud.state === 'rec' && <span className="onk-rec" />}
+            {STATE_LABEL[hud.state] ?? hud.state}
+          </span>
           <span>{hud.clock}</span>
         </div>
         <div className="onk-hud-bl" />
         <div className="onk-hud-br">
-          <span className="onk-hud-counter">{hud.counter}</span>
+          <ScrambleCounter className="onk-hud-counter" value={hud.counter} />
           <div className="onk-hud-tapes">
             {Array.from({ length: total - 1 }, (_, i) => (
               <span key={i} data-active={index === i + 1 ? true : undefined} />
