@@ -1,6 +1,5 @@
-/* Shared shell for the five dream sections. In later phases the 3D scene
-   fills .night-dream, full-bleed, behind the title slot; Phase 0 has no
-   scene yet, so this is just the surface ground. */
+/* Shared shell for the five dream sections: the 3D scene (SceneCanvas)
+   fills .night-dream full-bleed, the title slot sits above it. */
 .night-dream {
   position: relative;
   width: 100%;
