@@ -384,3 +384,9 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
 - **Hallway looks a bit lower on portrait screens.** With the title on two lines, the lit kitchen
   doorway sat right behind the tape label; the camera now aims at y = -2.4 instead of 0 when the
   viewport is portrait, lifting the doorway above the copy. Landscape is unchanged.
+
+- **Whale route on portrait screens** (user request): the landscape loop is an 8 × 5 ellipse, but a
+  portrait phone sees only ~4 units to either side at that depth, so the whale was in frame ~25% of
+  its 40 s lap. In portrait it now swims a 2.2 × 7 ellipse (mostly toward and away from the camera)
+  at 0.75 scale: 100% of the lap in frame at 390 × 844 (projected against the same camera). The
+  landscape route is unchanged.

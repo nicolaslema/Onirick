@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Object3D, Vector3 } from 'three';
 import { easing } from 'maath';
 
@@ -131,12 +131,22 @@ const WhaleBody = ({ colors }) => (
   </>
 );
 
-const pathPoint = (t, out) => {
+// A wide ellipse over the rooftops. A portrait screen sees only ~4 units to
+// either side at that depth, so there the loop narrows and runs mostly
+// toward and away from the camera instead, keeping the whale in frame.
+const ROUTE = {
+  landscape: { rx: 8, rz: 5, scale: 1 },
+  portrait: { rx: 2.2, rz: 7, scale: 0.75 }
+};
+
+const pathPoint = (t, out, route) => {
   const a = (t / LAP) * Math.PI * 2;
-  return out.set(Math.cos(a) * 8, 11.5 + Math.sin(a * 2) * 0.6, -6 + Math.sin(a) * 5);
+  return out.set(Math.cos(a) * route.rx, 11.5 + Math.sin(a * 2) * 0.6, -6 + Math.sin(a) * route.rz);
 };
 
 const Whale = ({ colors }) => {
+  const portrait = useThree(state => state.viewport.aspect < 1);
+  const route = portrait ? ROUTE.portrait : ROUTE.landscape;
   const outer = useRef(null);
   const inner = useRef(null);
   const time = useRef(LAP * 0.3);
@@ -147,15 +157,15 @@ const Whale = ({ colors }) => {
   useFrame((_, delta) => {
     if (!outer.current) return;
     time.current += delta * (reduced ? REDUCED_SPEED : 1);
-    outer.current.position.copy(pathPoint(time.current, here));
-    outer.current.lookAt(pathPoint(time.current + 0.5, ahead));
+    outer.current.position.copy(pathPoint(time.current, here, route));
+    outer.current.lookAt(pathPoint(time.current + 0.5, ahead, route));
     // "it turns one eye toward you": a small yaw/roll toward the cursor
     const goal = reduced ? [0, 0, 0] : [-pointer.y * 0.12, pointer.x * 0.3, -pointer.x * 0.15];
     easing.dampE(inner.current.rotation, goal, 0.6, delta);
   });
   return (
     <group ref={outer}>
-      <group ref={inner}>
+      <group ref={inner} scale={route.scale}>
         <WhaleBody colors={colors} />
       </group>
     </group>
