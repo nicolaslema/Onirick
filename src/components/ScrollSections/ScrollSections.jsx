@@ -22,6 +22,9 @@ const LIVE_REFRESH_INTERVAL_MS = 80;
 // A touch drag past this many vertical pixels commits to one section change,
 // same idea as one wheel tick in 'snap' mode.
 const TOUCH_SWIPE_PX = 40;
+// Must match .scroll-sections-canvas's `transition: opacity ...` duration in
+// ScrollSections.css — see setCanvasVisible below.
+const CANVAS_FADE_MS = 150;
 
 // Scroll-driven version of MorphSlider: instead of morphing between slide
 // images on click/drag, this morphs between whole page sections on
@@ -106,11 +109,31 @@ export default function ScrollSections({
   // useSectionTextures.js.
   const sectionTextures = useSectionTextures(sectionHostRefs);
 
+  // Setting `visibility: hidden` synchronously alongside `opacity: 0` short-
+  // circuits ScrollSections.css's opacity transition on this canvas —
+  // visibility isn't itself transitioned, so the element stops being
+  // rendered on the very next frame regardless of how long the opacity fade
+  // is *supposed* to take. That meant every transition ended (and began)
+  // with a hard, same-frame cut between the melt's last WebGL frame (a
+  // resampled domToCanvas texture, never pixel-identical to real DOM text)
+  // and the real section underneath — the "snap to the static look" this
+  // fixes. Hiding still needs `visibility` (so the fully-transparent canvas
+  // doesn't stay in the paint/compositing tree indefinitely), just deferred
+  // until the opacity fade it's paired with has actually finished.
+  const canvasHideTimeoutRef = useRef(null);
   const setCanvasVisible = useCallback(visible => {
     const canvas = engineRef.current?.canvas;
     if (!canvas) return;
-    canvas.style.opacity = visible ? '1' : '0';
-    canvas.style.visibility = visible ? 'visible' : 'hidden';
+    clearTimeout(canvasHideTimeoutRef.current);
+    if (visible) {
+      canvas.style.visibility = 'visible';
+      canvas.style.opacity = '1';
+      return;
+    }
+    canvas.style.opacity = '0';
+    canvasHideTimeoutRef.current = setTimeout(() => {
+      canvas.style.visibility = 'hidden';
+    }, CANVAS_FADE_MS);
   }, []);
 
   const stopLiveRefresh = useCallback(() => {
@@ -250,6 +273,7 @@ export default function ScrollSections({
       cancelled = true;
       stopLiveRefresh();
       clearTimeout(plainTimeoutRef.current);
+      clearTimeout(canvasHideTimeoutRef.current);
       sectionTextures.invalidateAll(engine.gl);
       engine.destroy();
       engineRef.current = null;
