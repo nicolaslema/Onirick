@@ -238,3 +238,28 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   144 fps cap. All six transitions Hero ↔ Stair ↔ Whale ↔ House, both directions, advance on the
   first key; each melt samples 193–230 frames with mean luminance ≥ 17.9 (no black frame). Max 4
   `<canvas>` (3 scenes + melt). Titles take their tint (amber / teal / sodium orange).
+
+## Phase 4
+
+- **`Reveal` is a shared component** (`components/Reveal`), lifted from the old `Proof.jsx` (still in
+  `legacy/`, untouched): same fade + 16px, 0.5s, 35% threshold, reduced motion shows everything at
+  once. It takes `as` so each `SpecTable` row reveals on its own (`as="tr"`).
+
+- **Keyboard inside a 'scroll' section scrolls it first.** The stage holds focus, not the scroller,
+  so the browser never scrolled the manual on arrow keys and `ArrowDown` jumped straight to Dream 04.
+  Arrows step 80px, PageUp/PageDown 85% of the viewport (smooth, instant under reduced motion); only
+  at the edge do they change section.
+
+- **The gesture that reaches the edge doesn't also leave.** Wheel events less than 200 ms apart are
+  one gesture (a trackpad's momentum tail included); if that gesture scrolled the manual, hitting its
+  edge is consumed and a fresh gesture is needed to cross into Dream 03/04. Same rule per touch
+  swipe. Without it, every flick to the bottom of the manual fired straight into the next dream.
+
+- **Verified live (Chrome, visible tab), from the real Web Animations on the section hosts:**
+  entering crossfade 450 ms (House ↔ Manual, both directions; also the READ THE MANUAL jump),
+  leaving 1200 ms (Manual ↔ Ocean, both directions). Arrow keys scroll 80px per press, PageDown
+  85%; the manual's full 955px is consumed before Ocean, and arriving from Ocean lands at its bottom
+  and is consumed back to the top before House. HUD reads `STANDBY · 03:40 AM` on the paper theme
+  in the manual. All 10 reveal blocks end visible after one pass. Momentum-tail rule checked with
+  synthetic wheel events. **Not verified:** native touch scroll on a real iOS device (PLAN.md risk
+  table) — the swipe edge logic is shared with the wheel's; worth a pass on hardware in Phase 7.
