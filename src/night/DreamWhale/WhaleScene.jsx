@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { CanvasTexture, Object3D, Vector3 } from 'three';
+import { Object3D, Vector3 } from 'three';
 import { easing } from 'maath';
 
 import Atmosphere from '../../three/Atmosphere';
 import { FLAT, readTint, readToken } from '../../three/materials';
 import { pointer, trackPointer } from '../../three/pointer';
 import { seeded } from '../../three/random';
+import { useCloudTexture } from '../../three/useCloudTexture';
 import { useCameraDrift } from '../../three/useCameraDrift';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 
@@ -160,24 +161,6 @@ const Whale = ({ colors }) => {
     </group>
   );
 };
-
-function useCloudTexture() {
-  const texture = useMemo(() => {
-    const size = 128;
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.5, 'rgba(255,255,255,0.45)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-    return new CanvasTexture(canvas);
-  }, []);
-  useEffect(() => () => texture.dispose(), [texture]);
-  return texture;
-}
 
 const CLOUDS = [
   [-9, 15, -12, 9, 0.22],

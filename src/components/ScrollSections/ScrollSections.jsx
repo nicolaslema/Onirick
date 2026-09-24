@@ -11,14 +11,6 @@ import './ScrollSections.css';
 // sections. Starting point, needs on-device tuning.
 const PX_PER_TRANSITION = 900;
 const RESIZE_DEBOUNCE_MS = 200;
-// How often an in-progress transition's two sections are re-composited (see
-// useSectionTextures' refresh()) so an animated section's background doesn't
-// visibly freeze for the whole transition and then "pop" once it completes.
-// refresh() is a cheap canvas-to-canvas drawImage (no DOM rasterization), so
-// this can run often without the frame-rate cost a domToCanvas-per-tick
-// approach had; still not literal per-frame, since there's no visible
-// benefit to it once it's already well under a frame's worth of latency.
-const LIVE_REFRESH_INTERVAL_MS = 80;
 // A touch drag past this many vertical pixels commits to one section change,
 // same idea as one wheel tick in 'snap' mode.
 const TOUCH_SWIPE_PX = 40;
@@ -54,8 +46,8 @@ const CANVAS_FADE_MS = 150;
 //   internal scroll has reached the edge being pushed against. 'scroll'
 //   kind and touch swiping are currently only wired up for mode 'snap'.
 // - `melt`: overrides (duration, ease, intensity, scale, aberration, drift,
-//   overlayColor) for the transition whose destination is this section —
-//   i.e. transition i (between sections i-1 and i) always uses section i's
+//   overlayColor, burn — a full-frame fade into overlayColor mid-melt) for
+//   the transition whose destination is this section — i.e. transition i (between sections i-1 and i) always uses section i's
 //   `melt`, in both directions. Falls back to this component's own props.
 // - `plainDuration`: same idea for a crossfade whose destination is this
 //   section (used whenever either side of the transition is 'scroll', or
@@ -78,6 +70,7 @@ export default function ScrollSections({
   aberration = 0.35,
   drift = 0.4,
   overlayColor = '#000000',
+  burn = 0,
   onStateChange
 }) {
   const stageRef = useRef(null);
@@ -107,7 +100,7 @@ export default function ScrollSections({
   // mid-transition. settle() resets it back to the base props once a
   // transition finishes.
   const basePropsRef = useRef();
-  basePropsRef.current = { transition, duration, plainDuration, ease, intensity, scale, aberration, drift, overlayColor };
+  basePropsRef.current = { transition, duration, plainDuration, ease, intensity, scale, aberration, drift, overlayColor, burn };
   const optsRef = useRef({ ...basePropsRef.current });
 
   const kindOf = useCallback(index => sections[index]?.kind ?? 'morph', [sections]);
@@ -147,11 +140,18 @@ export default function ScrollSections({
 
   const stopLiveRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
-      clearInterval(refreshTimerRef.current);
+      cancelAnimationFrame(refreshTimerRef.current);
       refreshTimerRef.current = null;
     }
   }, []);
 
+  // Re-composites the two sections of an in-flight melt from their live
+  // canvases (useSectionTextures' refresh()) every frame, so their scenes
+  // keep moving at full frame rate inside the melt. It used to run every
+  // 80 ms, which showed any fast scene (the fall) at ~12 fps for the whole
+  // transition and then snapped to full speed once it settled. A refresh is
+  // a GPU canvas-to-canvas draw plus a texture upload — measured at
+  // ~0.2 ms, cheap enough to do per frame.
   const startLiveRefresh = useCallback(
     (fromIndex, toIndex) => {
       stopLiveRefresh();
@@ -162,13 +162,12 @@ export default function ScrollSections({
       const tick = () => {
         sectionTextures.refresh(fromIndex);
         sectionTextures.refresh(toIndex);
+        refreshTimerRef.current = requestAnimationFrame(tick);
       };
-      // Once right away, not just on the first interval tick: the cached
-      // capture is from whenever the section was last settled, so an
-      // animated scene (the hero's reels) would otherwise show that old
-      // pose for the melt's first 80 ms, then jump to the live one.
+      // Synchronously for the first one: the cached capture is from
+      // whenever the section was last settled, so an animated scene would
+      // otherwise show that stale pose on the melt's first frame.
       tick();
-      refreshTimerRef.current = setInterval(tick, LIVE_REFRESH_INTERVAL_MS);
     },
     [sectionTextures, stopLiveRefresh]
   );

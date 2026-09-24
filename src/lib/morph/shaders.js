@@ -29,6 +29,7 @@ uniform float uTime;
 uniform float uReduce;
 uniform vec2 uPointer;
 uniform vec3 uOverlay;
+uniform float uBurn;
 
 varying vec2 vUv;
 
@@ -171,6 +172,9 @@ void main() {
 
   float vig = smoothstep(1.25, 0.25, length(uv - 0.5));
   col = mix(col, uOverlay, (1.0 - vig) * 0.28 * env);
+  // Full-frame burn into the overlay color, peaking mid-transition — the
+  // last melt's white-out (PLAN.md 1, 5.1). 0 everywhere else.
+  col = mix(col, uOverlay, clamp(uBurn * env, 0.0, 1.0));
 
   gl_FragColor = vec4(col, 1.0);
 }

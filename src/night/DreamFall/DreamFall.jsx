@@ -1,7 +1,9 @@
 import DreamFrame from '../DreamFrame';
+import FallScene from './FallScene';
 
-// Phase 0: placeholder. Phase 5 replaces this with the infinite-fall
-// particle scene (see PLAN.md 6.6).
+// Above the column, looking down into it (FallScene aims the camera).
+const CAMERA = { position: [0, 2, 3], fov: 60 };
+
 const DreamFall = () => (
   <DreamFrame
     tint="fall"
@@ -10,7 +12,10 @@ const DreamFall = () => (
     stage="REM 4"
     title="The Fall"
     log="There's no ground yet. The clouds go past in the wrong direction. You're not falling so much as being let go of. Somewhere below, an alarm is starting."
-  />
+    camera={CAMERA}
+  >
+    <FallScene camera={CAMERA} />
+  </DreamFrame>
 );
 
 export default DreamFall;
