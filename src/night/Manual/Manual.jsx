@@ -1,3 +1,5 @@
+import Reveal from '../../components/Reveal/Reveal';
+import SpecTable from '../../components/SpecTable/SpecTable';
 import TapeLabel from '../../components/TapeLabel/TapeLabel';
 import './Manual.css';
 
@@ -22,20 +24,22 @@ const WARNINGS = [
   'If the tape plays back a dream you don’t remember having, stop the unit and turn on the lights.'
 ];
 
-// The one 'scroll'-kind section (see App.jsx's NIGHT config) — paper theme,
-// no 3D, native scroll. data-theme="paper" here flips every color token for
-// this subtree only (see tokens.css).
+// The one 'scroll'-kind section (see night/config.js) — paper theme, no 3D,
+// native scroll. data-theme="paper" here flips every color token for this
+// subtree only (see tokens.css). Each block reveals as it scrolls in.
 const Manual = () => (
   <section className="night-manual" data-theme="paper" aria-label="Manual">
     <div className="night-manual-inner">
-      <TapeLabel>03:40 AM · You woke up</TapeLabel>
-      <h2 className="night-manual-heading">You woke up. Here&rsquo;s how it works.</h2>
-      <p className="night-manual-lede">
-        The DR-1 listens for the moment your breathing slows, then records until morning. It keeps
-        one dream. Usually the right one.
-      </p>
+      <Reveal className="night-manual-intro">
+        <TapeLabel>03:40 AM · You woke up</TapeLabel>
+        <h2 className="night-manual-heading">You woke up. Here&rsquo;s how it works.</h2>
+        <p className="night-manual-lede">
+          The DR-1 listens for the moment your breathing slows, then records until morning. It
+          keeps one dream. Usually the right one.
+        </p>
+      </Reveal>
 
-      <div className="night-manual-block">
+      <Reveal className="night-manual-block">
         <h3 className="night-manual-block-title">How the DR-1 listens</h3>
         <ol className="night-manual-steps">
           {STEPS.map(s => (
@@ -45,32 +49,22 @@ const Manual = () => (
             </li>
           ))}
         </ol>
-      </div>
+      </Reveal>
 
-      <table className="onk-spec">
-        <tbody>
-          {SPECS.map(s => (
-            <tr key={s.label}>
-              <th>{s.label}</th>
-              <td>
-                {s.value}
-                {s.note && <small>{s.note}</small>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <SpecTable rows={SPECS} />
 
-      <div className="night-manual-block">
+      <Reveal className="night-manual-block">
         <h3 className="night-manual-block-title">Warnings</h3>
         <ul className="night-manual-warnings">
           {WARNINGS.map(w => (
             <li key={w}>{w}</li>
           ))}
         </ul>
-      </div>
+      </Reveal>
 
-      <TapeLabel>Go back to sleep ↓</TapeLabel>
+      <Reveal>
+        <TapeLabel>Go back to sleep ↓</TapeLabel>
+      </Reveal>
     </div>
   </section>
 );

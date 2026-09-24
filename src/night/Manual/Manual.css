@@ -15,6 +15,13 @@
   margin: 0 auto;
 }
 
+/* TapeLabel + heading + lede, laid out as one revealed block. */
+.night-manual-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
 .night-manual-heading {
   margin: 0;
   font-family: var(--font-serif);
@@ -26,7 +33,7 @@
 }
 
 .night-manual-lede {
-  margin: calc(var(--space-16) * -1) 0 0;
+  margin: 0;
   max-width: 38ch;
   font-family: var(--font-serif);
   font-size: 28px;
