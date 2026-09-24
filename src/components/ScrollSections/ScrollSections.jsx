@@ -71,7 +71,8 @@ export default function ScrollSections({
   drift = 0.4,
   overlayColor = '#000000',
   burn = 0,
-  onStateChange
+  onStateChange,
+  onReady
 }) {
   const stageRef = useRef(null);
   const canvasHostRef = useRef(null);
@@ -102,6 +103,9 @@ export default function ScrollSections({
   const basePropsRef = useRef();
   basePropsRef.current = { transition, duration, plainDuration, ease, intensity, scale, aberration, drift, overlayColor, burn };
   const optsRef = useRef({ ...basePropsRef.current });
+
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
   const kindOf = useCallback(index => sections[index]?.kind ?? 'morph', [sections]);
 
@@ -301,14 +305,27 @@ export default function ScrollSections({
         if (cancelled) return;
         // Only worth priming the engine if section 0 itself is a morph
         // section — a 'scroll' first section never becomes a melt texture.
+        const ready = [];
         if (kindOf(0) === 'morph') {
-          sectionTextures.capture(0).then(canvas => {
-            if (cancelled || !canvas) return;
-            const descriptor = sectionTextures.getTexture(0, engine.gl);
-            if (descriptor) engine.setCurrent(descriptor);
-          });
+          ready.push(
+            sectionTextures.capture(0).then(canvas => {
+              if (cancelled || !canvas) return;
+              const descriptor = sectionTextures.getTexture(0, engine.gl);
+              if (descriptor) engine.setCurrent(descriptor);
+            }),
+            sectionTextures.prepareOverlay(0)
+          );
         }
-        if (sections.length > 1 && kindOf(1) === 'morph') sectionTextures.capture(1);
+        if (sections.length > 1 && kindOf(1) === 'morph') {
+          ready.push(sectionTextures.capture(1), sectionTextures.prepareOverlay(1));
+        }
+        // Everything the first gesture needs is cached: the page can be
+        // revealed (App's Loader). Sections 0 and 1 are captured as they
+        // are right now, so the caller must keep them in their resting
+        // state until this fires (Hero holds its entrance animation).
+        Promise.all(ready).then(() => {
+          if (!cancelled) onReadyRef.current?.();
+        });
       });
     });
 

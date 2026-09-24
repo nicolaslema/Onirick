@@ -3,6 +3,8 @@ import ScrollSections from './components/ScrollSections/ScrollSections'
 import Hud from './components/Hud/Hud'
 import GradualBlur from './components/GradualBlur/GradualBlur'
 import Grain from './components/Grain/Grain'
+import Loader from './components/Loader/Loader'
+import { IntroContext } from './components/Loader/IntroContext'
 import { NIGHT } from './night/config'
 
 // Onirick: a night of sleep, told through the scroll-morph transition this
@@ -13,6 +15,8 @@ import { NIGHT } from './night/config'
 function App() {
   const [nightState, setNightState] = useState({ currentIndex: 0, activeTransition: null })
   const handleStateChange = useCallback(state => setNightState(state), [])
+  const [ready, setReady] = useState(false)
+  const handleReady = useCallback(() => setReady(true), [])
 
   const current = NIGHT[nightState.currentIndex]
 
@@ -29,7 +33,10 @@ function App() {
         tape={current?.tape}
         title={current?.title}
       />
-      <ScrollSections sections={NIGHT} mode="snap" onStateChange={handleStateChange} />
+      <IntroContext.Provider value={ready}>
+        <ScrollSections sections={NIGHT} mode="snap" onStateChange={handleStateChange} onReady={handleReady} />
+      </IntroContext.Provider>
+      <Loader ready={ready} />
     </>
   )
 }
