@@ -1,0 +1,77 @@
+/* Shared across Current's sections rather than duplicated or left to depend
+   on CSS import order between them. */
+
+.current-btn {
+  pointer-events: auto;
+  display: inline-block;
+  padding: 0.7rem 1.4rem;
+  border: none;
+  border-radius: 3px;
+  background: var(--portfolio-accent, #d4af6a);
+  color: #0b0b10;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.current-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+.current-btn:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+
+.current-btn-secondary {
+  pointer-events: auto;
+  display: inline-block;
+  padding: 0.65rem 1.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 3px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.current-btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.current-btn-secondary:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+
+/* A deliberately unfinished-looking block marking where a real visual
+   (a screenshot, a live demo, a diagram) would go in a production build of
+   this page — not meant to look like a finished piece of UI. */
+.current-placeholder {
+  position: relative;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.current-placeholder-label {
+  font-family: var(--display);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.3);
+}

@@ -1,15 +1,21 @@
 import ScrollSections from './components/ScrollSections/ScrollSections'
-import { SectionAlpha, SectionBeta, SectionGamma, SectionDelta } from './components/sections/Placeholder/sections'
+import Hero from './components/sections/current/Hero'
+import Features from './components/sections/current/Features'
+import Proof from './components/sections/current/Proof'
+import Process from './components/sections/current/Process'
+import CTA from './components/sections/current/CTA'
 import GradualBlur from './components/GradualBlur/GradualBlur'
 
-// Temporarily swapped in for the shader-backed sections (Hero/Sound/Craft —
-// still on disk, unused) to isolate the scroll-morph transition itself from
-// the animated WebGL backgrounds while chasing a performance issue.
+// Current: a small toolkit of pointer-reactive effects (ripple, melt, drift)
+// for developers to drop into a page. The scroll-morph transition between
+// these sections and the RippleDistortion hero background are the only two
+// effects actually running here — everything else is plain markup/CSS.
 const SECTIONS = [
-  { id: 'alpha', Component: SectionAlpha },
-  { id: 'beta', Component: SectionBeta },
-  { id: 'gamma', Component: SectionGamma },
-  { id: 'delta', Component: SectionDelta }
+  { id: 'hero', Component: Hero },
+  { id: 'features', Component: Features },
+  { id: 'proof', Component: Proof },
+  { id: 'process', Component: Process },
+  { id: 'cta', Component: CTA }
 ]
 
 function App() {
