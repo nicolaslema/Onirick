@@ -149,16 +149,20 @@ export default function ScrollSections({
   const startLiveRefresh = useCallback(
     (fromIndex, toIndex) => {
       stopLiveRefresh();
-      // One-time content-only capture per section per transition (cheap
-      // relative to the old per-tick domToCanvas calls, and only needed
-      // once since none of this content animates on its own) — refresh()
-      // layers it back on top of the live canvas on every tick below.
+      // Text-only overlays (normally already pre-built by the pre-capture
+      // effect) that refresh() layers back on top of the live canvas.
       sectionTextures.prepareOverlay(fromIndex);
       sectionTextures.prepareOverlay(toIndex);
-      refreshTimerRef.current = setInterval(() => {
+      const tick = () => {
         sectionTextures.refresh(fromIndex);
         sectionTextures.refresh(toIndex);
-      }, LIVE_REFRESH_INTERVAL_MS);
+      };
+      // Once right away, not just on the first interval tick: the cached
+      // capture is from whenever the section was last settled, so an
+      // animated scene (the hero's reels) would otherwise show that old
+      // pose for the melt's first 80 ms, then jump to the live one.
+      tick();
+      refreshTimerRef.current = setInterval(tick, LIVE_REFRESH_INTERVAL_MS);
     },
     [sectionTextures, stopLiveRefresh]
   );
