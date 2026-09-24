@@ -20,6 +20,20 @@ button {
   font: inherit;
 }
 
+/* Visually hidden but still reachable by assistive tech — the Hud's
+   aria-live section announcement (Hud.jsx). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Reduced motion is handled per-feature (melt's uReduce uniform, the plain
    crossfade's own override, R3F scene idle speed, ...), not with a single
    blanket rule here — see motion.md / PLAN.md section 5.3. */

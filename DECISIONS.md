@@ -43,3 +43,74 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   manual, the Hud's ink-colored text is the same hex as the manual's own paper surface
   (`#ece6d8` both ways), so it's effectively invisible there until Phase 1 wires the Hud to
   follow the current section. Flagged in the phase-0 report, not silently left for later.
+  **Resolved in Phase 1** (see below).
+
+## Phase 1
+
+- **`phase-1-engine` branches off `phase-0-foundation`**, not `develop` again — same reasoning as
+  Phase 0's base-branch call, one step later.
+
+- **Split `basePropsRef`/`optsRef` in `ScrollSections.jsx`** rather than the plan's literal
+  "mezclar en optsRef antes de prepareTransition" read as one ref. The component's original code
+  reassigned that ref from props on every render; a per-transition merge written into the *same*
+  ref could get clobbered by an unrelated re-render landing mid-transition (React state changes
+  don't fire mid-morph in this component's own code today, but nothing guarantees a parent
+  never re-renders it for its own reasons). `basePropsRef` mirrors props every render, harmless;
+  `optsRef` (what `MorphEngine.getOptions()` actually reads) is now *only* ever written
+  imperatively — once per transition start, and reset to `basePropsRef` in `settle()`. Same
+  outcome the plan describes, safer against that one edge case.
+
+- **`ScrollSectionsContext` is provided by `ScrollSections` for its own children**, not lifted to
+  wrap it from outside (which isn't actually possible — the context's value depends on state that
+  lives *inside* `ScrollSections`, so a `Provider` wrapping it from `App.jsx` would have nothing
+  to pass in). A sibling that isn't inside `ScrollSections`'s own subtree — the `Hud`, in
+  `App.jsx` — can't reach the context, so `ScrollSections` also takes a plain `onStateChange`
+  callback prop mirroring `{ currentIndex, activeTransition }` out to `App.jsx`, which resolves
+  that against `NIGHT` and passes the Hud what it needs as ordinary props. Standard "lift state
+  to share between siblings" — Hero/Manual/Wake's buttons, which genuinely are rendered inside
+  `ScrollSections`, use the real context and its `goTo()` directly.
+
+- **`activeTransition` is `{ from, to } | null`, no live `progress` value.** The plan's own
+  sketch for `NightContext` includes `transition: {from, to, progress}`; a real per-frame
+  `progress` would mean a React state update every animation frame during every transition
+  (the whole point of running the melt outside React's render cycle in the first place), so this
+  only tracks the coarse "is a transition between these two sections in flight" state, which is
+  what Phase 2's `SceneCanvas` actually needs to decide active/neighbour/offstage per PLAN.md
+  section 3.2. Revisit if something later genuinely needs frame-accurate progress.
+
+- **`goTo()`'s non-adjacent-jump `plainDuration` resolves against the jump's actual target**,
+  not `Math.max(from, target)` the way an adjacent step's melt/plainDuration override does. The
+  `Math.max` convention exists specifically because "transition i" (an adjacent pair) has one
+  unambiguous owning section regardless of direction (PLAN.md 5.1's own "se usan igual en las dos
+  direcciones"); a jump has no such pair, so "the entrance to the destination" can only sensibly
+  mean the literal target. Concretely: `hero`'s config entry now carries `plainDuration: 1.2`
+  (PLAN.md 6.7's documented "crossfade de 1.2s" for REPLAY THE NIGHT jumping back from Wake) —
+  under the `Math.max` rule that value would never be reached for that specific jump (`Math.max(7,
+  0)` is Wake, not Hero), so the target-based rule is what actually realizes the plan's own
+  stated duration.
+
+- **`tape`/`title` fields added to each dream's `NIGHT` entry** (plus `title` on hero/manual/wake)
+  purely to feed the Hud's aria-live announcement ("Tape 02, The Whale Above the City") — these
+  duplicate the same title string each `DreamX.jsx` already hardcodes via `DreamTitle`. A later
+  pass could have each section export its own title/tape and have `config.js` re-export them
+  instead of repeating five short strings by hand; not worth the indirection for Phase 1.
+
+- **Sections still use `aria-label` rather than `aria-labelledby`+`id`** (PLAN.md section 7.7's
+  literal suggestion) — same call as Phase 0's, an equally valid way to give a landmark region an
+  accessible name, already in place since Phase 0 and left unchanged.
+
+- **Verified live except transition 7's exact whiteout.** Confirmed live in-browser: the
+  non-adjacent jumps (Hero→Manual, Wake→Hero) both crossfade with the right per-target duration;
+  the Hud follows the current section (including flipping into the paper theme on the manual —
+  the exact gap Phase 0 flagged); Manual's native scroll auto-advances into Ocean at its bottom
+  edge with Ocean's own tint/hud correctly applied; `End` jumps straight to Wake; zero console
+  errors across the whole sequence. Didn't get a clean look at the actual melt *into* Wake
+  (transition 7, the one that should visibly burn out to `melt-whiteout`) — reaching it needs a
+  real adjacent step from Fall, and the one attempt at an adjacent step elsewhere in this session
+  landed on the same `document.hidden`-pauses-`requestAnimationFrame` environment quirk hit
+  several times earlier in this project (not a code defect — reproduced, traced to the tab losing
+  OS-level foreground focus, and already documented earlier in this session). The underlying
+  mechanism (per-transition option merging via `optsRef` + explicit `engine.syncOptions()`) is
+  the same code path already exercised successfully for Ocean's tint and Hero's/Manual's
+  `plainDuration`, so this is a coverage gap in this session's testing, not a known-broken path —
+  worth a direct look before calling Phase 1 fully signed off.

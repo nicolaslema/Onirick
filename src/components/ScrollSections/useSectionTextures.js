@@ -5,7 +5,7 @@ import { makeTextureFromSource, getSourceSize } from '../../lib/morph';
 // Fallback background for a capture that comes back genuinely transparent
 // (no opaque background anywhere in the captured subtree) — every current
 // section paints its own opaque background, so this is only a safety net.
-const SECTION_BG = '#0b0b10';
+const SECTION_BG = '#07080d';
 
 // A WebGL canvas (three.js/ogl backgrounds like Beams, Strands, LiquidChrome,
 // ...) doesn't get its real pixel dimensions until its ResizeObserver-driven
