@@ -52,14 +52,19 @@ const CANVAS_FADE_MS = 150;
 //   kind and touch swiping are currently only wired up for mode 'snap'.
 // - `melt`: overrides (duration, ease, intensity, scale, aberration, drift,
 //   overlayColor, burn — a full-frame fade into overlayColor mid-melt) for
-//   the transition whose destination is this section — i.e. transition i (between sections i-1 and i) always uses section i's
-//   `melt`, in both directions. Falls back to this component's own props.
+//   the transition whose destination is this section — i.e. transition i
+//   (between sections i-1 and i) always uses section i's `melt`, in both
+//   directions. Falls back to this component's own props.
+// - `detour`: reached by a goTo() jump that skips sections before it, it's a
+//   side trip — leaving it by either edge crossfades back to where the jump
+//   came from (the manual, opened from the hero, returns to the hero).
 // - `plainDuration`: same idea for a crossfade whose destination is this
 //   section (used whenever either side of the transition is 'scroll', or
 //   for a goTo() jump landing here).
 //
 // Sections rendered inside <ScrollSections> can call useScrollSections()
-// (ScrollSectionsContext.js) for { currentIndex, activeTransition, goTo }.
+// (ScrollSectionsContext.js) for { currentIndex, activeTransition, goTo,
+// inDetour }.
 // A sibling of <ScrollSections> (e.g. a Hud) can't reach that context, so
 // ScrollSections also takes an onStateChange callback mirroring the same
 // { currentIndex, activeTransition } out to the parent.
@@ -94,6 +99,12 @@ export default function ScrollSections({
   // Bumped when every cached capture is thrown away (resize), so the
   // pre-capture effect below runs again for the current section's neighbours.
   const [captureEpoch, setCaptureEpoch] = useState(0);
+  // A detour: a jump (goTo) straight into a `detour: true` section that
+  // skipped the sections before it. Until it's left, leaving that section by
+  // either edge returns to where the jump came from instead of stepping on to
+  // its neighbours — see goToIndex. { at, back } | null.
+  const detourRef = useRef(null);
+  const [inDetour, setInDetour] = useState(false);
   const currentIndexRef = useRef(0);
   const progressRef = useRef(0);
   const dirRef = useRef(0);
@@ -194,6 +205,10 @@ export default function ScrollSections({
       stopLiveRefresh();
       currentIndexRef.current = newIndex;
       setCurrentIndex(newIndex);
+      if (detourRef.current && detourRef.current.at !== newIndex) {
+        detourRef.current = null;
+        setInDetour(false);
+      }
       setActiveTransition(null);
       progressRef.current = 0;
       dirRef.current = 0;
@@ -411,8 +426,15 @@ export default function ScrollSections({
 
   const goToIndex = useCallback(
     (targetIndex, dir) => {
-      if (targetIndex < 0 || targetIndex >= sections.length) return;
       if (engineRef.current?.animating || dirRef.current !== 0) return;
+      const detour = detourRef.current;
+      if (detour && currentIndexRef.current === detour.at) {
+        // Either edge of a detour section leads back to where the jump
+        // came from — a crossfade, like any non-adjacent move.
+        runPlainTransition(detour.at, detour.back, -1, detour.back);
+        return;
+      }
+      if (targetIndex < 0 || targetIndex >= sections.length) return;
 
       const destIndex = Math.max(currentIndexRef.current, targetIndex);
 
@@ -487,6 +509,12 @@ export default function ScrollSections({
       if (Math.abs(targetIndex - from) === 1) {
         goToIndex(targetIndex, dir);
       } else {
+        // Jumping ahead into a detour section (READ THE MANUAL from the
+        // hero) skips the night before it; remember where to return.
+        if (sections[targetIndex]?.detour && targetIndex > from) {
+          detourRef.current = { at: targetIndex, back: from };
+          setInDetour(true);
+        }
         runPlainTransition(from, targetIndex, dir, targetIndex);
       }
     },
@@ -715,7 +743,10 @@ export default function ScrollSections({
     };
   }, [handleWheel, handleTouchMove, handleKeyDown]);
 
-  const contextValue = useMemo(() => ({ currentIndex, activeTransition, goTo }), [currentIndex, activeTransition, goTo]);
+  const contextValue = useMemo(
+    () => ({ currentIndex, activeTransition, goTo, inDetour }),
+    [currentIndex, activeTransition, goTo, inDetour]
+  );
 
   // Lets the browser scroll a 'scroll'-kind current section natively (touch
   // included); blocked everywhere else, where ScrollSections owns the
