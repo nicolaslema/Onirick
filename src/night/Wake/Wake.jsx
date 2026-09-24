@@ -1,8 +1,11 @@
+import { lazy } from 'react';
 import TapeLabel from '../../components/TapeLabel/TapeLabel';
 import SceneCanvas from '../../components/SceneCanvas/SceneCanvas';
 import { useScrollSections } from '../../components/ScrollSections/ScrollSectionsContext';
-import WakeScene from './WakeScene';
 import './Wake.css';
+
+// Loaded with the 3D chunk, after the page has painted.
+const WakeScene = lazy(() => import('./WakeScene'));
 
 const WAKE_CAMERA = { position: [0, 1.1, 7.6], fov: 32 };
 

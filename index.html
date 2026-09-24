@@ -8,16 +8,44 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- crossorigin: lets the melt's domToCanvas capture read these @font-face
          rules and embed the fonts; without it the stylesheet is opaque to JS
-         and captured text falls back to a default serif/mono. -->
+         and captured text falls back to a default serif/mono.
+         media=print + onload: loads without blocking the first paint (the
+         loader below); src/lib/fonts.js waits for the actual faces before
+         the page is revealed and captured. -->
     <link
+      data-fonts
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
       crossorigin="anonymous"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+    <!-- The loader's first frame, painted before any JS arrives; React's
+         <Loader> replaces it with the same markup (see Loader.css). -->
+    <style>
+      html, body { margin: 0; background: #07080d; }
+      .onk-loader { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center; background: #07080d; }
+      .onk-loader-counter { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: 12px; font-weight: 500; letter-spacing: 0.12em; color: #ece6d8; font-variant-numeric: tabular-nums; }
+    </style>
     <title>Onirick — DR-1 Dream Recorder</title>
+    <meta name="description" content="The Onirick DR-1 sits by your bed and records the one dream that matters. A night of sleep told in scroll-driven motion — a design experiment." />
+    <meta name="theme-color" content="#07080d" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Onirick — DR-1 Dream Recorder" />
+    <meta property="og:description" content="Every night you lose about six dreams. Keep one. A night of sleep told in scroll-driven motion." />
+    <meta property="og:image" content="/posters/hero.webp" />
+    <meta property="og:image:width" content="1600" />
+    <meta property="og:image:height" content="900" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="onk-loader" role="status"><span class="onk-loader-counter" aria-hidden="true">00:00:00</span></div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

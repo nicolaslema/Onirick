@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { BoxGeometry, Color, Object3D, Vector3 } from 'three';
 
 import Atmosphere from '../../three/Atmosphere';
@@ -170,7 +170,11 @@ const Kitchen = ({ colors }) => (
 );
 
 const HouseScene = ({ camera }) => {
-  useCameraDrift({ position: camera.position, target: [0, 0, -10], pivot: 'camera' });
+  // On a portrait screen the title block runs taller, and at eye level the
+  // lit kitchen doorway lands right behind its tape label; looking a little
+  // lower lifts the doorway above the copy.
+  const portrait = useThree(state => state.viewport.aspect < 1);
+  useCameraDrift({ position: camera.position, target: [0, portrait ? -2.4 : 0, -10], pivot: 'camera' });
   const colors = useMemo(() => {
     const tint = readTint('house');
     return {

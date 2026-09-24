@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { MorphEngine } from '../../lib/morph';
-import { useSectionTextures } from './useSectionTextures';
+import { fontsLoaded } from '../../lib/fonts';
+import { DPR_CAP } from '../../lib/dpr';
+import { HAS_WEBGL2 } from '../../lib/webgl';
+import { loadCaptureLib, useSectionTextures } from './useSectionTextures';
 import { normalizeDelta, scrubStrategy } from './useWheelProgress';
-import { ScrollSectionsContext, SectionIndexContext } from './ScrollSectionsContext';
+import { ScrollSectionsContext, SectionIdContext, SectionIndexContext } from './ScrollSectionsContext';
 
 import './ScrollSections.css';
 
@@ -17,6 +19,9 @@ const TOUCH_SWIPE_PX = 40;
 // Wheel events closer together than this belong to the same gesture — see
 // handleSnapWheel's edge rule for a 'scroll'-kind section.
 const WHEEL_GESTURE_GAP_MS = 200;
+// Any of these means a section change may be imminent: build the melt
+// engine now (see the first-load effect).
+const INTENT_EVENTS = ['pointermove', 'pointerdown', 'touchstart', 'wheel', 'keydown'];
 // One arrow-key step inside a 'scroll'-kind section.
 const KEY_SCROLL_PX = 80;
 // Must match .scroll-sections-canvas's `transition: opacity ...` duration in
@@ -71,7 +76,8 @@ export default function ScrollSections({
   drift = 0.4,
   overlayColor = '#000000',
   burn = 0,
-  onStateChange
+  onStateChange,
+  onReady
 }) {
   const stageRef = useRef(null);
   const canvasHostRef = useRef(null);
@@ -103,6 +109,9 @@ export default function ScrollSections({
   basePropsRef.current = { transition, duration, plainDuration, ease, intensity, scale, aberration, drift, overlayColor, burn };
   const optsRef = useRef({ ...basePropsRef.current });
 
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+
   const kindOf = useCallback(index => sections[index]?.kind ?? 'morph', [sections]);
 
   // Resolves each section into a texture the morph engine can sample — a
@@ -128,6 +137,7 @@ export default function ScrollSections({
     if (!canvas) return;
     clearTimeout(canvasHideTimeoutRef.current);
     if (visible) {
+      engineRef.current.start();
       canvas.style.visibility = 'visible';
       canvas.style.opacity = '1';
       return;
@@ -135,6 +145,7 @@ export default function ScrollSections({
     canvas.style.opacity = '0';
     canvasHideTimeoutRef.current = setTimeout(() => {
       canvas.style.visibility = 'hidden';
+      engineRef.current?.stop();
     }, CANVAS_FADE_MS);
   }, []);
 
@@ -257,9 +268,9 @@ export default function ScrollSections({
   // in the DOM and capture() waits for it to render (waitForCanvasesReady).
   // A 'scroll' section is never a melt texture, so it's skipped.
   useEffect(() => {
+    if (!HAS_WEBGL2) return undefined;
     let cancelled = false;
-    const fontsReady = document.fonts?.ready ?? Promise.resolve();
-    fontsReady.then(() => {
+    fontsLoaded().then(() => {
       if (cancelled) return;
       for (const i of [currentIndex, currentIndex - 1, currentIndex + 1]) {
         if (i < 0 || i >= sections.length || kindOf(i) !== 'morph') continue;
@@ -280,45 +291,78 @@ export default function ScrollSections({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, activeTransition]);
 
-  // Mount the shared morph engine into the fixed canvas layer, and prime it
-  // with the first section's texture once layout/fonts have settled.
+  // First load: capture sections 0 and 1 (what the first gesture melts
+  // between), reveal the page (onReady → App's Loader lifts), then prefetch
+  // the shared morph engine's code. The engine itself — a second WebGL
+  // context plus a shader compile — is only built on the first sign the
+  // visitor is about to move: a pointer move, touch, wheel or key, caught on
+  // window in the capture phase, i.e. before this component's own handler
+  // for that same event runs. Nothing melts before then, and a visitor who
+  // never scrolls never pays for it. The engine's and the capture library's
+  // code both load on demand, out of the first JS chunk.
   useEffect(() => {
     if (!canvasHostRef.current) return undefined;
     let cancelled = false;
+    let engine = null;
+    let removeIntentListeners = () => {};
+    if (!HAS_WEBGL2) {
+      // Nothing to capture: the page is ready as soon as its fonts are.
+      fontsLoaded().then(() => {
+        if (!cancelled) onReadyRef.current?.();
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const engine = new MorphEngine(canvasHostRef.current, {
-      reducedMotion,
-      getOptions: () => optsRef.current,
-      dprCap: 2,
-      canvasClassName: 'scroll-sections-canvas'
-    });
-    engineRef.current = engine;
-
-    const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-    fontsReady.then(() => {
-      requestAnimationFrame(() => {
-        if (cancelled) return;
-        // Only worth priming the engine if section 0 itself is a morph
-        // section — a 'scroll' first section never becomes a melt texture.
-        if (kindOf(0) === 'morph') {
-          sectionTextures.capture(0).then(canvas => {
-            if (cancelled || !canvas) return;
-            const descriptor = sectionTextures.getTexture(0, engine.gl);
-            if (descriptor) engine.setCurrent(descriptor);
+    Promise.all([loadCaptureLib(), fontsLoaded()])
+      .then(() => new Promise(resolve => requestAnimationFrame(resolve)))
+      .then(() => {
+        if (cancelled) return null;
+        // Sections 0 and 1 are captured as they are right now, so the caller
+        // must keep them in their resting state until onReady fires (Hero
+        // holds its entrance animation). A 'scroll' section never melts.
+        const ready = [];
+        if (kindOf(0) === 'morph') ready.push(sectionTextures.capture(0));
+        if (sections.length > 1 && kindOf(1) === 'morph') ready.push(sectionTextures.capture(1));
+        return Promise.all(ready);
+      })
+      .then(() => {
+        if (cancelled) return null;
+        onReadyRef.current?.();
+        return import('../../lib/morph/MorphEngine');
+      })
+      .then(mod => {
+        if (cancelled || !mod) return;
+        const build = () => {
+          removeIntentListeners();
+          if (cancelled || engine) return;
+          engine = new mod.MorphEngine(canvasHostRef.current, {
+            reducedMotion,
+            getOptions: () => optsRef.current,
+            dprCap: DPR_CAP,
+            canvasClassName: 'scroll-sections-canvas',
+            autoRun: false // runs only while its canvas is shown — see setCanvasVisible
           });
-        }
-        if (sections.length > 1 && kindOf(1) === 'morph') sectionTextures.capture(1);
+          engineRef.current = engine;
+          const descriptor = kindOf(0) === 'morph' ? sectionTextures.getTexture(0, engine.gl) : null;
+          if (descriptor) engine.setCurrent(descriptor);
+        };
+        removeIntentListeners = () => INTENT_EVENTS.forEach(type => window.removeEventListener(type, build, true));
+        INTENT_EVENTS.forEach(type => window.addEventListener(type, build, { capture: true, passive: true }));
       });
-    });
 
     return () => {
       cancelled = true;
+      removeIntentListeners();
       stopLiveRefresh();
       clearTimeout(plainTimeoutRef.current);
       clearTimeout(canvasHideTimeoutRef.current);
-      sectionTextures.invalidateAll(engine.gl);
-      engine.destroy();
+      if (engine) {
+        sectionTextures.invalidateAll(engine.gl);
+        engine.destroy();
+      }
       engineRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -332,9 +376,11 @@ export default function ScrollSections({
     const onResize = () => {
       clearTimeout(timeout);
       timeout = setTimeout(() => {
+        if (!HAS_WEBGL2) return;
+        // The engine may not exist yet (it's built on first intent) — the
+        // cached captures still have to go, or they'd melt at the old size.
         const engine = engineRef.current;
-        if (!engine) return;
-        if (dirRef.current !== 0 || engine.animating) {
+        if (engine && (dirRef.current !== 0 || engine.animating)) {
           stopLiveRefresh();
           engine.reset();
           clearTimeout(plainTimeoutRef.current);
@@ -345,9 +391,9 @@ export default function ScrollSections({
           optsRef.current = { ...basePropsRef.current };
           setCanvasVisible(false);
         }
-        sectionTextures.invalidateAll(engine.gl);
+        sectionTextures.invalidateAll(engine?.gl);
         setCaptureEpoch(epoch => epoch + 1);
-        if (kindOf(currentIndexRef.current) === 'morph') {
+        if (engine && kindOf(currentIndexRef.current) === 'morph') {
           sectionTextures.capture(currentIndexRef.current).then(canvas => {
             if (!canvas) return;
             const descriptor = sectionTextures.getTexture(currentIndexRef.current, engine.gl);
@@ -374,7 +420,8 @@ export default function ScrollSections({
       // capturing/texturing a 'scroll' section as a melt target doesn't make
       // sense for something meant to read as plain scrolling content, so
       // either side being 'scroll' falls back to the plain CSS crossfade.
-      if (kindOf(currentIndexRef.current) !== 'morph' || kindOf(targetIndex) !== 'morph') {
+      // No WebGL2 (PLAN.md 6): no melt engine at all, every transition fades.
+      if (!HAS_WEBGL2 || kindOf(currentIndexRef.current) !== 'morph' || kindOf(targetIndex) !== 'morph') {
         runPlainTransition(currentIndexRef.current, targetIndex, dir, destIndex);
         return;
       }
@@ -404,8 +451,10 @@ export default function ScrollSections({
       dirRef.current = dir;
       setActiveTransition({ from: currentIndexRef.current, to: targetIndex });
       engine.prepareTransition(currentDesc, nextDesc, dir);
-      setCanvasVisible(true);
+      // Refresh first: showing the canvas draws a frame immediately, and it
+      // must already hold both scenes' live pose, not their cached one.
       startLiveRefresh(currentIndexRef.current, targetIndex);
+      setCanvasVisible(true);
       engine.animateProgress(1, {
         duration: optsRef.current.duration,
         ease: optsRef.current.ease,
@@ -681,6 +730,7 @@ export default function ScrollSections({
             <div
               key={section.id}
               className="scroll-sections-host"
+              data-section={section.id}
               data-offscreen={isVisible ? undefined : true}
               data-plain-exit={isPlainFrom ? true : undefined}
               data-plain-enter={isPlainTo ? true : undefined}
@@ -699,7 +749,9 @@ export default function ScrollSections({
                 }
               >
                 <SectionIndexContext.Provider value={i}>
-                  <section.Component />
+                  <SectionIdContext.Provider value={section.id}>
+                    <section.Component />
+                  </SectionIdContext.Provider>
                 </SectionIndexContext.Provider>
               </div>
             </div>
