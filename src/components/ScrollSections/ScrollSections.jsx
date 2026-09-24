@@ -641,7 +641,9 @@ export default function ScrollSections({
       if (start.scrolled) return;
       if (Math.abs(deltaY) < TOUCH_SWIPE_PX) return;
 
-      e.preventDefault();
+      // Not cancelable once the browser has started a native scroll for
+      // this touch; calling preventDefault() then only logs an error.
+      if (e.cancelable) e.preventDefault();
       start.consumed = true;
       goToIndex(currentIndexRef.current + dir, dir);
     },
@@ -689,6 +691,30 @@ export default function ScrollSections({
     [stepOrScroll, goTo, sections.length]
   );
 
+  // Wheel and touchmove are attached natively, non-passive: React registers
+  // its onWheel/onTouchMove as passive listeners, where preventDefault() is
+  // ignored (and Chrome logs an error for every call) — and these handlers
+  // need it, e.g. to stop the manual's scroll from chaining at its edges.
+  // Keys are heard on window, not the stage: the stage only has focus after
+  // a click, so arrows would do nothing for someone arriving by keyboard or
+  // after only using the wheel. Modified keys (browser shortcuts) pass.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return undefined;
+    const onKey = e => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      handleKeyDown(e);
+    };
+    stage.addEventListener('wheel', handleWheel, { passive: false });
+    stage.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('keydown', onKey);
+    return () => {
+      stage.removeEventListener('wheel', handleWheel);
+      stage.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [handleWheel, handleTouchMove, handleKeyDown]);
+
   const contextValue = useMemo(() => ({ currentIndex, activeTransition, goTo }), [currentIndex, activeTransition, goTo]);
 
   // Lets the browser scroll a 'scroll'-kind current section natively (touch
@@ -702,12 +728,9 @@ export default function ScrollSections({
         ref={stageRef}
         className="scroll-sections"
         style={{ '--scroll-sections-plain-duration': `${plainDuration}s`, touchAction }}
-        onWheel={handleWheel}
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
-        onKeyDown={handleKeyDown}
         tabIndex={-1}
       >
         {sections.map((section, i) => {
