@@ -22,6 +22,11 @@ const LIVE_REFRESH_INTERVAL_MS = 80;
 // A touch drag past this many vertical pixels commits to one section change,
 // same idea as one wheel tick in 'snap' mode.
 const TOUCH_SWIPE_PX = 40;
+// Wheel events closer together than this belong to the same gesture — see
+// handleSnapWheel's edge rule for a 'scroll'-kind section.
+const WHEEL_GESTURE_GAP_MS = 200;
+// One arrow-key step inside a 'scroll'-kind section.
+const KEY_SCROLL_PX = 80;
 // Must match .scroll-sections-canvas's `transition: opacity ...` duration in
 // ScrollSections.css — see setCanvasVisible below.
 const CANVAS_FADE_MS = 150;
@@ -81,7 +86,8 @@ export default function ScrollSections({
   const engineRef = useRef(null);
   const refreshTimerRef = useRef(null);
   const plainTimeoutRef = useRef(null);
-  const touchRef = useRef(null); // { y, consumed } | null
+  const touchRef = useRef(null); // { y, consumed, scrolled } | null
+  const wheelGestureRef = useRef({ lastAt: 0, dir: 0, scrolled: false });
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [plainTransition, setPlainTransition] = useState(null); // { from, to } | null
@@ -472,13 +478,31 @@ export default function ScrollSections({
       if (deltaPx === 0) return;
       const wheelDir = Math.sign(deltaPx);
 
+      // Wheel events closer together than WHEEL_GESTURE_GAP_MS (a trackpad's
+      // momentum tail included) are one gesture.
+      const now = performance.now();
+      const gesture = wheelGestureRef.current;
+      if (now - gesture.lastAt > WHEEL_GESTURE_GAP_MS || gesture.dir !== wheelDir) {
+        gesture.scrolled = false;
+        gesture.dir = wheelDir;
+      }
+      gesture.lastAt = now;
+
       // A 'scroll'-kind current section owns the wheel until its own
       // content has reached the edge being pushed against — let the browser
       // scroll it natively (no preventDefault) instead of advancing to the
       // next/previous section.
-      if (!atScrollEdge(currentIndexRef.current, wheelDir)) return;
+      if (!atScrollEdge(currentIndexRef.current, wheelDir)) {
+        gesture.scrolled = true;
+        return;
+      }
 
       e.preventDefault();
+      // The gesture that carried the content to its edge doesn't also leave
+      // the section — otherwise the momentum tail of every flick to the
+      // bottom of the manual would fire straight into Dream 04. A fresh
+      // gesture at the edge does.
+      if (gesture.scrolled) return;
       goToIndex(currentIndexRef.current + wheelDir, wheelDir);
     },
     [goToIndex, atScrollEdge]
@@ -547,7 +571,7 @@ export default function ScrollSections({
   const handleTouchStart = useCallback(
     e => {
       if (mode !== 'snap' || e.touches.length !== 1) return;
-      touchRef.current = { y: e.touches[0].clientY, consumed: false };
+      touchRef.current = { y: e.touches[0].clientY, consumed: false, scrolled: false };
     },
     [mode]
   );
@@ -560,7 +584,13 @@ export default function ScrollSections({
       const deltaY = start.y - e.touches[0].clientY; // >0: swiping up (advance)
       const dir = deltaY > 0 ? 1 : deltaY < 0 ? -1 : 0;
 
-      if (dir !== 0 && !atScrollEdge(currentIndexRef.current, dir)) return; // let native scroll happen
+      if (dir !== 0 && !atScrollEdge(currentIndexRef.current, dir)) {
+        start.scrolled = true; // let native scroll happen
+        return;
+      }
+      // Same rule as the wheel: the swipe that scrolled the content to its
+      // edge doesn't also change section; the next one does.
+      if (start.scrolled) return;
       if (Math.abs(deltaY) < TOUCH_SWIPE_PX) return;
 
       e.preventDefault();
@@ -574,14 +604,32 @@ export default function ScrollSections({
     touchRef.current = null;
   }, []);
 
+  // Arrow keys / PageUp / PageDown inside a 'scroll'-kind section scroll its
+  // content first (the stage, not the scroller, holds focus, so the browser
+  // wouldn't); only once that edge is reached do they change section.
+  const stepOrScroll = useCallback(
+    (dir, page) => {
+      const index = currentIndexRef.current;
+      if (!atScrollEdge(index, dir)) {
+        const scroller = sectionHostRefs.current[index];
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const amount = page ? scroller.clientHeight * 0.85 : KEY_SCROLL_PX;
+        scroller.scrollBy({ top: dir * amount, behavior: reduced ? 'auto' : 'smooth' });
+        return;
+      }
+      goToIndex(index + dir, dir);
+    },
+    [atScrollEdge, goToIndex]
+  );
+
   const handleKeyDown = useCallback(
     e => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        goToIndex(currentIndexRef.current + 1, 1);
+        stepOrScroll(1, e.key === 'PageDown');
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        goToIndex(currentIndexRef.current - 1, -1);
+        stepOrScroll(-1, e.key === 'PageUp');
       } else if (e.key === 'Home') {
         e.preventDefault();
         goTo(0);
@@ -590,7 +638,7 @@ export default function ScrollSections({
         goTo(sections.length - 1);
       }
     },
-    [goToIndex, goTo, sections.length]
+    [stepOrScroll, goTo, sections.length]
   );
 
   const contextValue = useMemo(() => ({ currentIndex, activeTransition, goTo }), [currentIndex, activeTransition, goTo]);

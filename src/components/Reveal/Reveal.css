@@ -1,0 +1,19 @@
+.onk-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.onk-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onk-reveal {
+    transition: none;
+    transform: none;
+  }
+}
