@@ -1,5 +1,8 @@
+import { lazy } from 'react';
 import DreamFrame from '../DreamFrame';
-import WhaleScene from './WhaleScene';
+
+// Loaded with the 3D chunk, after the page has painted.
+const WhaleScene = lazy(() => import('./WhaleScene'));
 
 // Rooftop level, looking up at the whale ("Nobody looks up").
 const CAMERA = { position: [0, 4.6, 12], fov: 55 };

@@ -307,3 +307,70 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   re-rasterized the DOM; a refresh is now a GPU canvas-to-canvas draw plus a texture upload,
   measured at ~0.2 ms. It now runs on `requestAnimationFrame` for the melt's duration. Measured on
   Ocean → Fall: 288 uploads/s (2 textures × 144 Hz), no frame over 25 ms.
+
+## Phase 6
+
+- **Tape counter scramble** (`Hud/ScrambleCounter`): each digit shows random values for 0.4 s,
+  settling left to right 30 ms apart (PLAN.md 5.2); colons stay put; instant under reduced motion.
+  The HUD's REC state reuses TapeLabel's `.onk-rec` dot, so both blink the same way.
+
+- **Grain:** `public/noise.png` (256×256 seeded gray noise, generated once with a zlib-only Node
+  script — no dependency) tiled over the page at 7% `overlay`, z-index 1000: above the sections and
+  the melt canvas (never captured or melted), below the HUD (1100) and the loader (1200).
+
+- **Loader** (PLAN.md 5.2): a static first frame is inlined in `index.html` (painted before any JS),
+  then React's `Loader` takes over with the same markup; its counter is real time since navigation
+  start (MM:SS:hundredths), written straight to the DOM rather than re-rendering React every frame.
+  It lifts (0.8 s) when `ScrollSections` calls the new `onReady`: fonts loaded + sections 0 and 1
+  captured. The hero's copy stays at rest until then — the melt's first capture of the hero is taken
+  under the loader — and only then enters (fade + 12 px, 0.6 s power2.out, 80 ms stagger, gsap).
+  Loader copy is just the counter: PLAN.md names nothing else.
+
+- **Posters** (`pnpm posters`, `scripts/posters.mjs`): PLAN.md asks for Playwright; `playwright-core`
+  (new devDependency) drives the installed Chrome, so no browser download. It walks the night with
+  the arrow key and saves each 3D section's *scene canvas* (not the page: the copy is live DOM drawn
+  over the poster) as a 1600 px webp. 7 posters, 5–35 KB each. A section shows its poster while its
+  scene is offstage or still loading/spinning up, and always without WebGL2.
+
+- **No WebGL2** (`lib/webgl.js`, PLAN.md 6): a context is actually requested, not just the
+  constructor checked. No melt engine is created, every transition is a crossfade (the base 0.6 s,
+  or a section's own `plainDuration`), every section shows its poster, and the loader lifts as soon
+  as fonts are in. Verified headless with `--disable-webgl --disable-3d-apis`: 0 canvases, 7
+  posters, 600 ms crossfades, no console errors.
+
+- **DPR cap** (`lib/dpr.js`): 1.75, or 1.25 on a coarse pointer, applied to the R3F canvases, the
+  melt canvas and the melt's captures alike.
+
+- **Performance — Lighthouse mobile went from 49 to 82–83** (Accessibility 100 throughout):
+  - Google Fonts CSS no longer blocks render (`media=print` + onload). Since `document.fonts.ready`
+    can then resolve before the sheet has declared any face, `lib/fonts.js` waits for the sheet and
+    for each face actually used — otherwise a capture could draw fallback fonts again (the Phase 1
+    "snap" bug).
+  - Code splitting: the first chunk is React + the page DOM (224 KB, 72 KB gzip, was 1.3 MB).
+    three + R3F (`SceneCanvas` → lazy `LiveCanvas`), each scene, the melt engine (ogl), gsap and
+    modern-screenshot load on demand.
+  - A section capture that has a scene is now composed (live canvas + text overlay — exactly what
+    `refresh()` draws every frame) instead of a second full `domToCanvas`, which also re-embedded the
+    web fonts every time. The text overlay is captured on a transparent background, so the
+    full-canvas chroma-key pass (millions of pixels in JS) now early-outs on one pixel.
+  - The melt engine only renders between `start()` and `stop()` (new `autoRun: false`), i.e. while
+    its canvas is shown; it used to draw its full-screen shader every frame, hidden, forever.
+  - The engine itself (WebGL context + shader compile, ~1 s on Lighthouse's software GL) is built on
+    the first sign of intent — pointermove/pointerdown/touchstart/wheel/keydown, caught on `window`
+    in the capture phase, so it exists before the same event reaches ScrollSections' handler. Its
+    code is prefetched right after the reveal. Verified: the first ArrowDown both builds it and melts.
+  - Measured (vite preview, Lighthouse 12 mobile, 2 runs): FCP 1.4 s, LCP 4.0 s, TBT 210–250 ms,
+    SI 2.5–2.6 s, CLS 0.001. LCP is the hero heading, which only paints when the loader lifts —
+    kept, since PLAN.md 5.2 asks the loader to wait for the first two captures.
+
+- **Console:** R3F 9 (up to 9.8, the latest) builds its clock with `THREE.Clock`, which three r183+
+  warns about on every canvas. `three/console.js` routes three's logging through
+  `setConsoleFunction` and drops only that message. Headless runs of the whole night (normal and
+  reduced motion) and of the no-WebGL path log no errors or warnings.
+
+- **Metadata:** description, Open Graph (title, description, `og:image` = the hero poster,
+  1600×900), `twitter:card`, `theme-color` #07080d. `og:image` is a relative URL until there's a
+  deploy domain (Phase 7).
+
+- **Not done here:** the `charset` and `robots.txt` Lighthouse notes (`vite preview` serves HTML
+  without a charset header; no robots.txt) belong with the deploy in Phase 7.

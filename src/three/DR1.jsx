@@ -4,6 +4,7 @@ import { RoundedBox } from '@react-three/drei';
 import { CanvasTexture, SRGBColorSpace } from 'three';
 import { easing } from 'maath';
 
+import { fontsLoaded } from '../lib/fonts';
 import { FLAT, readToken } from './materials';
 import { REDUCED_SPEED, useReducedMotion } from './useReducedMotion';
 
@@ -117,7 +118,7 @@ function useTapeLabel(text, colors) {
   useEffect(() => {
     let alive = true;
     const font = '500 56px "JetBrains Mono"';
-    document.fonts.load(font).then(() => {
+    fontsLoaded().then(() => {
       if (!alive) return;
       const ctx = texture.image.getContext('2d');
       ctx.fillStyle = colors.bone;

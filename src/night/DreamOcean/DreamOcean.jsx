@@ -1,5 +1,8 @@
+import { lazy } from 'react';
 import DreamFrame from '../DreamFrame';
-import OceanScene from './OceanScene';
+
+// Loaded with the 3D chunk, after the page has painted.
+const OceanScene = lazy(() => import('./OceanScene'));
 
 // Standing just inside the door, eyes above the high-water mark.
 const CAMERA = { position: [0, 1.3, 3.6], fov: 55 };

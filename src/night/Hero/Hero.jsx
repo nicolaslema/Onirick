@@ -1,13 +1,14 @@
-import { useLayoutEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import { lazy, useLayoutEffect, useRef } from 'react';
 
 import TapeLabel from '../../components/TapeLabel/TapeLabel';
 import { useIntroStarted } from '../../components/Loader/IntroContext';
 import SceneCanvas from '../../components/SceneCanvas/SceneCanvas';
 import { useScrollSections } from '../../components/ScrollSections/ScrollSectionsContext';
-import DeviceScene from './DeviceScene';
 import { useReducedMotion } from '../../three/useReducedMotion';
 import './Hero.css';
+
+// Loaded with the 3D chunk, after the page has painted.
+const DeviceScene = lazy(() => import('./DeviceScene'));
 
 const HERO_CAMERA = { position: [0, 0.35, 4.6], fov: 32 };
 
@@ -25,8 +26,18 @@ function useEntrance(ref) {
     if (!started || reduced || !ref.current) return undefined;
     const c = ref.current;
     const targets = [...c.children].flatMap(el => (el.classList.contains('night-hero-actions') ? [...el.children] : [el]));
-    const tween = gsap.from(targets, { opacity: 0, y: 12, duration: 0.6, ease: 'power2.out', stagger: 0.08, clearProps: 'opacity,transform' });
-    return () => tween.revert();
+    // gsap loads on demand (already in flight with the melt engine); the
+    // copy stays at rest until it arrives, then enters.
+    let tween = null;
+    let cancelled = false;
+    import('gsap').then(({ gsap }) => {
+      if (cancelled) return;
+      tween = gsap.from(targets, { opacity: 0, y: 12, duration: 0.6, ease: 'power2.out', stagger: 0.08, clearProps: 'opacity,transform' });
+    });
+    return () => {
+      cancelled = true;
+      tween?.revert();
+    };
   }, [started, reduced, ref]);
 }
 

@@ -1,5 +1,8 @@
+import { lazy } from 'react';
 import DreamFrame from '../DreamFrame';
-import HouseScene from './HouseScene';
+
+// Loaded with the 3D chunk, after the page has painted.
+const HouseScene = lazy(() => import('./HouseScene'));
 
 const CAMERA = { position: [0, 0.15, 3.2], fov: 55 };
 

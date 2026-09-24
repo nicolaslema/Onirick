@@ -1,5 +1,8 @@
+import { lazy } from 'react';
 import DreamFrame from '../DreamFrame';
-import FallScene from './FallScene';
+
+// Loaded with the 3D chunk, after the page has painted.
+const FallScene = lazy(() => import('./FallScene'));
 
 // Above the column, looking down into it (FallScene aims the camera).
 const CAMERA = { position: [0, 2, 3], fov: 60 };
