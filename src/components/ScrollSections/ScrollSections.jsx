@@ -11,14 +11,6 @@ import './ScrollSections.css';
 // sections. Starting point, needs on-device tuning.
 const PX_PER_TRANSITION = 900;
 const RESIZE_DEBOUNCE_MS = 200;
-// How often an in-progress transition's two sections are re-composited (see
-// useSectionTextures' refresh()) so an animated section's background doesn't
-// visibly freeze for the whole transition and then "pop" once it completes.
-// refresh() is a cheap canvas-to-canvas drawImage (no DOM rasterization), so
-// this can run often without the frame-rate cost a domToCanvas-per-tick
-// approach had; still not literal per-frame, since there's no visible
-// benefit to it once it's already well under a frame's worth of latency.
-const LIVE_REFRESH_INTERVAL_MS = 80;
 // A touch drag past this many vertical pixels commits to one section change,
 // same idea as one wheel tick in 'snap' mode.
 const TOUCH_SWIPE_PX = 40;
@@ -148,11 +140,18 @@ export default function ScrollSections({
 
   const stopLiveRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
-      clearInterval(refreshTimerRef.current);
+      cancelAnimationFrame(refreshTimerRef.current);
       refreshTimerRef.current = null;
     }
   }, []);
 
+  // Re-composites the two sections of an in-flight melt from their live
+  // canvases (useSectionTextures' refresh()) every frame, so their scenes
+  // keep moving at full frame rate inside the melt. It used to run every
+  // 80 ms, which showed any fast scene (the fall) at ~12 fps for the whole
+  // transition and then snapped to full speed once it settled. A refresh is
+  // a GPU canvas-to-canvas draw plus a texture upload — measured at
+  // ~0.2 ms, cheap enough to do per frame.
   const startLiveRefresh = useCallback(
     (fromIndex, toIndex) => {
       stopLiveRefresh();
@@ -163,13 +162,12 @@ export default function ScrollSections({
       const tick = () => {
         sectionTextures.refresh(fromIndex);
         sectionTextures.refresh(toIndex);
+        refreshTimerRef.current = requestAnimationFrame(tick);
       };
-      // Once right away, not just on the first interval tick: the cached
-      // capture is from whenever the section was last settled, so an
-      // animated scene (the hero's reels) would otherwise show that old
-      // pose for the melt's first 80 ms, then jump to the live one.
+      // Synchronously for the first one: the cached capture is from
+      // whenever the section was last settled, so an animated scene would
+      // otherwise show that stale pose on the melt's first frame.
       tick();
-      refreshTimerRef.current = setInterval(tick, LIVE_REFRESH_INTERVAL_MS);
     },
     [sectionTextures, stopLiveRefresh]
   );

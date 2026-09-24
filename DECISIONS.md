@@ -297,3 +297,13 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   settles into Wake (■ STOP · 07:02 AM). Melt 6 vs melt 3 compared side by side at p ≈ 0.5: visibly
   stronger split and fragmentation (its params are higher across the board). REPLAY THE NIGHT
   crossfades Wake → Hero in 1200 ms, and arrow keys keep working afterwards. No console errors.
+
+- **Melt textures refresh every frame, not every 80 ms** (user-reported: entering Fall looked
+  laggy until it "stabilized"). During a melt, both scenes are seen only through their melt
+  textures, which `refresh()` re-composited from the live canvases every 80 ms — ~12 fps. Slow
+  scenes hid it; the fall, the one fast-moving scene, visibly stuttered for the whole melt into it
+  and then jumped to full rate once the real canvas took over (less visible going out, where it's
+  being warped away). PLAN.md 3.1 names the 80 ms figure, but it dates from when each refresh
+  re-rasterized the DOM; a refresh is now a GPU canvas-to-canvas draw plus a texture upload,
+  measured at ~0.2 ms. It now runs on `requestAnimationFrame` for the melt's duration. Measured on
+  Ocean → Fall: 288 uploads/s (2 textures × 144 Hz), no frame over 25 ms.

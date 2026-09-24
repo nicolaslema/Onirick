@@ -198,9 +198,7 @@ export function useSectionTextures(hostRefs) {
   // transition: draws the section's live <canvas> pixels straight onto its
   // cached capture, then layers prepareOverlay()'s cached content snapshot
   // back on top so headings/cards aren't covered by the fresh background.
-  // Callers (ScrollSections) poll this on an interval, not every frame — a
-  // compromise, not literal per-frame accuracy, but a much cheaper one now
-  // than the old domToCanvas-per-tick approach.
+  // ScrollSections calls it every frame while a melt is in flight.
   const refresh = useCallback(
     index => {
       const el = hostRefs.current[index];
