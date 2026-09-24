@@ -374,3 +374,13 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
 
 - **Not done here:** the `charset` and `robots.txt` Lighthouse notes (`vite preview` serves HTML
   without a charset header; no robots.txt) belong with the deploy in Phase 7.
+
+- **Dream titles wrap on phones** (user-reported: "The Whale Above the City" and "The House You Grew
+  Up In" ran off a phone screen). `components.css` keeps `.onk-dream-title` on one line; at the
+  56 px floor of its clamp those two measured 463 / 485 px against 358 px available at 390 px wide.
+  Below 640 px the title now wraps between words (never inside one, PLAN.md 9) with
+  `text-wrap: balance`; all five fit (two lines for Whale, House and Ocean).
+
+- **Hallway looks a bit lower on portrait screens.** With the title on two lines, the lit kitchen
+  doorway sat right behind the tape label; the camera now aims at y = -2.4 instead of 0 when the
+  viewport is portrait, lifting the doorway above the copy. Landscape is unchanged.

@@ -21,4 +21,13 @@
     left: var(--space-4);
     right: var(--space-4);
   }
+
+  /* components.css keeps dream titles on one line (nowrap), but at the
+     56px floor of their clamp() the two longest ("The Whale Above the
+     City", "The House You Grew Up In") run past a phone's edge. Wrap them
+     between words — never inside one (PLAN.md 9) — with balanced lines. */
+  .night-dream-title-slot .onk-dream-title {
+    white-space: normal;
+    text-wrap: balance;
+  }
 }
