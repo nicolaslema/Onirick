@@ -173,7 +173,8 @@ export function useSectionTextures(hostRefs) {
       const promise = domToCanvas(el, {
         scale,
         backgroundColor: SECTION_BG,
-        filter: node => node.nodeName !== 'CANVAS',
+        // Text only: no scene canvas, and no poster still standing in for it.
+        filter: node => node.nodeName !== 'CANVAS' && !node.classList?.contains('scene-poster'),
         onCloneNode: clone => {
           clone.firstElementChild?.style.setProperty('background-color', 'transparent', 'important');
         }

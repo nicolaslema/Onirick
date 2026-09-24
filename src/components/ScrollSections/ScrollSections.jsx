@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { MorphEngine } from '../../lib/morph';
+import { HAS_WEBGL2 } from '../../lib/webgl';
 import { useSectionTextures } from './useSectionTextures';
 import { normalizeDelta, scrubStrategy } from './useWheelProgress';
-import { ScrollSectionsContext, SectionIndexContext } from './ScrollSectionsContext';
+import { ScrollSectionsContext, SectionIdContext, SectionIndexContext } from './ScrollSectionsContext';
 
 import './ScrollSections.css';
 
@@ -261,6 +262,7 @@ export default function ScrollSections({
   // in the DOM and capture() waits for it to render (waitForCanvasesReady).
   // A 'scroll' section is never a melt texture, so it's skipped.
   useEffect(() => {
+    if (!HAS_WEBGL2) return undefined;
     let cancelled = false;
     const fontsReady = document.fonts?.ready ?? Promise.resolve();
     fontsReady.then(() => {
@@ -289,6 +291,15 @@ export default function ScrollSections({
   useEffect(() => {
     if (!canvasHostRef.current) return undefined;
     let cancelled = false;
+    if (!HAS_WEBGL2) {
+      // Nothing to capture: the page is ready as soon as its fonts are.
+      (document.fonts?.ready ?? Promise.resolve()).then(() => {
+        if (!cancelled) onReadyRef.current?.();
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const engine = new MorphEngine(canvasHostRef.current, {
@@ -391,7 +402,8 @@ export default function ScrollSections({
       // capturing/texturing a 'scroll' section as a melt target doesn't make
       // sense for something meant to read as plain scrolling content, so
       // either side being 'scroll' falls back to the plain CSS crossfade.
-      if (kindOf(currentIndexRef.current) !== 'morph' || kindOf(targetIndex) !== 'morph') {
+      // No WebGL2 (PLAN.md 6): no melt engine at all, every transition fades.
+      if (!HAS_WEBGL2 || kindOf(currentIndexRef.current) !== 'morph' || kindOf(targetIndex) !== 'morph') {
         runPlainTransition(currentIndexRef.current, targetIndex, dir, destIndex);
         return;
       }
@@ -698,6 +710,7 @@ export default function ScrollSections({
             <div
               key={section.id}
               className="scroll-sections-host"
+              data-section={section.id}
               data-offscreen={isVisible ? undefined : true}
               data-plain-exit={isPlainFrom ? true : undefined}
               data-plain-enter={isPlainTo ? true : undefined}
@@ -716,7 +729,9 @@ export default function ScrollSections({
                 }
               >
                 <SectionIndexContext.Provider value={i}>
-                  <section.Component />
+                  <SectionIdContext.Provider value={section.id}>
+                    <section.Component />
+                  </SectionIdContext.Provider>
                 </SectionIndexContext.Provider>
               </div>
             </div>

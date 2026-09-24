@@ -10,6 +10,8 @@ export const ScrollSectionsContext = createContext(null);
 // (or a SceneCanvas deep inside it) can tell where it sits relative to
 // currentIndex without every section having to be handed its own index.
 export const SectionIndexContext = createContext(null);
+// ...and its id from the NIGHT config (e.g. to find its poster).
+export const SectionIdContext = createContext(null);
 
 // { currentIndex, activeTransition: {from,to} | null, goTo(idOrIndex) }
 export function useScrollSections() {
@@ -17,6 +19,8 @@ export function useScrollSections() {
   if (!ctx) throw new Error('useScrollSections must be called from a section rendered inside <ScrollSections>');
   return ctx;
 }
+
+export const useSectionId = () => useContext(SectionIdContext);
 
 export function useSectionIndex() {
   const index = useContext(SectionIndexContext);
