@@ -1,0 +1,10 @@
+.onk-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  background-image: url('/noise.png');
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+  opacity: 0.07;
+}

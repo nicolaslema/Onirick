@@ -1,0 +1,222 @@
+/* Onirick — components/bundle.css (from the "Onirick" design system)
+   The planned markup's stylesheet (onk-* classes). Colours, type and spacing
+   come only from tokens.css variables. Fonts load via <link> in index.html,
+   not the @import the design system's own copy carries. */
+
+body {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Buttons ------------------------------------------------------------ */
+.onk-btn,
+.onk-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-none);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.onk-btn {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+.onk-btn::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--rec);
+}
+.onk-btn:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.onk-btn-secondary {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+}
+.onk-btn-secondary:hover {
+  border-color: var(--ink);
+}
+.onk-btn:focus-visible,
+.onk-btn-secondary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* TapeLabel ---------------------------------------------------------- */
+.onk-tape {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.onk-rec {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--rec);
+  animation: onk-blink 1.2s steps(2, jump-none) infinite;
+}
+.onk-tape[data-live] {
+  color: var(--ink-muted);
+}
+@keyframes onk-blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onk-rec {
+    animation: none;
+  }
+}
+
+/* DreamTitle ----------------------------------------------------------- */
+.onk-dream {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 38ch;
+}
+.onk-dream-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(56px, 10vw, 144px);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--dream-tint, var(--ink));
+  white-space: nowrap;
+}
+.onk-dream-log {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+/* HUD ------------------------------------------------------------------ */
+.onk-hud {
+  position: fixed;
+  inset: var(--space-6);
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  z-index: 1100;
+}
+.onk-hud > * {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.onk-hud-tl {
+  top: 0;
+  left: 0;
+}
+.onk-hud-tr {
+  top: 0;
+  right: 0;
+  text-align: right;
+  align-items: flex-end;
+}
+.onk-hud-bl {
+  bottom: 0;
+  left: 0;
+}
+.onk-hud-br {
+  bottom: 0;
+  right: 0;
+  text-align: right;
+  align-items: flex-end;
+}
+.onk-hud-mark {
+  color: var(--ink);
+  letter-spacing: 0.2em;
+}
+.onk-hud-counter {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.onk-hud-tapes {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-1);
+}
+.onk-hud-tapes span {
+  width: 18px;
+  height: 2px;
+  background: var(--line-strong);
+}
+.onk-hud-tapes span[data-active] {
+  background: var(--rec);
+}
+
+/* SpecTable (manual, paper theme) --------------------------------------- */
+.onk-spec {
+  width: 100%;
+  border-collapse: collapse;
+}
+.onk-spec th,
+.onk-spec td {
+  padding: var(--space-8) 0;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: baseline;
+}
+.onk-spec th {
+  width: 40%;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+.onk-spec td {
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.onk-spec td small {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}

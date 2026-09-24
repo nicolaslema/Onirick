@@ -1,0 +1,58 @@
+/* Onirick design tokens — from the "Onirick" design system (tokens.json) /
+   PLAN.md appendix A. Color tokens flip with [data-theme]; night is the
+   default ground (hero, the five dreams, wake) and paper applies only to
+   the manual section via data-theme="paper" on its root. */
+
+:root,
+[data-theme='night'] {
+  --surface: #07080d;
+  --surface-raised: #10121a;
+  --ink: #ece6d8;
+  --ink-muted: #a6a298;
+  --ink-faint: #848077;
+  --line: #2a2c35;
+  --line-strong: #5a5d68;
+  --rec: #ff4a2e;
+  --on-rec: #07080d;
+  --focus: #ece6d8;
+  --dream-stair: #e8b86a;
+  --dream-whale: #6cc4b8;
+  --dream-house: #ff9b4a;
+  --dream-tide: #8db8e0;
+  --dream-fall: #f2efe8;
+  --melt-overlay: #000000;
+  --melt-whiteout: var(--dream-fall);
+}
+
+[data-theme='paper'] {
+  --surface: #ece6d8;
+  --surface-raised: #e2dbca;
+  --ink: #16140f;
+  --ink-muted: #5c574c;
+  --ink-faint: #605b50;
+  --line: #c9c1ae;
+  --line-strong: #857e6d;
+  --rec: #b42d17;
+  --on-rec: #ece6d8;
+  --focus: #16140f;
+}
+
+:root {
+  --font-serif: 'Instrument Serif', 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-full: 50%;
+}

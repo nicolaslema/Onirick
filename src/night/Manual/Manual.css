@@ -1,0 +1,90 @@
+.night-manual {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-32) var(--space-12);
+}
+
+.night-manual-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* TapeLabel + heading + lede, laid out as one revealed block. */
+.night-manual-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.night-manual-heading {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.night-manual-lede {
+  margin: 0;
+  max-width: 38ch;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 1.25;
+  color: var(--ink-muted);
+}
+
+.night-manual-block-title {
+  margin: 0 0 var(--space-6);
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.05;
+}
+
+.night-manual-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.night-manual-steps li {
+  display: flex;
+  gap: var(--space-4);
+  align-items: baseline;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.night-manual-step-n {
+  font-weight: 500;
+  color: var(--ink-faint);
+  min-width: 2ch;
+}
+
+.night-manual-warnings {
+  margin: 0;
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 640px) {
+  .night-manual {
+    padding: var(--space-16) var(--space-4);
+  }
+}

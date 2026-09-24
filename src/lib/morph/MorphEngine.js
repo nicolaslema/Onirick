@@ -11,7 +11,11 @@ import { makeFallbackTexture, resolveTextureSource } from './textures';
 // image list vs. page sections) and *how progress is driven* (drag vs.
 // wheel) lives in the consumer.
 export class MorphEngine {
-  constructor(container, { reducedMotion = false, getOptions, dprCap = 2, canvasClassName = 'morph-canvas' } = {}) {
+  // autoRun: render every frame from construction (MorphSlider). Pass
+  // false to render only between start() and stop() — ScrollSections does,
+  // since its canvas is hidden whenever no melt is running, and a
+  // full-screen shader drawn every frame for nothing costs real CPU/GPU.
+  constructor(container, { reducedMotion = false, getOptions, dprCap = 2, canvasClassName = 'morph-canvas', autoRun = true } = {}) {
     this.container = container;
     this.getOptions = getOptions;
     this.reducedMotion = reducedMotion;
@@ -58,7 +62,8 @@ export class MorphEngine {
         uTime: { value: 0 },
         uReduce: { value: reducedMotion ? 1 : 0 },
         uPointer: { value: [0.5, 0.5] },
-        uOverlay: { value: hexToRgb(opts.overlayColor) }
+        uOverlay: { value: hexToRgb(opts.overlayColor) },
+        uBurn: { value: opts.burn ?? 0 }
       }
     });
 
@@ -72,7 +77,23 @@ export class MorphEngine {
     this.resize();
 
     this.loop = this.loop.bind(this);
-    this.raf = requestAnimationFrame(this.loop);
+    this.raf = null;
+    this.running = false;
+    if (autoRun) this.start();
+  }
+
+  // Draws a frame right away (so a canvas that's just been shown never
+  // flashes a stale one), then every frame until stop().
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this.loop(performance.now());
+  }
+
+  stop() {
+    this.running = false;
+    cancelAnimationFrame(this.raf);
+    this.raf = null;
   }
 
   // Loads current/next textures (raw image/canvas elements, or a
@@ -172,22 +193,23 @@ export class MorphEngine {
     this.program.uniforms.uAberration.value = opts.aberration;
     this.program.uniforms.uDrift.value = opts.drift;
     this.program.uniforms.uOverlay.value = hexToRgb(opts.overlayColor);
+    this.program.uniforms.uBurn.value = opts.burn ?? 0;
   }
 
   loop(t) {
     this.program.uniforms.uTime.value = t * 0.001;
     if (!this.dragging && !this.animating) this.syncOptions();
     this.renderer.render({ scene: this.mesh });
-    this.raf = requestAnimationFrame(this.loop);
+    if (this.running) this.raf = requestAnimationFrame(this.loop);
   }
 
   onContextLost(e) {
     e.preventDefault();
-    cancelAnimationFrame(this.raf);
+    this.stop();
   }
 
   destroy() {
-    cancelAnimationFrame(this.raf);
+    this.stop();
     if (this.tween) this.tween.kill();
     this.resizeObserver.disconnect();
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost);

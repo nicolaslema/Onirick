@@ -1,0 +1,49 @@
+/* Minimal reset. Fonts, color and body styling live in components.css
+   (which needs tokens.css's variables); this only sets up the page shell —
+   full-bleed, no scroll of its own (ScrollSections owns the viewport). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+}
+
+/* Touch targets (PLAN.md 9: buttons at least 44px tall on a phone). The
+   design-system buttons come out ~39px; components.css itself is kept
+   verbatim, so the floor lives here. */
+@media (pointer: coarse), (max-width: 640px) {
+  .onk-btn,
+  .onk-btn-secondary {
+    min-height: 44px;
+  }
+}
+
+/* Visually hidden but still reachable by assistive tech — the Hud's
+   aria-live section announcement (Hud.jsx). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion is handled per-feature (melt's uReduce uniform, the plain
+   crossfade's own override, R3F scene idle speed, ...), not with a single
+   blanket rule here — see motion.md / PLAN.md section 5.3. */
