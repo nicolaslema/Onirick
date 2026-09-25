@@ -13,7 +13,7 @@ const DreamStair = () => (
     time="02:47 AM"
     stage="REM 2"
     title="The Staircase"
-    log="You are climbing. You have been climbing for a long time. Every landing has the same window, and the same moon in it. The handrail is warm, like someone just let go."
+    dream="stair"
     camera={CAMERA}
   >
     <StairScene camera={CAMERA} />

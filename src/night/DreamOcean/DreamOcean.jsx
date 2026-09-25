@@ -14,7 +14,7 @@ const DreamOcean = () => (
     time="04:58 AM"
     stage="REM 4"
     title="The Ocean Indoors"
-    log="The water comes in under the door without a sound. It's warm, and it keeps rising. The furniture floats up politely. You were never afraid of this."
+    dream="ocean"
     camera={CAMERA}
   >
     <OceanScene camera={CAMERA} />

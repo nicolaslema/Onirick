@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import ScrollSections from './components/ScrollSections/ScrollSections'
 import Hud from './components/Hud/Hud'
 import GradualBlur from './components/GradualBlur/GradualBlur'
@@ -6,6 +6,14 @@ import Grain from './components/Grain/Grain'
 import Loader from './components/Loader/Loader'
 import { IntroContext } from './components/Loader/IntroContext'
 import { NIGHT } from './night/config'
+
+// Dev only, with ?debug (PLAN-2.md 4.5). import.meta.env.DEV is a literal
+// false in a production build, so the import below is dead code there and
+// the panel never ships.
+const DebugPanel =
+  import.meta.env.DEV && new URLSearchParams(window.location.search).has('debug')
+    ? lazy(() => import('./components/DebugPanel/DebugPanel'))
+    : null
 
 // Onirick: a night of sleep, told through the scroll-morph transition this
 // repo already had. Hud is a sibling of <ScrollSections>, not a child, so it
@@ -37,6 +45,11 @@ function App() {
         <ScrollSections sections={NIGHT} mode="snap" onStateChange={handleStateChange} onReady={handleReady} />
       </IntroContext.Provider>
       <Loader ready={ready} />
+      {DebugPanel && (
+        <Suspense fallback={null}>
+          <DebugPanel currentId={current?.id} />
+        </Suspense>
+      )}
     </>
   )
 }

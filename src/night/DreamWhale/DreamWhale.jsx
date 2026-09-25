@@ -14,7 +14,7 @@ const DreamWhale = () => (
     time="03:12 AM"
     stage="REM 3"
     title="The Whale Above the City"
-    log="It swims slowly between the rooftops. Nobody looks up. You wave, and it turns one eye toward you."
+    dream="whale"
     camera={CAMERA}
   >
     <WhaleScene camera={CAMERA} />

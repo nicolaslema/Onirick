@@ -1,3 +1,4 @@
+import { useRecording } from '../../night/recording';
 import ScrambleCounter from './ScrambleCounter';
 import './Hud.css';
 
@@ -24,6 +25,9 @@ const Hud = ({
   // nested inside it: an aria-hidden ancestor suppresses aria-live
   // descendants too.
   const announce = tape ? `Tape ${String(tape).padStart(2, '0')}, ${title}` : title;
+  // "Fragment kept: …" (PLAN-2.md 3.5) gets its own live region, so it never
+  // overwrites — or is overwritten by — the section announcement.
+  const { announcement } = useRecording();
 
   return (
     <>
@@ -51,6 +55,9 @@ const Hud = ({
       </div>
       <div className="sr-only" aria-live="polite">
         {announce}
+      </div>
+      <div className="sr-only" aria-live="polite">
+        {announcement?.text}
       </div>
     </>
   );

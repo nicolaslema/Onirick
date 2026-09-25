@@ -452,3 +452,50 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   and end the detour. Verified headless: detour in, long flick stays in the manual, a fresh gesture
   or ArrowUp at the top returns to the hero, the next step from there is Dream 01; the normal walk
   and its label are unchanged; no console errors.
+
+## Night 2 — Phase 0
+
+- **Branch:** `n2-phase-0-state` branches off `plan-2` rather than `develop` (PLAN-2.md 0.3), so
+  `Docs/PLAN-2.md` travels with the code that implements it. `plan-2` is `develop` plus that one
+  document.
+
+- **Copy moved to `night/dreams.js`** and each dream section now passes `dream="<id>"` instead of
+  its own `log` string; `DreamFrame` joins the lines for `DreamTitle`, which stays static until the
+  transcript lands (phase 2). Four logs are word-for-word what they were. The Staircase's last line
+  is now "If you stop, the stairs keep going." — decided with the user (PLAN-2.md 13.7) — so that
+  one screen does differ from before.
+
+- **`play` added to the dream entries in `config.js`** (PLAN-2.md 8) but nothing reads it yet: the
+  gate that uses it is phase 1. `play.js` doesn't need it either — a line is revealed when
+  `target >= at`, which works the same for free (target stays 0), beats and scrub — so `play.js`
+  imports only `dreams.js` and there's no import cycle through `config.js` and the sections.
+
+- **Scene events persist in sessionStorage (`onirick.events`)**, next to the recording, not only in
+  memory. PLAN-2.md 3.3 has events last the night; without persisting them, a reload would keep the
+  whale's fragment (recording.js is persisted) but lose its 'wave' event, and its log would wait for
+  a wave that was already given.
+
+- **The fragment announcement has its own `aria-live` region** in the Hud, beside the section one,
+  rather than sharing it — two polite regions never overwrite each other's message.
+
+- **`pointer.vx`/`vy` are getters** that fade the last measured velocity toward 0 (120 ms time
+  constant) once moves stop — pointermove doesn't fire when the pointer is still, so a plain field
+  would keep the last move's velocity forever. `pointerdown/up/cancel` listeners were added next to
+  `pointermove` (still one set for the whole page); a window `blur` counts as a release, so a hold
+  never gets stuck on alt-tab.
+
+- **`pnpm test`** runs `node --test` (built into Node, no dependency) over `*.test.js`; the only
+  suite so far is `three/gestures.test.js` for `createWaveDetector` (a quick shake fires once, a
+  single sweep, a too-slow shake and sub-`minAmp` jitter don't, and it restarts after firing).
+  Thresholds are still the plan's starting values; phase 4 tunes them on real input.
+
+- **Debug panel** (`?debug`, dev only): the lazy import sits behind `import.meta.env.DEV`, and the
+  production build was checked to contain no trace of it. It re-renders on a 100 ms timer and reads
+  the live `target` on every render, so it never lags the `reveal` React already shows.
+
+- **Verified** (headless Chrome, dev server): the arrow key walks all 8 sections as before; the four
+  unchanged logs match and the Staircase shows its new line; no panel without `?debug`; with it, the
+  panel shows section, play state and lucidity, keeping a fragment updates lucidity and is announced,
+  survives a reload, is absent in a new tab, and "reset night" clears fragments and play state;
+  setting a scrub stop updates `target` and `reveal`; no console errors. `pnpm lint`, `pnpm build`
+  and `pnpm test` clean.
