@@ -126,7 +126,7 @@ export const DREAMS = {
 
 En los sueños **libres**, todas las frases tienen `at: 0` (se transcriben al entrar). En **beats**, `at` es el índice del beat. En **scrub**, es el progreso.
 
-Una frase puede **esperar un evento** en lugar de un umbral: `{ on: 'wave', text: 'and it turns one eye toward you.' }`. Se transcribe cuando la escena dispara ese evento (`play.trigger(id, 'wave')`). Las frases con `on` van después de las que tienen `at` y se revelan en orden. Lo usa Whale (6.2).
+Una frase puede **esperar un evento** en lugar de un umbral: `{ on: 'wave', text: 'and it turns one eye toward you.' }`. Se transcribe cuando la escena dispara ese evento (`play.trigger(id, 'wave')`). Las frases se revelan en orden. Una frase puede tener `at` y `on` a la vez: se revela con lo que pase primero, el umbral o el evento. Lo usan Whale (6.2, solo `on`) y Fall (6.5, `at: 0.5, on: 'let-go'`).
 
 ### 3.2 La compuerta (gate) en ScrollSections
 
@@ -468,27 +468,41 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 
 ### 6.5 Dream 05: The Fall (scrub + libre)
 
+**Lectura:** toda la noche venís dirigiendo la caída. Soltarse es dejar de controlar, y recién entonces ves de dónde venís: la noche entera arriba tuyo, con lo que guardaste brillando. Es la antesala de Wake.
+
 - **Modelo:** scrub, `length: 2700`, `stops: [0, 0.25, 0.5, 0.75, 1]`, con interacción libre encima.
 - **Qué pasa:** el scroll es **profundidad**. Con el progreso:
   - La velocidad de caída crece (`SPEED × (1 + 1.5p)`) y aparecen más líneas de velocidad (opacidad `0.35 → 0.6`).
-  - **La alarma crece**, sin sonido: anillos finos en `--rec` suben desde abajo, como ondas. Su frecuencia va de 1 cada 3 s a 3 por segundo, y a partir de `p > 0.6` pulsan también en la niebla.
+  - **La alarma crece, sin sonido, en dos lugares:**
+    - **En la escena:** anillos finos en `--rec` suben desde abajo, como ondas. Su frecuencia va de 1 cada 3 s a 3 por segundo, y a partir de `p > 0.6` pulsan también en la niebla.
+    - **En el HUD:** el punto REC parpadea cada vez más rápido. El período baja de 1.2 s a 0.3 s con el progreso: el `Hud` escribe `--rec-period` desde el store de juego y `.onk-rec` lo usa como `animation-duration`. Con reduced motion el REC sigue fijo, como hoy.
   - **La luz de abajo**: un disco sin niebla, en `--dream-fall` (el blanco cálido), crece desde el fondo del pozo. A `p = 1` casi llena el cuadro, y el melt a Wake se quema a blanco (`burn: 1`) desde ahí, sin corte.
-  - **El reloj del HUD** avanza de `06:41 AM` a `07:01 AM` (4.4, `hud.clockTo`). Un minuto antes de despertar.
+  - **El reloj del HUD** avanza de `06:41 AM` a `07:01 AM` (4.4, `hud.clockTo`), un minuto antes de despertar. El melt a Wake lo lleva a `07:02 AM`, la hora que ya muestra Wake.
 - **Interacción:**
   - **Dirigir** la caída con el puntero (ya existe).
-  - **Soltarse:** si el puntero queda **quieto 3 s** (`pointer.stillSince`) y `p < 0.9`, la caída se calma. El temblor se apaga, la cámara **gira despacio hacia arriba** y ves de dónde caíste: capas de nubes teñidas con los tintes de la noche (`stair`, `whale`, `house`, `tide`), lejos, una sobre otra. **Toda la noche arriba tuyo.** Mover el puntero te devuelve a mirar hacia abajo.
+  - **Soltarse:** si el puntero queda **quieto 3 s** (`pointer.stillSince`) y `p < 0.9`, la caída se calma. El temblor se apaga y la cámara **gira despacio hacia arriba**. Mover el puntero te devuelve a mirar hacia abajo.
+- **Lo que ves arriba: la noche entera.** Lejos, en la niebla y a distintas alturas, flotan siluetas de los cuatro sueños anteriores:
+  - la **escalera caracol** (una hélice corta con su columna);
+  - la **ballena** (el mismo `WhaleBody`, a escala);
+  - una **puerta con luz** (marco + vano iluminado);
+  - la **lámpara** del cuarto inundado.
+
+  Las de los sueños **donde ganaste el fragmento brillan**: toman el tinte de su sueño con un halo suave, y la lámpara aparece encendida en ámbar si te quedaste bajo el agua. Las demás quedan como recortes oscuros, apenas visibles. **Tu grabación se ve en el cielo antes de llegar a Wake.**
 - **Copy (frases por progreso):**
   - 0: *There's no ground yet.*
   - 0.25: *The clouds go past in the wrong direction.*
-  - 0.5, o al soltarse: *You're not falling so much as being let go of.*
+  - 0.5, o al soltarse, lo que pase primero (`at: 0.5, on: 'let-go'`): *You're not falling so much as being let go of.*
   - 0.75: *Somewhere below, an alarm is starting.*
   - Glitch: `clouds` → `crowds`.
-- **Fragmento `fall`:** *"You let go."* Se gana la primera vez que la cámara termina de girar hacia arriba.
+- **Fragmento `fall`:** *"You let go."* Se gana la primera vez que la cámara termina de girar hacia arriba. El brillo de las siluetas se lee **antes** de ganarlo, así que la silueta de Fall no está en el cielo: el fragmento de este sueño se ve en Wake.
 - **DreamAction:** *Let go*. Hace el giro durante 5 s y gana el fragmento.
 - **Técnica:**
   - Los anillos son un pool de 12 `RingGeometry` finos, en un `Tiled` propio con velocidad mayor a la de las nubes.
-  - Las nubes de la noche son 4 planos grandes con la textura de nube existente (`useCloudTexture`) y `color` = cada tinte, en `y` altos y `fog: false`. Solo se ven al mirar arriba.
-  - El giro de cámara es un peso `up` 0 → 1 (damp de 1.8 s) que mezcla el `lookAt` hacia abajo actual con uno hacia arriba.
+  - **Siluetas de la noche:** 4 grupos de primitivas, `fog: false`, en `y` altos y repartidos para que entren todos en el cuadro al mirar arriba (en landscape y en portrait). Hay que reutilizar lo que ya existe en vez de duplicarlo: exportar `WhaleBody` desde `WhaleScene` y `Lamp` desde `OceanScene` (o moverlos a `three/`), y armar la hélice y la puerta con 3 o 4 primitivas cada una.
+    - **No guardado:** `meshBasicMaterial` en `--line`, opacidad 0.35.
+    - **Guardado:** color = el tinte del sueño, opacidad 0.9, y un halo aditivo detrás (la misma textura radial que el halo de la luna en Stair, 6.1). La lámpara, además, con su pantalla emisiva en `--dream-stair`.
+    - El estado sale de `recording.js` al montar la escena y se actualiza si cambia.
+  - El giro de cámara es un peso `up` 0 → 1 (damp de 1.8 s) que mezcla el `lookAt` hacia abajo actual con uno hacia arriba. Solo se dibujan las siluetas mientras `up > 0` (visibilidad por peso), para no pagar su costo cuando nadie las mira.
 - **Mobile/reduced:** en mobile, "quieto" = sin tocar la pantalla 3 s. El giroscopio para dirigir queda fuera de alcance (necesita permiso en iOS). Con reduced motion, sin temblor y con anillos a 1/4 de frecuencia.
 
 ---
@@ -640,7 +654,12 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 ### Fase 7: Fall
 
 - Todo 6.5.
-- **Terminado cuando:** el scrub acelera la caída, hace crecer la alarma y la luz, y avanza el reloj del HUD; quedarse quieto 3 s gira la cámara hacia la noche de arriba y gana el fragmento; el melt a Wake arranca desde la luz de abajo y se quema a blanco sin corte; 60 fps.
+- **Terminado cuando:**
+  - El scrub acelera la caída, hace crecer los anillos y la luz, acelera el parpadeo del REC en el HUD y avanza el reloj hasta 07:01.
+  - Quedarse quieto 3 s gira la cámara hacia arriba y gana el fragmento.
+  - Arriba se ven las cuatro siluetas. Con `?debug` y distintas combinaciones de fragmentos, brillan exactamente las guardadas y la lámpara aparece encendida solo con el de Ocean.
+  - El melt a Wake arranca desde la luz de abajo y se quema a blanco sin corte.
+  - 60 fps, también mirando hacia arriba.
 
 ### Fase 8: Wake
 
