@@ -38,7 +38,8 @@ export const NIGHT = [
     tape: 1,
     title: 'The Staircase',
     play: { model: 'scrub', length: 2700, stops: [0, 0.33, 0.66, 1] },
-    hud: { state: 'rec', clock: '02:47 AM', counter: '00:06:31' },
+    // clockTo/counterTo: where a scrubbing dream's HUD ends up at progress 1.
+    hud: { state: 'rec', clock: '02:47 AM', clockTo: '03:04 AM', counter: '00:06:31' },
     melt: { duration: 1.6, ease: 'power2.inOut', intensity: 0.45, scale: 4, aberration: 0.15, drift: 0.3, overlayColor: '#000000' }
   },
   {
@@ -90,7 +91,7 @@ export const NIGHT = [
     tape: 5,
     title: 'The Fall',
     play: { model: 'scrub', length: 2700, stops: [0, 0.25, 0.5, 0.75, 1] },
-    hud: { state: 'rec', clock: '06:41 AM', counter: '00:52:17' },
+    hud: { state: 'rec', clock: '06:41 AM', clockTo: '07:01 AM', counter: '00:52:17', counterTo: '00:58:31' },
     melt: { duration: 1.7, ease: 'power3.inOut', intensity: 1.05, scale: 6, aberration: 0.5, drift: 0.55 }
   },
   {

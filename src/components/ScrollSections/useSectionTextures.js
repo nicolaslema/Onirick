@@ -20,6 +20,11 @@ export function loadCaptureLib() {
 // section paints its own opaque background, so this is only a safety net.
 const SECTION_BG = '#07080d';
 
+// Never part of a melt texture: a dream's keyboard-only action button
+// (PLAN-2.md 3.7) — invisible unless focused, and it must not be caught
+// visible if a capture runs while it has focus.
+const isUncaptured = node => !!node.classList?.contains('dream-action');
+
 // A WebGL canvas doesn't get its real pixel dimensions until its
 // ResizeObserver-driven resize logic has run at least once after mount —
 // until then it sits at the browser's 300x150 default. Wait for it to leave
@@ -144,7 +149,7 @@ export function useSectionTextures(hostRefs) {
             scale,
             // No background fill: the overlay needs true alpha around the text.
             // Text only: no scene canvas, and no poster still standing in for it.
-            filter: node => node.nodeName !== 'CANVAS' && !node.classList?.contains('scene-poster'),
+            filter: node => node.nodeName !== 'CANVAS' && !node.classList?.contains('scene-poster') && !isUncaptured(node),
             onCloneNode: clone => {
               clone.firstElementChild?.style.setProperty('background-color', 'transparent', 'important');
             }
@@ -198,6 +203,7 @@ export function useSectionTextures(hostRefs) {
           }
           return domToCanvas(el, {
             scale,
+            filter: node => !isUncaptured(node),
             // Fallback only — every section paints its own opaque
             // background, so a capture can never come back transparent
             // (which the morph shader would render as solid black).

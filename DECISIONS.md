@@ -560,3 +560,53 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   fall's first key stop is 0.25; the manual detour still returns to the hero; no WebGL2 → no gate;
   no console errors. `pnpm lint`, `pnpm build`, `pnpm test` clean. Not verified: real touch hardware
   and Safari/Firefox.
+
+## Night 2 — Phase 2
+
+- **The transcript lays out the whole log, not only the revealed lines** (PLAN-2.md 4.1 says
+  "revealed"): everything not typed yet — unrevealed lines included — is transparent text in place.
+  The title slot is anchored to the bottom of the screen, so a log that grew line by line would push
+  the dream's title upward every time the scrub revealed a sentence. Laid out whole, nothing moves.
+
+- **What was typed lasts the night** (`typed` on the play entry): coming back to a dream shows its
+  log as far as it got, without retyping. The section above the current one — the one you'd enter
+  moving back — is filled in at once, so a backward melt shows the whole log (the plan's "entering
+  backward, everything is revealed and typed"). A dream reset to its start by a jump keeps what was
+  typed but only shows up to its revealed lines. REPLAY THE NIGHT zeroes it.
+
+- **Every time the visible text settles** (a batch typed, a line waiting for an event, a neighbour
+  filled in) the transcript calls `recapture(index)` from phase 1, so the next melt out of that
+  dream shows exactly what's on screen. On arrival the capture shows the log blank and typing starts
+  after the melt: no flicker (verified: the stair's log reads '' as it arrives).
+
+- **The glitch is decided once per dream per night**, the first time its transcript types, from the
+  lucidity at that moment (100/80/60/40/20/0 % for 0-5). It mistypes, holds 350 ms, erases, carries
+  on; the screen-reader copy never has it.
+
+- **The caret has zero net width** (`▍` with `margin-right: -1ch` in the monospaced log), so it can
+  appear and vanish without reflowing a line. It lingers 1.5 s after typing, and stays for good while
+  the next line waits for an event (the whale's "You wave,").
+
+- **DreamAction fires the dream's `'action'` event** (and marks the dream as touched) — what that
+  means is each scene's business in its own phase. It's excluded from every melt capture by its class
+  (`dream-action`), so even a recapture taken while it has focus doesn't show it (verified mid-melt).
+
+- **Prompts** show 6 s into a dream with a `hint` (stair, whale, house) while its fragment isn't kept
+  and the visitor hasn't `markTouched()` it (scenes call that from phase 3 on), for 5 s, once per
+  dream per night.
+
+- **Tape progress and the scrubbed clock stay out of React's frame loop**: the bar's fill is written
+  to the DOM each frame; the clock re-renders only when its minute (or the counter's second)
+  changes. `ScrambleCounter` takes a `group` (the section index) and only scrambles when the group
+  changed — a scrub moving the counter just updates it. Clocks: the Staircase goes 02:47 → 03:04,
+  the Fall 06:41 → 07:01 (counter 00:52:17 → 00:58:31).
+
+- **Verified** (headless Chrome, dev server, ?debug): no lucidity on hero/manual, shown in dreams and
+  Wake; stair blank on arrival, types only line 1 at progress 0, lines 2-3 at 0.66 with "noon"
+  typed and corrected; screen-reader text complete and unglitched; HUD clock 02:58 at 0.66 and the
+  tape filled to 0.66, full at the end; the whale waits at "You wave," with the caret, shows its
+  prompt at 6 s, finishes the line on the wave event; keeping a fragment fills a segment that
+  blinks; Tab from the stage reveals "Wave at the whale", and a melt taken with it focused doesn't
+  show it; a re-entered dream isn't retyped; at lucidity 5 no glitch and no prompt; reduced motion
+  shows revealed lines at once; no console errors. `pnpm lint` (no warnings), `pnpm build`,
+  `pnpm test` clean.

@@ -1,0 +1,19 @@
+/* Visually hidden until focused (same box as .sr-only); then it shows above
+   the dream's title block (PLAN-2.md 3.7). */
+.dream-action:not(:focus-visible) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.dream-action:focus-visible {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + var(--space-6));
+}

@@ -7,6 +7,7 @@ import Loader from './components/Loader/Loader'
 import { IntroContext } from './components/Loader/IntroContext'
 import { NIGHT } from './night/config'
 import { createNightGate } from './night/gate'
+import { DREAMS } from './night/dreams'
 import { HAS_WEBGL2 } from './lib/webgl'
 
 // Dreams keep their own scrub/beats (PLAN-2.md 3.2). Without WebGL2 there's
@@ -46,6 +47,10 @@ function App() {
         total={NIGHT.length}
         tape={current?.tape}
         title={current?.title}
+        dream={DREAMS[current?.id] ? current.id : undefined}
+        play={current?.play}
+        lucid={!!DREAMS[current?.id] || current?.id === 'wake'}
+        settled={!nightState.activeTransition}
       />
       <IntroContext.Provider value={ready}>
         <ScrollSections sections={NIGHT} mode="snap" gate={nightGate} onStateChange={handleStateChange} onReady={handleReady} />

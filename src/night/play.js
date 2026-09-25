@@ -12,6 +12,10 @@ import { DREAMS, DREAM_IDS } from './dreams';
 //   settledAt performance.now() of the last change
 //   snaps     bumped when a scene should jump straight to `target`, unsmoothed
 //             (a counter, not a flag, so every reader of the entry sees it)
+//   typed     how many characters of the log the transcript has typed so far
+//   glitch    whether tonight's transcript mistypes a word (decided once)
+//   hinted    the Hud already showed this dream's prompt tonight
+//   touched   the visitor already tried the dream's interaction (no prompt needed)
 //
 // Scenes read the entry every frame through usePlayRef() and smooth toward
 // `target` themselves — nothing here re-renders React per frame. React only
@@ -38,7 +42,10 @@ function loadEvents() {
 const stored = loadEvents();
 
 const entries = Object.fromEntries(
-  DREAM_IDS.map(id => [id, { target: 0, beat: 0, reveal: 0, events: new Set(stored[id] ?? []), settledAt: 0, snaps: 0 }])
+  DREAM_IDS.map(id => [
+    id,
+    { target: 0, beat: 0, reveal: 0, events: new Set(stored[id] ?? []), settledAt: 0, snaps: 0, typed: 0, glitch: null, hinted: false, touched: false }
+  ])
 );
 
 function revealFor(id, target, events) {
@@ -105,6 +112,12 @@ export function trigger(id, event) {
   return true;
 }
 
+// The visitor tried the dream's interaction (held, waved, opened a door...):
+// its Hud prompt is no longer needed. Scenes call it; no re-render.
+export function markTouched(id) {
+  if (entries[id]) entries[id].touched = true;
+}
+
 // Back to the dream's start (a goTo() jump landing on it). Events stay.
 export function resetPlay(id) {
   setTarget(id, 0, { snap: true });
@@ -113,9 +126,14 @@ export function resetPlay(id) {
 // REPLAY THE NIGHT: every dream back to its start, every event forgotten.
 export function resetNight() {
   for (const id of DREAM_IDS) {
-    entries[id].events.clear();
-    entries[id].target = 0;
-    entries[id].snaps += 1;
+    const entry = entries[id];
+    entry.events.clear();
+    entry.target = 0;
+    entry.snaps += 1;
+    entry.typed = 0;
+    entry.glitch = null;
+    entry.hinted = false;
+    entry.touched = false;
     update(id);
   }
   saveEvents();

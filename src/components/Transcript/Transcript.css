@@ -1,0 +1,31 @@
+/* The transcript (PLAN-2.md 4.1). What isn't typed yet keeps its place in
+   the layout, invisible — so the block never grows while typing. */
+.onk-transcript-rest {
+  color: transparent;
+}
+
+/* Block caret, zero net width (the log is monospaced: 1ch = one glyph), so
+   showing and hiding it never reflows the text around it. */
+.onk-caret::before {
+  content: '▍';
+  color: var(--ink-muted);
+  animation: onk-caret-blink 1.2s steps(2, jump-none) infinite;
+}
+.onk-caret {
+  margin-right: -1ch;
+}
+
+@keyframes onk-caret-blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onk-caret::before {
+    animation: none;
+  }
+}

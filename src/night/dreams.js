@@ -74,7 +74,3 @@ export const DREAMS = {
 
 // The five dreams in the order the night walks them.
 export const DREAM_IDS = Object.keys(DREAMS);
-
-// The whole log as one paragraph — what DreamTitle shows until the
-// transcript (PLAN-2.md 4.1) reveals it line by line.
-export const logText = id => DREAMS[id].lines.map(line => line.text).join(' ');
