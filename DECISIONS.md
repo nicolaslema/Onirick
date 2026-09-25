@@ -737,3 +737,44 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   whole overlay's text, which includes the transparent, not-yet-typed rest — so "the log finishes its
   line" and "coming back, the log is already complete" would have passed with nothing typed. Fixed
   to subtract the rest; both still pass.
+
+## Night 2 — Phase 5
+
+- **One shared hallway state**, written by a single frame loop in the scene (`useHouse`) and read by
+  the doors, the floor spills, the kitchen and the shadows: the creep offset, each door's angle and
+  "open until", the kitchen's stretch, and a fixed pool of 10 shadows. No React re-renders per frame.
+
+- **The wrap carries the doors along.** The hallway group jumps back one bay when its offset wraps;
+  the door that stood at a spot is then two indices closer (`i → i − 2`). Door angles and open timers
+  are shifted with `copyWithin(0, 2)` at that moment, so an open door never pops a bay away. Shadows
+  live in world space (PLAN-2.md 6.3) and add the creep to their own z, so they never jump either.
+
+- **Clicks**: `onTap` + the projected centre of every door, nearest within 0.15 NDC (no raycast
+  against the instanced leaves — the projection the hover already used is enough and cheaper). The
+  kitchen doorway is checked first, against its projected rectangle as currently drawn (stretched
+  or not). Only the current, settled House listens (`live`).
+
+- **A shadow's life**: waits 0.4 s after its door swings (1.35 rad), steps out of the room 0.6 s,
+  turns into a lane 0.4 s, walks 0.6-0.9 u/s with a 2 Hz bob. 60 % walk to the kitchen and fade into
+  its light over the last 3 → 0.8 units before it (colour toward the kitchen's, opacity to 0, a
+  touch taller); the rest walk toward you and fade out past z 1.2. Lanes ±0.35 with 30 % mixing. A
+  door closes on its own after 6 s. Spontaneous doors open every 7-12 s between z −7 and −16.
+
+- **The fragment** is kept when a shadow you released (click, tap or "Open a door") is lost in the
+  kitchen's light; spontaneous shadows never count (verified: 30 s of watching, nothing). "Open a
+  door" picks the closed door nearest 4.5 units ahead and always sends its shadow to the kitchen.
+
+- **The stretch**: the kitchen draws back 6 units in 0.8 s (ease-out) and comes home over 6 s; the
+  hallway grew from 11 to 14 bays (floor and ceiling with it) so its end never shows. Under reduced
+  motion the kitchen's light dims and recovers instead of moving.
+
+- **The open door's spill of light** reaches up to 4× further into the hallway as the door opens
+  (the spills are no longer static instances).
+
+- **Verified** (headless Chrome, ?debug): screenshots at rest, a door opening with its shadow
+  stepping out, shadows walking into the light, the kitchen stretched — desktop and phone; clicking
+  three doors → one of your shadows reaches the kitchen and keeps the fragment; the keyboard "Open a
+  door" does too; the prompt is gone after a click; the house still leaves for the manual; no console
+  errors or warnings. `pnpm lint`, `pnpm build`, `pnpm test` clean. Not verified: that a button
+  click never opens a door (onTap ignores interactive targets by construction; not observable from
+  the test without exposing state).
