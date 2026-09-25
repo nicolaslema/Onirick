@@ -13,7 +13,6 @@ import { DREAMS, DREAM_IDS } from './dreams';
 //   snaps     bumped when a scene should jump straight to `target`, unsmoothed
 //             (a counter, not a flag, so every reader of the entry sees it)
 //   typed     how many characters of the log the transcript has typed so far
-//   glitch    whether tonight's transcript mistypes a word (decided once)
 //   hinted    the Hud already showed this dream's prompt tonight
 //   touched   the visitor already tried the dream's interaction (no prompt needed)
 //
@@ -44,7 +43,7 @@ const stored = loadEvents();
 const entries = Object.fromEntries(
   DREAM_IDS.map(id => [
     id,
-    { target: 0, beat: 0, reveal: 0, events: new Set(stored[id] ?? []), settledAt: 0, snaps: 0, typed: 0, glitch: null, hinted: false, touched: false }
+    { target: 0, beat: 0, reveal: 0, events: new Set(stored[id] ?? []), settledAt: 0, snaps: 0, typed: 0, hinted: false, touched: false }
   ])
 );
 
@@ -131,7 +130,6 @@ export function resetNight() {
     entry.target = 0;
     entry.snaps += 1;
     entry.typed = 0;
-    entry.glitch = null;
     entry.hinted = false;
     entry.touched = false;
     update(id);

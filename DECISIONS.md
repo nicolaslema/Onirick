@@ -610,3 +610,16 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   show it; a re-entered dream isn't retyped; at lucidity 5 no glitch and no prompt; reduced motion
   shows revealed lines at once; no console errors. `pnpm lint` (no warnings), `pnpm build`,
   `pnpm test` clean.
+
+- **After review — the glitch is gone, and the title can't move** (user request). In the Ocean,
+  "politely" typed first as "quietly" (shorter) changed where the line broke; the title slot is
+  anchored to the bottom, so the log gaining or losing a line pushed "The Ocean Indoors" up and
+  down. The glitch was removed entirely (code, `glitches` in dreams.js, the lucidity odds —
+  PLAN-2.md 4.1, 4.2 and 13.4 updated), and the transcript's layout was made independent of its
+  typing: an invisible copy of the whole log (`visibility: hidden`) sets the block's size, and the
+  typed text is an absolutely positioned overlay on top of it — still with the not-yet-typed rest
+  in place, transparent, so no word jumps lines as it completes. Nothing the typing does can
+  change the block's height now. The phase 2 notes above about the glitch describe what was built
+  first; this entry supersedes them. Verified: the title's top measured every 40 ms stayed within
+  0.00 px from arrival through all four Ocean beats and across the Staircase scrub, at 1440 × 900
+  and 390 × 844; the phase 2 checks still all pass.

@@ -69,7 +69,7 @@ src/
     config.js              ← cada sueño suma `play` (3.1); Fall suma `hud.clockTo`
     play.js                ← NUEVO: estado de juego por sección + la compuerta (gate) que usa ScrollSections
     recording.js           ← NUEVO: fragmentos + lucidez (store externo, sessionStorage)
-    dreams.js              ← NUEVO: el copy de cada sueño (frases del log, fragmento, glitches), un solo lugar
+    dreams.js              ← NUEVO: el copy de cada sueño (frases del log, fragmento, pista), un solo lugar
     DreamFrame.jsx         ← pasa el id del sueño a DreamTitle y monta DreamAction
     Dream*/…Scene.jsx      ← cada escena lee `usePlayRef(id)` en su useFrame
     Wake/                  ← la grabación (sección 7)
@@ -115,7 +115,6 @@ export const DREAMS = {
       { at: 0.66, text: 'Every landing has the same window, and the same moon in it.' },
       { at: 1, text: 'If you stop, the stairs keep going.' }
     ],
-    glitches: [{ word: 'moon', wrong: 'noon' }],
     fragment: { id: 'stair', label: "You stopped. The stairs didn't." },
     action: 'Stop climbing',
     hint: 'Hold to stop'
@@ -245,12 +244,12 @@ El log de cada sueño deja de ser texto estático: **la máquina lo transcribe**
 
 - **`<Transcript id lines reveal />`** reemplaza el `<p className="onk-dream-log">` de `DreamTitle`. Mantiene la clase y la tipografía. Frases solo hasta `reveal`.
 - **Tipeo**: unos 38 caracteres/s con variación aleatoria de ±30% por carácter, y una pausa de 220 ms después de cada punto. Un cursor de bloque `▍` en `--ink-muted` parpadea con `steps(2)` 1.2 s, igual que el REC, y desaparece 1.5 s después de la última frase.
-- **Glitches**: una palabra de `DREAMS[id].glitches` se tipea mal (`wrong`), queda 350 ms y se borra carácter por carácter para escribir la correcta. **Máximo uno por sueño.** La probabilidad de que ocurra baja con la lucidez: 100% con 0, 20% con 4 y ninguno con 5, porque la máquina "te escucha mejor".
-- **Sin saltos de layout**: el texto completo de las frases reveladas se renderiza siempre. Lo que falta tipear lleva `color: transparent`. Así la caja no crece mientras se escribe y la captura sale bien: el texto transparente no se ve en el melt.
+- **Sin glitches** (decidido con el usuario en la fase 2): la máquina transcribe sin equivocarse. Una palabra mal tipeada y corregida cambiaba el largo de la línea, y con eso la posición del título.
+- **El título nunca se mueve por el log**: una copia invisible del log completo define el tamaño del bloque, y lo tipeado se dibuja encima, fuera del flujo. Dentro de esa capa, lo que falta tipear lleva `color: transparent`, así ninguna palabra salta de línea al completarse, y la captura sale bien: el texto transparente no se ve en el melt.
 - **Cuándo empieza**: cuando la sección es la actual y no hay `activeTransition` (el melt terminó), más 250 ms.
 - **Estado de reposo = estado capturado.** Entrando hacia adelante, las frases todavía no tipeadas están transparentes, así que la captura del melt muestra el log vacío y el tipeo empieza sin parpadeo. Entrando hacia atrás, todo está revelado y tipeado. **Esto enmienda `PLAN.md` 5.2** ("sin animación de entrada después del melt"): la regla sigue valiendo para todo lo demás. Al tipeo no le afecta porque arranca desde lo que ya mostró la captura.
-- **Accesibilidad**: la versión tipeada lleva `aria-hidden`. Al lado va un `<span className="sr-only">` con las frases reveladas completas, sin glitches.
-- **Reduced motion**: el texto aparece completo al revelarse, sin tipeo, sin cursor y sin glitch.
+- **Accesibilidad**: la versión tipeada lleva `aria-hidden`. Al lado va un `<span className="sr-only">` con las frases reveladas completas.
+- **Reduced motion**: el texto aparece completo al revelarse, sin tipeo y sin cursor.
 - **Frases que esperan un evento** (`on`, 3.1): cuando el tipeo llega a una frase cuyo evento todavía no ocurrió, se detiene y **el cursor queda parpadeando indefinidamente** al final del texto. Esa espera es una invitación, así que no desaparece a los 1.5 s. Al ocurrir el evento, el tipeo sigue desde ahí. Con reduced motion la frase aparece entera al ocurrir el evento, y mientras espera el cursor queda fijo, sin parpadeo.
 - Al terminar una tanda: `onSettled()` → invalidar y recapturar el overlay (3.4). Una frase que espera también cuenta como fin de tanda: la captura de salida muestra el log incompleto, tal como quedó.
 
@@ -266,7 +265,6 @@ LUCIDITY ▮▮▯▯▯
 - **Al ganar un fragmento**, el segmento nuevo parpadea dos veces en `--rec` (0.6 s, `steps(2)`) y queda en `--ink`. `rec` sigue siendo el único acento (`PLAN.md` 4.1).
 - **Oculta en hero y manual** (todavía no dormiste o estás despierto). Visible en los sueños y en Wake.
 - **Qué cambia con la lucidez** (poco, a propósito):
-  - la frecuencia de glitches del transcript (4.1);
   - el copy de Wake (7);
   - nada más en las escenas (decidido, 13.4): que la lucidez afecte al melt o a la niebla chocaría con "el melt se intensifica a lo largo de la noche".
 - `aria-hidden` como el resto del HUD. Los anuncios los hace `keep()`.
@@ -330,7 +328,6 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - 0.33: *You have been climbing for a long time.*
   - 0.66: *Every landing has the same window, and the same moon in it.*
   - 1: *If you stop, the stairs keep going.* Reemplaza a *"The handrail is warm, like someone just let go"*, que venía de la baranda descartada. Ahora anticipa la interacción (13.7).
-  - Glitch: `moon` → `noon`.
 - **Fragmento `stair`:** *"You stopped. The stairs didn't."* Se gana cuando la figura, después de haber sido arrastrada **al menos 2 escalones**, vuelve a su lugar. Es decir: te detuviste, la escalera te llevó y volviste a subir.
 - **Pista:** `PROMPT · HOLD TO STOP`.
 - **DreamAction:** *Stop climbing*. Detiene a la figura 4 s, la suelta y el fragmento se gana cuando vuelve a su lugar.
@@ -386,7 +383,6 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 - **Copy:**
   - `at: 0`: *It swims slowly between the rooftops.* / *Nobody looks up.* / *You wave,*
   - `on: 'wave'`: *and it turns one eye toward you.*
-  - Glitch: `eye` → `I` (*"it turns one I toward you"*, y se corrige).
 - **Fragmento `whale`:** *"It looked back."* Se gana con el primer saludo completo. Los siguientes no suman.
 - **DreamAction:** *Wave at the whale*. Dispara el mismo evento `wave` que el gesto: reacción completa si es la primera vez y "ya te vi" después.
 - **Estado de entrada:** si el fragmento ya está guardado (volvés desde House, o en la misma noche), la última frase aparece completa y la figura está en su techo desde el principio. Si no, el log vuelve a esperar.
@@ -413,7 +409,7 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - **La vida sigue sin vos:** cada 7–12 s, una puerta lejana se abre sola y sale una sombra. Es un punto de partida: si el pasillo se siente muy transitado o muy vacío, se ajusta en la fase 5 y se anota en `DECISIONS.md`.
   - **La cocina no se alcanza nunca:** el pasillo se recicla y el `Kitchen` está fijo respecto de la cámara (ya es así).
   - **Click en la puerta de la cocina: el pasillo se estira.** La cocina retrocede unas 6 unidades en 0.8 s (`power2.out`) y vuelve despacio a su distancia en 6 s. *"The hallway is longer than it was"* pasa a ser algo que te ocurre: intentás llegar y se aleja. Mientras dura, un nuevo click en la cocina no hace nada.
-- **Copy:** el log actual (`at: 0`). Glitch: `toast` → `ghost`.
+- **Copy:** el log actual (`at: 0`).
 - **Fragmento `house`:** *"You never saw their face."* Se gana cuando una sombra **que liberaste vos** se funde con la luz de la cocina. Las sombras espontáneas no cuentan.
 - **Pista:** `PROMPT · OPEN A DOOR`.
 - **DreamAction:** *Open a door*. Abre la puerta más cercana al centro del cuadro y libera una sombra que va hacia la cocina.
@@ -458,7 +454,6 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - El encendido dura 1.2 s y arranca con un parpadeo, como una lámpara que tarda en prender.
   - Queda encendida en toda la noche: si volvés a Ocean con el fragmento guardado, la lámpara ya está prendida en cualquier nivel.
 - **DreamAction:** *Stay under*. Lleva al beat 3 si no estás ahí y cuenta los 6 s.
-- **Glitch:** `politely` → `quietly`.
 - **Estado de entrada:** entrando desde el manual, beat 0. Volviendo desde Fall, beat 3 (bajo el agua), lo que da continuidad: venís de caer y "emergés" subiendo.
 - **Técnica:**
   - `waterLevel` pasa a ser `lerp` hacia el nivel del beat objetivo, suavizado con `beatDuration`, más la respiración (`0.08 · sin(2π t / 8)`). `swell` sigue igual.
@@ -495,7 +490,6 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - 0.25: *The clouds go past in the wrong direction.*
   - 0.5, o al soltarse, lo que pase primero (`at: 0.5, on: 'let-go'`): *You're not falling so much as being let go of.*
   - 0.75: *Somewhere below, an alarm is starting.*
-  - Glitch: `clouds` → `crowds`.
 - **Fragmento `fall`:** *"You let go."* Se gana la primera vez que la cámara termina de girar hacia arriba. El brillo de las siluetas se lee **antes** de ganarlo, así que la silueta de Fall no está en el cielo: el fragmento de este sueño se ve en Wake.
 - **DreamAction:** *Let go*. Hace el giro durante 5 s y gana el fragmento.
 - **Técnica:**
@@ -529,7 +523,7 @@ En este ejemplo se guardaron cuatro fragmentos: el de la caída no.
   - En mobile (≤ 640px), cada entrada ocupa dos líneas (`TAPE 02 · THE WHALE…` arriba y el fragmento abajo), sin puntos de relleno.
   - Es una `<ol>` real con `aria-label="Your recording"`.
   - **Los sueños sin fragmento siempre aparecen**, como `— no signal —`. Se ve lo que te perdiste, y eso invita a repetir la noche. Con 0 fragmentos, el registro muestra las cinco líneas sin señal.
-  - **La máquina lo imprime.** Después del melt, las líneas se tipean una por una con el mismo sistema del log (4.1): primero el número y el título de la cinta, rápido (unos 60 caracteres/s), una pausa de 300 ms y después el fragmento o `— no signal —`, al ritmo normal. Sin glitches. En reposo, las líneas todavía no impresas están en `color: transparent`, así la captura del melt muestra el registro vacío y el tipeo empieza sin parpadeo. Con reduced motion aparece completo. El `<ol>` accesible siempre tiene el contenido completo, y la versión tipeada lleva `aria-hidden`.
+  - **La máquina lo imprime.** Después del melt, las líneas se tipean una por una con el mismo sistema del log (4.1): primero el número y el título de la cinta, rápido (unos 60 caracteres/s), una pausa de 300 ms y después el fragmento o `— no signal —`, al ritmo normal. En reposo, las líneas todavía no impresas están en `color: transparent`, así la captura del melt muestra el registro vacío y el tipeo empieza sin parpadeo. Con reduced motion aparece completo. El `<ol>` accesible siempre tiene el contenido completo, y la versión tipeada lleva `aria-hidden`.
   - Los botones aparecen recién cuando termina de imprimirse el registro (fade de 0.4 s), para que no compitan con la lectura. Sin animación con reduced motion.
 - **Una línea según la lucidez**, entre el display y el body (borrador, se retoca con el resto de la narrativa). Se imprime antes del registro:
 
@@ -619,9 +613,9 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 - **Terminado cuando:**
   - Cada sueño transcribe su log al asentarse, sin parpadeo: el melt de entrada muestra el log vacío y el de salida lo muestra completo.
   - Stair y Ocean revelan frases con el progreso y los beats.
-  - Un glitch aparece y se corrige. Con lucidez 5, no aparece.
   - Con reduced motion, el texto aparece completo.
-  - Un lector de pantalla lee las frases completas y sin glitches.
+  - Un lector de pantalla lee las frases completas.
+  - El título del sueño no se mueve mientras se tipea el log, en ningún sueño ni nivel.
   - La lucidez se ve en los sueños y en Wake, no en el hero ni en el manual, y el segmento nuevo parpadea en `rec`.
   - `Tab` muestra el `DreamAction` de cada sueño y no aparece en ninguna captura.
 
@@ -767,8 +761,8 @@ Registro de lo que se decidió con el usuario mientras se iteraba el plan. Si du
 
 1. **House: ¿scrub de "caminar sin llegar"?** **No.** House queda libre; el click en la cocina estira el pasillo (6.3).
 2. **Condiciones de los fragmentos.** **Confirmadas** sueño por sueño (sección 6): detenerse y volver a tu lugar después de 2 escalones, saludar, una sombra liberada por vos que llega a la cocina, 6 s bajo el agua y 3 s quieto en la caída.
-3. **Copy nuevo** (frases por beat y progreso, glitches, etiquetas de fragmento, pistas, líneas de Wake). **Borrador aceptado**, concentrado en `night/dreams.js` y `Wake.jsx` para retocarlo con el resto de la narrativa sin tocar lógica.
-4. **¿La lucidez afecta algo más que el copy y los glitches?** **No.** Solo cambia los glitches del transcript, la línea de Wake y el HUD. Lo visual ya aparece por otro lado (las siluetas del cielo de Fall, 6.5), y cambiar niebla o melt contradiría que la noche se intensifica.
+3. **Copy nuevo** (frases por beat y progreso, etiquetas de fragmento, pistas, líneas de Wake). **Borrador aceptado**, concentrado en `night/dreams.js` y `Wake.jsx` para retocarlo con el resto de la narrativa sin tocar lógica.
+4. **¿La lucidez afecta algo más que el copy?** **No.** Solo cambia la línea de Wake y el HUD (los glitches del transcript, que también dependían de ella, se sacaron en la fase 2). Lo visual ya aparece por otro lado (las siluetas del cielo de Fall, 6.5), y cambiar niebla o melt contradiría que la noche se intensifica.
 5. **Estado al volver a un sueño.** **Como está:** el estado de juego depende de la dirección de entrada (3.3) y los fragmentos y eventos se conservan en la noche. Lo que es solo de la escena (dónde quedó la figura, qué puertas estaban abiertas) se pierde si la escena se desmonta.
 6. **Save the tape.** **Entra** en la fase 8 (7.1).
 7. **La última frase de Staircase.** **Cambia** a *"If you stop, the stairs keep going."* (6.1).

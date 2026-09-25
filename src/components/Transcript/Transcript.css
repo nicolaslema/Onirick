@@ -1,5 +1,19 @@
-/* The transcript (PLAN-2.md 4.1). What isn't typed yet keeps its place in
-   the layout, invisible — so the block never grows while typing. */
+/* The transcript (PLAN-2.md 4.1). The block's size comes only from the
+   invisible whole-log copy; the typed text is laid over it, out of the flow,
+   so nothing the typing does can move the title above. */
+.onk-transcript {
+  position: relative;
+}
+.onk-transcript-sizer {
+  visibility: hidden;
+}
+.onk-transcript-typed {
+  position: absolute;
+  inset: 0;
+}
+
+/* What isn't typed yet keeps its place in the overlay, invisible, so a word
+   never jumps to the next line as its last letters arrive. */
 .onk-transcript-rest {
   color: transparent;
 }
