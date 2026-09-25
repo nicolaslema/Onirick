@@ -702,7 +702,7 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 
 - Regenerar los pósters (`pnpm posters`) en el estado 0 de cada sueño.
 - Ajustar en dispositivo todos los números marcados como punto de partida y anotarlos en `DECISIONS.md`.
-- Actualizar `README.md` (qué es la compuerta, cómo agregar un modelo de juego) y los briefs `Docs/onirick.*.mdx` (capacidades nuevas).
+- Actualizar `README.md`: qué es la compuerta, cómo agregar un modelo de juego y las capacidades nuevas de la noche.
 - Checklist de la sección 10 en Chrome, Safari y Firefox desktop, Safari iOS y Chrome Android.
 - **Terminado cuando:** Lighthouse mobile da Performance ≥ 80 y Accessibility 100, sin errores en consola en producción y con el checklist completo.
 
