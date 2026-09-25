@@ -126,6 +126,8 @@ export const DREAMS = {
 
 En los sueños **libres**, todas las frases tienen `at: 0` (se transcriben al entrar). En **beats**, `at` es el índice del beat. En **scrub**, es el progreso.
 
+Una frase puede **esperar un evento** en lugar de un umbral: `{ on: 'wave', text: 'and it turns one eye toward you.' }`. Se transcribe cuando la escena dispara ese evento (`play.trigger(id, 'wave')`). Las frases con `on` van después de las que tienen `at` y se revelan en orden. Lo usa Whale (6.2).
+
 ### 3.2 La compuerta (gate) en ScrollSections
 
 `ScrollSections` sigue siendo un componente genérico: no sabe nada de sueños. Suma **una sola prop**, `gate`, que `night/play.js` implementa:
@@ -161,9 +163,11 @@ gate = {
 `night/play.js` es un store externo mínimo (mismo patrón que `useReducedMotion`: `useSyncExternalStore`), con una entrada por sección de `NIGHT` que tenga `play`:
 
 ```js
-{ target: 0, beat: 0, reveal: 0, settledAt: 0 }
+{ target: 0, beat: 0, reveal: 0, events: new Set(), settledAt: 0 }
 // target: progreso objetivo (scrub, 0→1) o beat objetivo (beats)
-// reveal: cuántas frases del log están habilitadas (derivado de target y DREAMS[id].lines)
+// reveal: cuántas frases del log están habilitadas (derivado de target, events y DREAMS[id].lines)
+// events: eventos ya ocurridos en esta noche ('wave', …); los usan las frases con `on` y la escena.
+//         Se vacían con recording.reset() (REPLAY THE NIGHT), no al salir del sueño.
 ```
 
 - **Las escenas no leen el store con React.** Leen un ref mutable (`usePlayRef(id).current.target`) dentro de `useFrame` y lo suavizan ellas mismas con `easing.damp` (`smoothTime` 0.25 en scrub y `beatDuration` en beats). Nada de estado de React por frame (ver `DECISIONS.md`, fase 1, sobre por qué el motor no guarda `progress`).
@@ -244,7 +248,8 @@ El log de cada sueño deja de ser texto estático: **la máquina lo transcribe**
 - **Estado de reposo = estado capturado.** Entrando hacia adelante, las frases todavía no tipeadas están transparentes, así que la captura del melt muestra el log vacío y el tipeo empieza sin parpadeo. Entrando hacia atrás, todo está revelado y tipeado. **Esto enmienda `PLAN.md` 5.2** ("sin animación de entrada después del melt"): la regla sigue valiendo para todo lo demás. Al tipeo no le afecta porque arranca desde lo que ya mostró la captura.
 - **Accesibilidad**: la versión tipeada lleva `aria-hidden`. Al lado va un `<span className="sr-only">` con las frases reveladas completas, sin glitches.
 - **Reduced motion**: el texto aparece completo al revelarse, sin tipeo, sin cursor y sin glitch.
-- Al terminar una tanda: `onSettled()` → invalidar y recapturar el overlay (3.4).
+- **Frases que esperan un evento** (`on`, 3.1): cuando el tipeo llega a una frase cuyo evento todavía no ocurrió, se detiene y **el cursor queda parpadeando indefinidamente** al final del texto. Esa espera es una invitación, así que no desaparece a los 1.5 s. Al ocurrir el evento, el tipeo sigue desde ahí. Con reduced motion la frase aparece entera al ocurrir el evento, y mientras espera el cursor queda fijo, sin parpadeo.
+- Al terminar una tanda: `onSettled()` → invalidar y recapturar el overlay (3.4). Una frase que espera también cuenta como fin de tanda: la captura de salida muestra el log incompleto, tal como quedó.
 
 ### 4.2 Lucidez en el HUD
 
@@ -357,25 +362,38 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 
 ### 6.2 Dream 02: The Whale Above the City (libre)
 
-- **Modelo:** libre.
-- **Qué pasa:** la ballena sigue su ruta sobre los techos (como hoy). *"Nobody looks up."*
+**Lectura:** una ciudad que no mira hacia arriba. Un gesto tuyo alcanza para que la ballena te devuelva la mirada y para que una persona, una sola, levante la vista.
+
+- **Modelo:** libre. Es el único sueño que no consume gestos de scroll, y eso le da respiro al ritmo después del scrub de la escalera.
+- **Qué pasa:** la ballena sigue su ruta sobre los techos, como hoy. *"Nobody looks up."*
+- **Cómo se entera el usuario de que puede saludar** (tres capas, de la más sutil a la más explícita):
+  1. **El ojo sigue al cursor** desde que entrás (ya existe): la ballena te registra.
+  2. **El log espera tu saludo.** La máquina transcribe *"It swims slowly between the rooftops. Nobody looks up. You wave,"* y se detiene con el cursor de bloque parpadeando. Cuando saludás, termina la frase: *"…and it turns one eye toward you."* El texto mismo es la instrucción. Si no saludás, la frase queda incompleta (ver 4.1, frases que esperan un evento).
+  3. **La pista del HUD** `PROMPT · WAVE ↔` a los 6 s si todavía no saludaste (4.3), como respaldo para quien no lee el log.
 - **Interacción (saludar):**
   - **Saludo** = sacudir el puntero de lado a lado: 3 inversiones de dirección en X en menos de 1.5 s, cada tramo de al menos 0.06 NDC (`createWaveDetector`, 3.6). En touch es lo mismo con el dedo apoyado, porque los pointer events también disparan ahí.
-  - **Respuesta:**
-    1. La ballena frena y sale de su ruta en un arco suave de 1.5 s.
+  - **Primer saludo (reacción completa):**
+    1. La ballena frena y sale de su ruta en un arco suave de 1.5 s, **bajando y acercándose** a la cámara hasta ocupar bastante más cuadro. En portrait tiene que quedar entera y por encima del título.
     2. Gira hasta mostrarte un flanco, con **un ojo hacia la cámara**, y se queda ahí 3 s.
     3. Parpadea (escala Y del ojo 1 → 0.1 → 1 en 0.2 s).
-    4. Vuelve a la ruta.
-  - **La ciudad responde:** las ventanas bajo su recorrido se encienden en una onda que la sigue (atributo de color por instancia en `windows`, 0 → tinte y vuelta en 4 s). En un techo aparece una **figura diminuta que mira hacia arriba**: alguien por fin mira.
-  - Antes de saludar, el ojo sigue sutilmente al cursor (ya existe).
-- **Copy:** las cuatro frases del log actual con `at: 0`. Glitch: `eye` → `I` (*"it turns one I toward you"*, y se corrige).
-- **Fragmento `whale`:** *"It looked back."* Se gana con el primer saludo completo. Saludar otra vez repite la reacción, pero no suma.
-- **Pista:** `PROMPT · WAVE ↔` (4.3).
-- **DreamAction:** *Wave at the whale*.
+    4. Sube y vuelve a su ruta en 2 s.
+  - **La ciudad responde, una sola vez:**
+    - Las ventanas bajo su recorrido se encienden en una onda que la sigue (atributo de color por instancia en `windows`, 0 → tinte y vuelta en 4 s).
+    - En un techo aparece **una sola figura diminuta que mira hacia arriba**. Alguien por fin mira. Se queda hasta que la escena se desmonta.
+  - **Saludos siguientes ("ya te vi"):** la ballena no sale de su ruta. Gira el ojo hacia vos (el giro interno de `inner`, más marcado que el seguimiento del cursor) y parpadea. Sin onda de ventanas y sin figura nueva.
+- **Copy:**
+  - `at: 0`: *It swims slowly between the rooftops.* / *Nobody looks up.* / *You wave,*
+  - `on: 'wave'`: *and it turns one eye toward you.*
+  - Glitch: `eye` → `I` (*"it turns one I toward you"*, y se corrige).
+- **Fragmento `whale`:** *"It looked back."* Se gana con el primer saludo completo. Los siguientes no suman.
+- **DreamAction:** *Wave at the whale*. Dispara el mismo evento `wave` que el gesto: reacción completa si es la primera vez y "ya te vi" después.
+- **Estado de entrada:** si el fragmento ya está guardado (volvés desde House, o en la misma noche), la última frase aparece completa y la figura está en su techo desde el principio. Si no, el log vuelve a esperar.
 - **Técnica:**
-  - La salida de la ruta se hace mezclando `pathPoint(t)` con un punto de "atención" frente a la cámara, con un peso `w` que va 0 → 1 → 0 (damp). La rotación interna ya existe (`inner`): sumarle el giro de flanco con el mismo peso.
-  - Para la figura en el techo alcanza con 2 primitivas (cápsula y esfera) sobre un edificio fijo, elegido de la semilla, dentro del cuadro en landscape y en portrait. Aparece y se queda hasta que la sección se desmonta.
-- **Mobile/reduced:** saludo con el dedo (no choca con el swipe vertical). Con reduced motion, la reacción es igual pero más lenta y sin la onda de ventanas: se encienden todas a la vez con fade.
+  - **Salida de la ruta:** mezclar `pathPoint(t)` con un punto de "atención" frente a la cámara, más bajo y más cerca que la ruta (por ejemplo `[0, 8.5, 2]` en landscape; ajustar para portrait). El peso `w` va 0 → 1 → 0 con damp. Mientras `w > 0`, el reloj de la ruta (`time`) se frena para que la ballena retome desde donde salió, sin saltos. La rotación interna ya existe (`inner`): sumarle el giro de flanco con el mismo peso.
+  - **Distancia:** la ballena se acerca, pero nunca cruza el plano cercano de la cámara ni tapa el HUD. Si en portrait no entra, escalarla levemente en vez de acercarla más.
+  - **La figura del techo:** 2 primitivas (cápsula y esfera) sobre un edificio fijo, elegido de la semilla, dentro del cuadro en landscape y en portrait. Aparece con un fade de 0.6 s mientras la ballena mira a cámara.
+  - **Evento:** el detector llama a `play.trigger('whale', 'wave')`. El store guarda los eventos ocurridos (3.3), así el transcript y la escena leen lo mismo, y una recaptura o una entrada hacia atrás muestran el estado correcto.
+- **Mobile/reduced:** saludo con el dedo (no choca con el swipe vertical, que solo mira el eje Y). Con reduced motion, la reacción es igual pero más lenta y sin la onda de ventanas: se encienden todas a la vez con fade.
 
 ### 6.3 Dream 03: The House You Grew Up In (libre)
 
@@ -569,7 +587,15 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 ### Fase 4: Whale
 
 - Todo 6.2.
-- **Terminado cuando:** el saludo se detecta con mouse y con el dedo, sin falsos positivos al mover el mouse normalmente (probar un minuto de uso normal); la ballena se da vuelta, mira y vuelve a su ruta sin saltos; las ventanas y la figura del techo responden; la pista aparece una vez si no saludaste; 60 fps.
+- **Terminado cuando:**
+  - El saludo se detecta con mouse y con el dedo, sin falsos positivos al mover el mouse normalmente (probar un minuto de uso normal).
+  - El log se detiene en *"You wave,"* con el cursor parpadeando y termina la frase al saludar.
+  - En el primer saludo la ballena baja, se acerca, te mira, parpadea y vuelve a su ruta sin saltos, entera en cuadro en landscape y en portrait.
+  - Las ventanas hacen su onda y aparece una sola figura en un techo.
+  - Los saludos siguientes solo giran el ojo y parpadean.
+  - La pista aparece una vez si no saludaste.
+  - Volviendo desde House con el fragmento guardado, el log está completo y la figura en su techo, y el melt ya lo muestra así.
+  - 60 fps.
 
 ### Fase 5: House
 
