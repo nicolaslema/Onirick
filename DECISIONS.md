@@ -778,3 +778,39 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   errors or warnings. `pnpm lint`, `pnpm build`, `pnpm test` clean. Not verified: that a button
   click never opens a door (onTap ignores interactive targets by construction; not observable from
   the test without exposing state).
+
+## Night 2 — Phase 6
+
+- **Four levels, never crossing the surface on their own**: ankles, waist, 0.25 under your eyes,
+  0.3 over them (the camera sits at 1.3). The breathing (±0.08 over 8 s) plus the swell (±0.11)
+  stays inside those margins, so only a beat takes you under or back up. Each beat's rise eases over
+  ~1.6 s (0.15 s under reduced motion, where it reads as a quick change).
+
+- **Under the surface gets deeper, not paler.** The first pass thickened the fog (0.07 → 0.14 in the
+  plan) in the dream's own tint — a light blue — and everything washed out to pale blue, taking the
+  title's and the log's contrast with it. The fog now also turns from the tint to the deep background
+  blue as you go under, at 0.1; screenshots under water keep both legible, on desktop and phone.
+  Everything under-water (fog, background, floor caustics, the window's shafts) blends by the
+  water's height across your eyes, not by time, so going back up undoes it the same way.
+
+- **The lamp** (the fragment's reward) is a warm point light in the shade plus an emissive shade,
+  in `--dream-stair`. It floats at the surface, above your eyes, so from below the shade itself is
+  hidden — its light had to be strong enough (18, reach 8) to tint the walls, the window frame and
+  the chair's legs amber. It flickers on over 1.2 s, stays lit for the night, and goes dark again on
+  a new night (REPLAY or ?debug reset). Staying under means the last beat with your eyes fully below
+  for 6 s while the dream is current; coming up, or leaving, starts the count over. "Stay under" from
+  the keyboard takes the water all the way up and the count runs the same.
+
+- **Ripples push what floats**: the surface simulation moved into the scene (`useRipples`), which
+  steps it; Water only draws it and the furniture reads its slope to drift (damped, within 1.4 of its
+  spot). Under water a moving pointer lets out bubbles (a pool of 40) that rise to the surface; none
+  under reduced motion. The surface is double-sided so it reads from below.
+
+- **Lint**: the first cut had children mutating things they received (the ripple buffers, `useMemo`
+  scratch objects, the scene from `useThree`); each object is now mutated only where it's owned
+  (scratch in refs, the scene through the frame state).
+
+- **Verified** (headless Chrome, ?debug): four gestures take the water to beat 3; screenshots of each
+  level, under water with bubbles, and with the lamp lit, on desktop and phone; six seconds under
+  keeps the fragment; leaving for the fall and coming back lands under water again; no console errors
+  or warnings. `pnpm lint` (no warnings), `pnpm build`, `pnpm test` clean.

@@ -442,7 +442,7 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 | 3 | Sobre la cámara | **Bajo el agua** | *You were never afraid of this.* |
 
 - **Bajo el agua (beat 3):**
-  - La niebla se vuelve más densa (0.07 → 0.14) y el fondo, más profundo (`sceneBackground` con 30% de tinte).
+  - La niebla se vuelve más densa (0.045 → 0.1) y **se oscurece**: pasa del tinte al azul profundo del fondo (`sceneBackground` con 30% de tinte). Con el tinte claro del sueño, una niebla densa de ese color lavaba todo a celeste y el título y el log perdían contraste (fase 6).
   - La superficie se ve desde abajo (`Water` con `side: DoubleSide`) con las ondas del puntero todavía activas.
   - Las cáusticas pasan al piso.
   - Burbujas suben desde el puntero cuando se mueve: un pool de 40 puntos que reemplaza las ondas como respuesta al puntero.
