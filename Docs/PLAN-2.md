@@ -430,8 +430,10 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 
 ### 6.4 Dream 04: The Ocean Indoors (beats)
 
-- **Modelo:** beats, `beats: 4` (0 a 3), `beatDuration: 1.6`.
-- **Qué pasa:** el agua **deja de subir y bajar en ciclo** (`waterLevel(t)` actual). Cada gesto la sube un escalón hasta que la cámara queda **bajo la superficie**:
+**Lectura:** el agua sube y no hay nada que hacer contra eso. El único gesto que pide este sueño es **no hacer nada**: quedarse, sin miedo. Contrasta con la escalera (si te detenés, bajás) y con la caída (soltarse).
+
+- **Modelo:** beats, `beats: 4` (0 a 3), `beatDuration: 1.6`. Son tres gestos antes del melt. El nivel de los ojos (beat 2) se mantiene porque es el momento de tensión justo antes de hundirte.
+- **Qué pasa:** el agua **deja de subir y bajar en ciclo** (`waterLevel(t)` actual). Cada gesto la sube un escalón hasta que la cámara queda **bajo la superficie**. Dentro de cada nivel **el agua respira**: sube y baja ±0.08 en un ciclo lento (unos 8 s), como una marea, para que la escena siga viva entre gesto y gesto.
 
 | Beat | Nivel del agua | Qué se ve | Frase del log |
 | --- | --- | --- | --- |
@@ -449,12 +451,16 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 - **Interacción libre dentro de cada beat:**
   - Las ondas del puntero **empujan los muebles** que flotan: el pico de la onda cercana a un mueble le suma un impulso lateral que se amortigua.
   - Bajo el agua, el puntero suelta burbujas.
-- **Fragmento `ocean`:** *"You stayed under."* Se gana quedándose **6 s bajo el agua** en el beat 3. Al ganarlo, la lámpara flotante **se enciende** (una luz puntual cálida y débil, más su pantalla emisiva). Es la única luz cálida del cuarto.
+- **Fragmento `ocean`:** *"You weren't afraid."* Se gana quedándose **6 s bajo el agua** en el beat 3. El contador arranca cuando el beat 3 se asienta y se reinicia si subís de nivel o salís del sueño.
+  - **La lámpara se enciende:** una luz puntual cálida y débil en `--dream-stair` (el mismo ámbar que la luz del amanecer en Wake), más su pantalla emisiva. Es **la única luz cálida del cuarto**, contra el azul del agua: la escena queda distinta si ganaste el fragmento.
+  - El encendido dura 1.2 s y arranca con un parpadeo, como una lámpara que tarda en prender.
+  - Queda encendida en toda la noche: si volvés a Ocean con el fragmento guardado, la lámpara ya está prendida en cualquier nivel.
 - **DreamAction:** *Stay under*. Lleva al beat 3 si no estás ahí y cuenta los 6 s.
 - **Glitch:** `politely` → `quietly`.
 - **Estado de entrada:** entrando desde el manual, beat 0. Volviendo desde Fall, beat 3 (bajo el agua), lo que da continuidad: venís de caer y "emergés" subiendo.
 - **Técnica:**
-  - `waterLevel` pasa a ser `lerp` hacia el nivel del beat objetivo, suavizado con `beatDuration`. `swell` sigue igual.
+  - `waterLevel` pasa a ser `lerp` hacia el nivel del beat objetivo, suavizado con `beatDuration`, más la respiración (`0.08 · sin(2π t / 8)`). `swell` sigue igual.
+  - **La respiración nunca cruza la superficie por sí sola:** el nivel del beat 2 queda al menos 0.2 por debajo de `camera.y` y el del beat 3 al menos 0.2 por encima. Solo un cambio de beat mete o saca la cámara del agua.
   - Cruzar la superficie: cuando el nivel pasa `camera.y`, conmutar niebla, fondo y cáusticas con un fundido de 0.4 s ligado al nivel, no al tiempo, para que en un scroll hacia atrás se deshaga igual.
   - El nivel máximo actual (`HIGH`) está pensado para quedar bajo la cámara: el beat 3 necesita un nivel mayor que `CAMERA.position.y` (1.3). Revisar que la ventana siga dentro del cuarto.
 - **Mobile/reduced:** un swipe es un beat. Con reduced motion, el cambio de nivel es un fundido rápido, sin burbujas.
@@ -497,7 +503,7 @@ Wake responde por fin *Did you keep anything?*
 TAPE 01  THE STAIRCASE ............ You stopped. The stairs didn't.
 TAPE 02  THE WHALE ABOVE THE CITY . It looked back.
 TAPE 03  THE HOUSE YOU GREW UP IN . You never saw their face.
-TAPE 04  THE OCEAN INDOORS ........ You stayed under.
+TAPE 04  THE OCEAN INDOORS ........ You weren't afraid.
 TAPE 05  THE FALL ................. — no signal —
 ```
 
@@ -622,7 +628,14 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 ### Fase 6: Ocean
 
 - Todo 6.4.
-- **Terminado cuando:** cada gesto sube un beat y el último deja la cámara bajo el agua; volver desde Fall aparece bajo el agua y el melt ya lo muestra así; los muebles responden a las ondas; quedarse 6 s bajo el agua enciende la lámpara y gana el fragmento; 60 fps.
+- **Terminado cuando:**
+  - Cada gesto sube un nivel (4 en total) y el último deja la cámara bajo el agua.
+  - El agua respira dentro de cada nivel sin cruzar nunca la superficie por sí sola.
+  - Volviendo desde Fall aparece bajo el agua y el melt ya lo muestra así.
+  - Los muebles responden a las ondas.
+  - Quedarse 6 s bajo el agua enciende la lámpara en ámbar (con su parpadeo) y gana el fragmento. Subir de nivel antes reinicia el contador.
+  - Volviendo con el fragmento guardado, la lámpara ya está encendida.
+  - 60 fps.
 
 ### Fase 7: Fall
 
