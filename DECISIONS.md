@@ -814,3 +814,21 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   level, under water with bubbles, and with the lamp lit, on desktop and phone; six seconds under
   keeps the fragment; leaving for the fall and coming back lands under water again; no console errors
   or warnings. `pnpm lint` (no warnings), `pnpm build`, `pnpm test` clean.
+
+- **After review — House clicks stopped working (intermittent), and a second bug found on the way.**
+  - *House*: clicking a door or the kitchen did nothing. Instrumented: the scene had mounted as the
+    Whale's neighbour with `live={false}` and, in failing runs, never received `live={true}` once the
+    House became current — so it never subscribed to taps. The prop travelled section → DreamFrame →
+    SceneCanvas → LiveCanvas → R3F `<Canvas>` (its own reconciler, behind a lazy Suspense) → scene,
+    and that last hop sometimes didn't land; which run failed depended on timing (adding a log in
+    the section made it pass). Rather than chase the race, the prop is gone: `night/stage.js` is a
+    tiny store of the section on screen and whether it's settled, written by App from
+    ScrollSections' `onStateChange`, and each scene reads `useLive(id)` itself — the update now starts
+    inside the scene's own tree. Applied to all four scenes that listen (Stair, Whale, House, Ocean).
+    Verified: the House checks pass 3/3; Whale and Ocean checks pass.
+  - *Staircase*: re-running its checks after that change showed the fragment sometimes not kept after
+    climbing back — also on the real GPU (2 of 3 runs). Cause: catching up ran while `s < −0.001` and
+    the fragment was awarded on reaching `s ≥ 0`; a step landing `s` inside (−0.001, 0) left the
+    figure "not catching up" and never "back" — a thousandth of a step short of its place forever,
+    more likely the higher the frame rate. Now it catches up while `s < 0` and arrives within 1e-4.
+    Verified 4/4 on the GPU, all seven checks each time. (Phase 3's single passing run was luck.)

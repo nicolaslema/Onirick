@@ -10,6 +10,7 @@ import { onTap, pointer, trackPointer } from '../../three/pointer';
 import { seeded } from '../../three/random';
 import { useCameraDrift } from '../../three/useCameraDrift';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
+import { useLive } from '../stage';
 
 // Dream 03, The House You Grew Up In (PLAN-2.md 6.3). A hallway that never
 // ends. Open a door and someone steps out — every door opens onto the same
@@ -494,7 +495,9 @@ function useHouse(live) {
   return house;
 }
 
-const HouseScene = ({ camera, live = false }) => {
+const HouseScene = ({ camera }) => {
+  // Listening to the visitor only while this dream is on screen and settled.
+  const live = useLive('house');
   // On a portrait screen the title block runs taller, and at eye level the
   // lit kitchen doorway lands right behind its tape label; looking a little
   // lower lifts the doorway above the copy.

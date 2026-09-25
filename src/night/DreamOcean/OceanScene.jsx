@@ -12,6 +12,7 @@ import { useCameraDrift } from '../../three/useCameraDrift';
 import { useCloudTexture } from '../../three/useCloudTexture';
 import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
+import { useLive } from '../stage';
 
 // Dream 04, The Ocean Indoors (PLAN-2.md 6.4). The water comes in without a
 // sound and keeps rising — one level per gesture, until you're under. The one
@@ -453,7 +454,9 @@ const Depth = ({ under, tint }) => {
   return null;
 };
 
-const OceanScene = ({ camera, live = false }) => {
+const OceanScene = ({ camera }) => {
+  // Listening to the visitor only while this dream is on screen and settled.
+  const live = useLive('ocean');
   const reduced = useReducedMotion();
   const beat = usePlayProgress('ocean', reduced ? REDUCED_LEVEL_SMOOTH : LEVEL_SMOOTH);
   const time = useClock();

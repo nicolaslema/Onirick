@@ -10,6 +10,7 @@ import { onHold } from '../../three/pointer';
 import { useCameraDrift } from '../../three/useCameraDrift';
 import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
+import { useLive } from '../stage';
 
 // Dream 01, The Staircase (PLAN-2.md 6.1). You climb without stopping and
 // stay where you are: the stair turns and sinks like a screw at exactly the
@@ -374,11 +375,14 @@ function useClimb(live) {
         c.s += dt * (c.cadence - 1);
       } else c.s += -dt;
     } else {
-      const catchingUp = c.s < -1e-3;
+      // Behind your place at all: climbing back. (An epsilon here once let a
+      // step land s just short of 0 — no longer "catching up", never "back"
+      // — and the fragment was never kept.)
+      const catchingUp = c.s < 0;
       c.cadence = catchingUp ? (c.s < -12 ? CATCH_UP_FAR : CATCH_UP) : 1;
       c.u = (c.u + dt * c.cadence) % 2;
       c.s += dt * (c.cadence - 1);
-      if (catchingUp && c.s >= 0) {
+      if (catchingUp && c.s >= -1e-4) {
         // Back in your place: settle there, and if the stair really carried
         // you away, that's the fragment.
         c.s = 0;
@@ -394,7 +398,9 @@ function useClimb(live) {
   return climb;
 }
 
-const StairScene = ({ camera, live = false }) => {
+const StairScene = ({ camera }) => {
+  // Listening to the visitor only while this dream is on screen and settled.
+  const live = useLive('stair');
   const progress = usePlayProgress('stair');
   useCameraDrift({ position: camera.position, target: [0, 4.4, 0] });
   const climb = useClimb(live);

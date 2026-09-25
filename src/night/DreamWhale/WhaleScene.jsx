@@ -13,6 +13,7 @@ import { seeded } from '../../three/random';
 import { useCloudTexture } from '../../three/useCloudTexture';
 import { useCameraDrift } from '../../three/useCameraDrift';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
+import { useLive } from '../stage';
 
 // Dream 02, The Whale Above the City (PLAN-2.md 6.2). Nobody looks up. You
 // wave — and the whale comes down, turns one eye to you, blinks; the windows
@@ -461,7 +462,9 @@ function useReaction(live) {
   return reaction;
 }
 
-const WhaleScene = ({ camera, live = false }) => {
+const WhaleScene = ({ camera }) => {
+  // Listening to the visitor only while this dream is on screen and settled.
+  const live = useLive('whale');
   // Looking up steeply: the rooftops stay in the bottom strip, below the
   // title, since distant roofs take the fog's tint (= the title's color).
   useCameraDrift({ position: camera.position, target: [0, 12, -6] });

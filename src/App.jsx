@@ -8,6 +8,7 @@ import { IntroContext } from './components/Loader/IntroContext'
 import { NIGHT } from './night/config'
 import { createNightGate } from './night/gate'
 import { DREAMS } from './night/dreams'
+import { setStage } from './night/stage'
 import { HAS_WEBGL2 } from './lib/webgl'
 
 // Dreams keep their own scrub/beats (PLAN-2.md 3.2). Without WebGL2 there's
@@ -29,7 +30,11 @@ const DebugPanel =
 // this then resolves against NIGHT for the Hud's actual per-section data.
 function App() {
   const [nightState, setNightState] = useState({ currentIndex: 0, activeTransition: null })
-  const handleStateChange = useCallback(state => setNightState(state), [])
+  const handleStateChange = useCallback(state => {
+    setNightState(state)
+    // The scenes read this directly (see night/stage.js for why not a prop).
+    setStage({ currentId: NIGHT[state.currentIndex]?.id ?? null, settled: !state.activeTransition })
+  }, [])
   const [ready, setReady] = useState(false)
   const handleReady = useCallback(() => setReady(true), [])
 
