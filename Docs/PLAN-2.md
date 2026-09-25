@@ -351,7 +351,7 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
     - una **`SpotLight` con sombra** en su posición, apuntando al centro de la columna a la altura de la figura, con ángulo amplio y `penumbra` 0.5. Es blanca hueso (`--ink`) contra la niebla ámbar del tinte: dos temperaturas en la escena.
     - **Órbita elíptica:** más ancha en X que el ancho visible, para que salga de cuadro por los costados. Da `1.25` vueltas y sube de `y ≈ 4.5` a `y ≈ 7` entre `p = 0` y `p = 1`. Arranca atrás a la derecha y alta: se ve al entrar y queda lejos del título y del log, que ocupan abajo a la izquierda.
     - Se suaviza con `easing.damp` hacia el objetivo del scrub.
-  - **Apagar la escena:** `hemisphereLight` de 0.35 a ~0.07 y la `directionalLight` del tinte de 2.2 a ~0.35. El ámbar sigue en la niebla y en el fondo, y el título conserva su color porque es DOM. Las lunas de las ventanas son `meshBasicMaterial` y siguen visibles en la oscuridad: la misma luna en cada ventana.
+  - **Apagar la escena:** `hemisphereLight` de 0.35 a ~0.07 y la `directionalLight` del tinte de 2.2 a ~0.35. El ámbar sigue en la niebla y en el fondo, y el título conserva su color porque es DOM. Las ventanas quedan como marcos vacíos (decidido con el usuario en la fase 3): la única luna es la que orbita, y se la ve pasar a través de ellas.
   - **Sombras (entran, suman la profundidad):**
     - `shadows` en el `<Canvas>` **solo de este sueño**: `SceneCanvas` y `LiveCanvas` suman una prop `shadows` que pasa derecho a R3F.
     - Proyectan sombra (`castShadow`): la columna, los escalones (`InstancedMesh` lo soporta), los marcos de ventana y la figura. La reciben (`receiveShadow`): escalones y columna.

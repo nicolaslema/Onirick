@@ -94,8 +94,9 @@ const Steps = ({ color }) => {
   );
 };
 
-// "Every landing has the same window, and the same moon in it."
-const MoonWindow = ({ index, frameColor, moonColor }) => {
+// "Every landing has the same window" — an empty frame now: the moon is its
+// own light, orbiting the stair (the Moon below), seen through them.
+const LandingWindow = ({ index, frameColor }) => {
   const a = stepAngle(index);
   const position = [Math.cos(a) * WINDOW_RADIUS, stepY(index) + 0.9, -Math.sin(a) * WINDOW_RADIUS];
   const bar = (w, h, x, y) => (
@@ -111,10 +112,6 @@ const MoonWindow = ({ index, frameColor, moonColor }) => {
       {bar(0.08, 1.28, -0.45, 0)}
       {bar(0.08, 1.28, 0.45, 0)}
       {bar(0.04, 1.2, 0, 0)}
-      <mesh position={[0.14, 0.22, -0.12]}>
-        <circleGeometry args={[0.17, 16]} />
-        <meshBasicMaterial color={moonColor} />
-      </mesh>
     </group>
   );
 };
@@ -137,7 +134,7 @@ const Staircase = ({ climb, colors }) => {
       </mesh>
       <Steps color={colors.step} />
       {windows.map(i => (
-        <MoonWindow key={i} index={i} frameColor={colors.frame} moonColor={colors.moon} />
+        <LandingWindow key={i} index={i} frameColor={colors.frame} />
       ))}
     </group>
   );

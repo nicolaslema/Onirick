@@ -675,3 +675,9 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   climb back does, and the prompt is gone after holding; the keyboard "Stop climbing" earns it; touch
   swipes scrub to 0.89 without ever stopping the climber; the stair still melts into the whale; no
   console errors. `pnpm lint` (no warnings), `pnpm build`, `pnpm test` clean.
+
+- **After review — the windows are empty frames** (user request): each landing's window used to
+  hold its own painted moon disc; now that the moon is a real, moving light, those copies
+  competed with it. The frames stay; the only moon is the one orbiting the stair. The log still
+  reads "…and the same moon in it", which now points at the one moon seen through them — part of
+  the narrative pass the user plans anyway.
