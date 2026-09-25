@@ -378,9 +378,9 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
     3. Parpadea (escala Y del ojo 1 → 0.1 → 1 en 0.2 s).
     4. Sube y vuelve a su ruta en 2 s.
   - **La ciudad responde, una sola vez:**
-    - Las ventanas bajo su recorrido se encienden en una onda que la sigue (atributo de color por instancia en `windows`, 0 → tinte y vuelta en 4 s).
-    - En un techo aparece **una sola figura diminuta que mira hacia arriba**. Alguien por fin mira. Se queda hasta que la escena se desmonta.
-  - **Saludos siguientes ("ya te vi"):** la ballena no sale de su ruta. Gira el ojo hacia vos (el giro interno de `inner`, más marcado que el seguimiento del cursor) y parpadea. Sin onda de ventanas y sin figura nueva.
+    - **Una onda de luz recorre la ciudad** bajo la ballena, de lado a lado, en unos 3 s: una luz puntual cálida delante de la primera fila de edificios, que ilumina las fachadas a su paso y le da a la ballena un reflejo desde abajo. (El plan pedía una onda de ventanas encendidas, pero desde esta cámara casi ninguna ventana queda a la vista: cada fila tapa las fachadas de atrás y las de la primera quedan bajo el borde de la pantalla. Cambiado en la fase 4.)
+    - En un techo aparece **una sola figura chica que mira hacia arriba**, a 1.8× para que se lea. Alguien por fin mira. Se queda hasta que la escena se desmonta.
+  - **Saludos siguientes ("ya te vi"):** la ballena no sale de su ruta. Gira el ojo hacia vos (el giro interno de `inner`, más marcado que el seguimiento del cursor) y parpadea. Sin onda de luz y sin figura nueva.
 - **Copy:**
   - `at: 0`: *It swims slowly between the rooftops.* / *Nobody looks up.* / *You wave,*
   - `on: 'wave'`: *and it turns one eye toward you.*
@@ -641,7 +641,7 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
   - El saludo se detecta con mouse y con el dedo, sin falsos positivos al mover el mouse normalmente (probar un minuto de uso normal).
   - El log se detiene en *"You wave,"* con el cursor parpadeando y termina la frase al saludar.
   - En el primer saludo la ballena baja, se acerca, te mira, parpadea y vuelve a su ruta sin saltos, entera en cuadro en landscape y en portrait.
-  - Las ventanas hacen su onda y aparece una sola figura en un techo.
+  - La onda de luz recorre la ciudad y aparece una sola figura en un techo.
   - Los saludos siguientes solo giran el ojo y parpadean.
   - La pista aparece una vez si no saludaste.
   - Volviendo desde House con el fragmento guardado, el log está completo y la figura en su techo, y el melt ya lo muestra así.

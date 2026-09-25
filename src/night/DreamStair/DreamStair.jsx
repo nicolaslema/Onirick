@@ -16,7 +16,7 @@ const DreamStair = () => {
   const { currentIndex, activeTransition } = useScrollSections();
   const live = useSectionIndex() === currentIndex && !activeTransition;
   return (
-    <DreamFrame tint="stair" tape={1} time="02:47 AM" stage="REM 2" title="The Staircase" dream="stair" camera={CAMERA} shadows>
+    <DreamFrame tint="stair" tape={1} time="02:47 AM" stage="REM 2" title="The Staircase" dream="stair" camera={CAMERA} shadows="percentage">
       <StairScene camera={CAMERA} live={live} />
     </DreamFrame>
   );

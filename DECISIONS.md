@@ -681,3 +681,44 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   competed with it. The frames stay; the only moon is the one orbiting the stair. The log still
   reads "…and the same moon in it", which now points at the one moon seen through them — part of
   the narrative pass the user plans anyway.
+
+## Night 2 — Phase 4
+
+- **The wave**: `createWaveDetector` fed `pointer.x` every frame while the Whale is current and
+  settled (`live`, as in the Staircase). A long scripted session of ordinary movement — sweeps,
+  pauses, hesitations — never fired it; a quick side-to-side shake at 12% of the screen width does,
+  with the mouse and on a 390 px screen. The keyboard "Wave at the whale" goes through the same
+  function via `act()`.
+
+- **The first wave** triggers the `wave` event (the log's last line types), keeps the fragment,
+  and plays the reaction: 1.5 s off the route toward a point lower and closer (landscape
+  `[0, 8.6, 1.5]`; portrait `[0, 9.4, -2]` at 0.55 scale so the flank fits), the right flank and eye
+  turned to the camera (slerp from the path orientation), 3 s looking with a blink at 1.4 s, 2 s back.
+  The route's own clock slows by the same weight, so the whale picks up where it left — no jump.
+  Later waves only turn the eye toward you (a yaw toward the camera in the whale's own frame) and
+  blink. Reduced motion: the same reaction, 1.6× slower.
+
+- **The windows' wave became a sweep of light** (PLAN-2.md 6.2 updated). Built as specified, the
+  lit windows never showed: from this camera each row hides the fronts behind it and the first row's
+  sit below the frame — screenshots mid-wave looked exactly like rest. Moving windows up the facades
+  and out of the fog didn't help either. What the eye does see is the skyline's front faces, so a warm
+  point light now runs side to side in front of the first row (3 s, intensity 70, reach 11): the
+  fronts flare as it passes and the whale above catches a glow from below. Tuned by screenshots
+  (110 washed the whale white; reach 8 never reached the fronts). The windows are back to exactly
+  what they were.
+
+- **The watcher** (a capsule and a tipped-back head, bone) stands on the tallest rooftop near
+  `(5, -4)` on a wide screen — right of the copy — or near `(1.2, -3)` on a narrow one; at 1.8× it
+  reads next to the skyline without competing with the whale. It fades in when the whale starts
+  looking, and is there from the start if the night already has the `wave` event.
+
+- **Shadows warning**: `shadows` (true) asks R3F for PCFSoftShadowMap, which three r186 removed — it
+  logged "PCFSoftShadowMap has been removed" every frame in the Staircase. The Staircase now asks for
+  `shadows="percentage"` (PCFShadowMap) directly. (A warning, not an error: phase 3's console check
+  only counted errors.)
+
+- **Verified** (headless Chrome, ?debug): normal movement ≠ wave; a wave keeps the fragment and
+  finishes the log's line; a second wave adds nothing; coming back from the House the log is already
+  complete; the keyboard action keeps it; a narrow-screen wave works; screenshots of the whale
+  looking (desktop and phone), the light sweep mid-way and after; no console errors or warnings.
+  `pnpm lint`, `pnpm build`, `pnpm test` clean.
