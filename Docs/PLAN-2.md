@@ -15,7 +15,7 @@
 2. **Trabajá por fases (sección 9), en orden.** No empieces una fase hasta que la anterior cumpla sus criterios de "terminado".
 3. **Un branch por fase**, que sale de `develop`: `n2-phase-0-state`, `n2-phase-1-gates`, etc. Commits chicos. No pushees a `main`.
 4. **Al terminar cada fase:** `pnpm lint`, `pnpm build`, verificá los criterios en el navegador y escribí un resumen corto (qué hiciste, qué quedó pendiente, capturas si podés).
-5. **Si una decisión no está acá y cambia el resultado visual, la narrativa o la arquitectura, preguntá.** La sección 13 lista las que ya se sabe que están abiertas. Para detalles menores, elegí lo más simple y anotalo en `DECISIONS.md` bajo un encabezado `## Night 2 — Phase N`.
+5. **Si una decisión no está acá y cambia el resultado visual, la narrativa o la arquitectura, preguntá.** La sección 13 registra las que ya se tomaron con el usuario: no las reabras sin preguntar. Para detalles menores, elegí lo más simple y anotalo en `DECISIONS.md` bajo un encabezado `## Night 2 — Phase N`.
 6. **No inventes valores de diseño.** Colores y tipografía salen de `tokens.css`. Los números de este plan (duraciones, umbrales, píxeles) son **puntos de partida**: ajustalos en dispositivo y anotá el valor final en `DECISIONS.md`.
 7. **Nada de dependencias nuevas.** `three`, R3F, `drei`, `maath`, `gsap` y `ogl` alcanzan para todo.
 8. **Lo que ya funciona no se rompe:** rendimiento (Lighthouse mobile ≥ 80), accesibilidad (100), reduced motion, fallback sin WebGL y el desvío del manual.
@@ -113,7 +113,7 @@ export const DREAMS = {
       { at: 0, text: 'You are climbing.' },
       { at: 0.33, text: 'You have been climbing for a long time.' },
       { at: 0.66, text: 'Every landing has the same window, and the same moon in it.' },
-      { at: 1, text: 'The handrail is warm, like someone just let go.' }
+      { at: 1, text: 'If you stop, the stairs keep going.' }
     ],
     glitches: [{ word: 'moon', wrong: 'noon' }],
     fragment: { id: 'stair', label: "You stopped. The stairs didn't." },
@@ -268,7 +268,7 @@ LUCIDITY ▮▮▯▯▯
 - **Qué cambia con la lucidez** (poco, a propósito):
   - la frecuencia de glitches del transcript (4.1);
   - el copy de Wake (7);
-  - nada más en las escenas. Si más adelante se quiere que la lucidez afecte al melt o a la niebla, es una decisión abierta (13), porque choca con "el melt se intensifica a lo largo de la noche".
+  - nada más en las escenas (decidido, 13.4): que la lucidez afecte al melt o a la niebla chocaría con "el melt se intensifica a lo largo de la noche".
 - `aria-hidden` como el resto del HUD. Los anuncios los hace `keep()`.
 
 ### 4.3 Pistas
@@ -329,9 +329,8 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - 0: *You are climbing.*
   - 0.33: *You have been climbing for a long time.*
   - 0.66: *Every landing has the same window, and the same moon in it.*
-  - 1: *The handrail is warm, like someone just let go.*
+  - 1: *If you stop, the stairs keep going.* Reemplaza a *"The handrail is warm, like someone just let go"*, que venía de la baranda descartada. Ahora anticipa la interacción (13.7).
   - Glitch: `moon` → `noon`.
-  - La última frase ya no se relaciona con ninguna mecánica: ver decisión abierta 13.7.
 - **Fragmento `stair`:** *"You stopped. The stairs didn't."* Se gana cuando la figura, después de haber sido arrastrada **al menos 2 escalones**, vuelve a su lugar. Es decir: te detuviste, la escalera te llevó y volviste a subir.
 - **Pista:** `PROMPT · HOLD TO STOP`.
 - **DreamAction:** *Stop climbing*. Detiene a la figura 4 s, la suelta y el fragmento se gana cuando vuelve a su lugar.
@@ -758,16 +757,18 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 - **Cursor propio** para toda la noche.
 - **Distorsión del texto bajo el agua** en Ocean (filtro SVG sobre el DOM, con riesgo de captura).
 - **Giroscopio** para dirigir la caída en mobile.
-- **Lucidez con efecto en las escenas o en el melt** (ver 13).
+- **Lucidez con efecto en las escenas o en el melt.** Hoy se decidió que no (13.4); se podría revisar junto con la segunda noche.
 
 ---
 
-## 13. Decisiones abiertas (para el usuario)
+## 13. Decisiones (todas cerradas)
 
-1. ~~**House: ¿scrub de "caminar sin llegar"?**~~ **Cerrada: no.** House queda libre; el click en la cocina estira el pasillo (6.3).
-2. **Condiciones de los fragmentos.** Las de la sección 6 son una propuesta: detenerse y volver a su lugar después de 2 escalones, saludo, una sombra propia que llega a la cocina, 6 s bajo el agua y 3 s quieto en la caída.
-3. **Copy nuevo** (frases por beat y progreso, glitches, etiquetas de fragmento, pistas, líneas de Wake). Todo es borrador y vive en `night/dreams.js` y en `Wake.jsx`.
-4. **¿La lucidez afecta algo más que el copy y los glitches?** Por ejemplo, niebla más liviana o un melt un poco más suave con lucidez alta. Por defecto: **no**, para no contradecir la intensificación de la noche.
-5. **Estado al volver a un sueño.** Por defecto, el estado de juego depende de la dirección de entrada (3.3) y los fragmentos quedan; la posición de la figura y las puertas abiertas se pierden si la escena se desmonta.
-6. ~~**Save the tape**~~ **Cerrada: entra** en la fase 8 (7.1).
-7. **La última frase de Staircase.** *"The handrail is warm, like someone just let go"* venía de la baranda, que se descartó. Se puede dejar como imagen suelta o reemplazar por una que acompañe la nueva escena, por ejemplo *"If you stop, the stairs keep going."* Por defecto queda la actual hasta que se retoque la narrativa.
+Registro de lo que se decidió con el usuario mientras se iteraba el plan. Si durante el desarrollo aparece una decisión nueva que cambia la narrativa, lo visual o la arquitectura, se pregunta (0.5) y se agrega acá.
+
+1. **House: ¿scrub de "caminar sin llegar"?** **No.** House queda libre; el click en la cocina estira el pasillo (6.3).
+2. **Condiciones de los fragmentos.** **Confirmadas** sueño por sueño (sección 6): detenerse y volver a tu lugar después de 2 escalones, saludar, una sombra liberada por vos que llega a la cocina, 6 s bajo el agua y 3 s quieto en la caída.
+3. **Copy nuevo** (frases por beat y progreso, glitches, etiquetas de fragmento, pistas, líneas de Wake). **Borrador aceptado**, concentrado en `night/dreams.js` y `Wake.jsx` para retocarlo con el resto de la narrativa sin tocar lógica.
+4. **¿La lucidez afecta algo más que el copy y los glitches?** **No.** Solo cambia los glitches del transcript, la línea de Wake y el HUD. Lo visual ya aparece por otro lado (las siluetas del cielo de Fall, 6.5), y cambiar niebla o melt contradiría que la noche se intensifica.
+5. **Estado al volver a un sueño.** **Como está:** el estado de juego depende de la dirección de entrada (3.3) y los fragmentos y eventos se conservan en la noche. Lo que es solo de la escena (dónde quedó la figura, qué puertas estaban abiertas) se pierde si la escena se desmonta.
+6. **Save the tape.** **Entra** en la fase 8 (7.1).
+7. **La última frase de Staircase.** **Cambia** a *"If you stop, the stairs keep going."* (6.1).
