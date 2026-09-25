@@ -23,7 +23,7 @@ function App() {
   return (
     <>
       <GradualBlur target="page" position="top" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
-      <GradualBlur target="page" position="bottom" height="6rem" strength={2} divCount={5} curve="bezier" exponential={true} opacity={1} />
+      <GradualBlur target="page" position="bottom" height="2rem" strength={1} divCount={5} curve="bezier" exponential={true} opacity={1} />
       <Grain />
       <Hud
         hud={current?.hud}
