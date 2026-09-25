@@ -43,8 +43,9 @@ Tres ideas sostienen este plan:
 
 | Idea | Estado |
 | --- | --- |
-| Modelos por sueño: libre, beats y scrub | **Entra.** Stair = scrub, Whale = libre, House = libre, Ocean = beats, Fall = scrub + libre |
-| Staircase: el bucle de uno mismo (baranda tibia) | **Entra** (6.1) |
+| Modelos por sueño: libre, beats y scrub | **Entra.** Stair = scrub + libre, Whale = libre, House = libre, Ocean = beats, Fall = scrub + libre |
+| Staircase: la figura (vos) sube en el lugar, la luna orbita con el scroll, luz y sombras, si te detenés bajás | **Entra** (6.1) |
+| Staircase: baranda tibia | **Descartado** (reemplazado por lo anterior) |
 | Whale: saludar a la ballena | **Entra** (6.2) |
 | House: puertas que se abren y sombras que van y vienen, cocina inalcanzable | **Entra** (6.3) |
 | Ocean: el agua sube por beats y terminás bajo la superficie | **Entra** (6.4) |
@@ -115,9 +116,9 @@ export const DREAMS = {
       { at: 1, text: 'The handrail is warm, like someone just let go.' }
     ],
     glitches: [{ word: 'moon', wrong: 'noon' }],
-    fragment: { id: 'stair', label: 'The rail was warm. It was you.' },
-    action: 'Hold the handrail',
-    hint: 'Touch the rail'
+    fragment: { id: 'stair', label: "You stopped. The stairs didn't." },
+    action: 'Stop climbing',
+    hint: 'Hold to stop'
   },
   // …
 };
@@ -172,7 +173,7 @@ gate = {
   - la de arriba (`index - 1`, a la que se entra volviendo) queda en `target = 1` o en el último beat, con todas sus frases reveladas.
 
   Así la captura que alimenta el melt coincide con lo que aparece al asentarse. `prepare()` escribe el estado y llama a `invalidate()` del canvas de esa sección (está en `frameloop="demand"`) para que dibuje un frame con el estado nuevo antes de la captura. En ese caso la escena salta directo al estado, sin suavizado: exponer `snap: true` en el ref.
-- **Lo que la escena recuerda** (la estela en la baranda, las puertas abiertas) no es estado de juego: vive en la escena y se pierde cuando la escena se desmonta (offstage). Es aceptable. Lo que tiene que sobrevivir va a `recording.js`.
+- **Lo que la escena recuerda** (dónde quedó la figura de la escalera, las puertas abiertas) no es estado de juego: vive en la escena y se pierde cuando la escena se desmonta (offstage). Es aceptable. Lo que tiene que sobrevivir va a `recording.js`.
 
 ### 3.4 Capturas: invalidar el overlay de texto
 
@@ -209,6 +210,7 @@ Hoy `pointer.js` expone `{ x, y }` en NDC, con un listener en `window`. Suma, si
 - `pointer.vx`, `pointer.vy`: velocidad suavizada (NDC/s).
 - `pointer.stillSince`: `performance.now()` del último movimiento de más de 0.004 NDC. Sirve para "quedarse quieto" (Fall).
 - `pointer.down`: si hay un botón o un dedo apretado.
+- **Mantener apretado**: `onHold({ delay: 250, tolerance: 10 }, { start, end })` llama a `start` cuando el puntero lleva `delay` ms apretado sin moverse más de `tolerance` px, y a `end` al soltar. Si se mueve antes de `delay`, no pasa nada (es un swipe). Se ignora sobre elementos interactivos, igual que el tap. Lo usa Stair (6.1).
 - **Tap**: `onTap(callback)` registra un listener y devuelve la función para desregistrarlo. Cuenta como tap un `pointerdown` → `pointerup` con menos de 10 px de recorrido y menos de 300 ms. El callback recibe `{ x, y }` en NDC. **Se ignora si el `target` es interactivo** (`closest('a, button, [role=button], input')`): hacer click en un botón no abre una puerta.
 
 `three/gestures.js` tiene detectores puros (sin React), fáciles de testear:
@@ -263,9 +265,9 @@ LUCIDITY ▮▮▯▯▯
 
 ### 4.3 Pistas
 
-Para las interacciones que no son obvias (saludar, la baranda, las puertas):
+Para las interacciones que no son obvias (detenerse, saludar, las puertas):
 
-- **Una línea en el HUD** justo arriba de la lucidez, con la voz de la máquina: `PROMPT · WAVE ↔`, `PROMPT · TOUCH THE RAIL`, `PROMPT · OPEN A DOOR`. Viene de `DREAMS[id].hint`.
+- **Una línea en el HUD** justo arriba de la lucidez, con la voz de la máquina: `PROMPT · HOLD TO STOP`, `PROMPT · WAVE ↔`, `PROMPT · OPEN A DOOR`. Viene de `DREAMS[id].hint`.
 - **Aparece** a los 6 s de estar en el sueño si el fragmento todavía no se ganó y no hubo interacción relevante. Fade de 0.4 s, dura 5 s y se va. **Una sola vez por sueño y por noche.**
 - Vive en el HUD, así que **no se captura ni se derrite**, y no necesita invalidar nada.
 - Con reduced motion: sin fade, aparece y desaparece.
@@ -276,7 +278,7 @@ El usuario tiene que entender que el scroll hizo algo aunque no haya habido melt
 
 - **Barra en las cintas del HUD**: en `onk-hud-tapes`, el punto de la cinta actual se estira a una barra de 16px que se llena con el progreso (scrub) o por tramos (beats). En sueños libres queda como hoy.
 - **Final alcanzado**: cuando `canLeave(index, +1)` pasa a `true`, la barra llena parpadea una vez en `--ink`. Es la señal de "un gesto más y seguís".
-- **Reloj del HUD en scrub**: si la sección declara `hud.clockTo`, el reloj interpola de `clock` a `clockTo` con el progreso, redondeado al minuto y sin scramble (lo usa Fall, 6.5). El contador de cinta hace lo mismo con `counterTo` si existe.
+- **Reloj del HUD en scrub**: si la sección declara `hud.clockTo`, el reloj interpola de `clock` a `clockTo` con el progreso, redondeado al minuto y sin scramble (lo usan Stair, 6.1, y Fall, 6.5). El contador de cinta hace lo mismo con `counterTo` si existe.
 
 ### 4.5 Panel de debug (solo dev)
 
@@ -300,29 +302,58 @@ Con `?debug` en la URL y `import.meta.env.DEV`: un panel fijo abajo al centro mu
 
 Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (borrador), **fragmento**, **técnica**, **mobile/reduced**.
 
-### 6.1 Dream 01: The Staircase (scrub)
+### 6.1 Dream 01: The Staircase (scrub + libre)
 
-**Lectura:** la escalera es el movimiento continuo en algo infinito: metas, miedos, la vida misma. *"The handrail is warm, like someone just let go"*: ese alguien sos vos, una vuelta antes. Pasaste por acá y vas a volver a pasar.
+**Lectura:** la escalera es el movimiento continuo en algo infinito: metas, miedos, la vida misma. Esa figura sos vos, que subís sin parar y aun así seguís en el mismo lugar. Si te detenés, no te quedás donde estabas: bajás. Hay que seguir subiendo solo para no perder terreno (la Reina Roja de *Alicia*).
 
-- **Modelo:** scrub, `length: 2700`, `stops: [0, 0.33, 0.66, 1]`.
-- **Qué pasa:** el scroll **sube** la escalera. La hélice baja y gira como un tornillo, lo que se lee como subir, y la cámara queda donde está. Cada rellano es idéntico: la misma ventana y la misma luna. Al llegar a 1 subiste unos tres rellanos, pero nada indica que avanzaste.
-- **Interacción (baranda tibia):**
-  - Se suma una **baranda** helicoidal por el borde exterior de los escalones (hoy no existe): un `TubeGeometry` sobre una curva helicoidal con el mismo paso que los escalones.
-  - Pasar el puntero por la baranda (o arrastrar el dedo) la **calienta**: queda una estela en `--dream-stair`, más brillante donde tocaste, que se enfría en unos 6 s.
-  - **El bucle:** lo que tocaste en un rellano aparece **ya tibio en el rellano de arriba** cuando llegás a él. Encontrás tu propia mano en la baranda. Ese es el momento del fragmento y el de la última frase del log.
+- **Modelo:** scrub para la luna (`length: 2700`, `stops: [0, 0.33, 0.66, 1]`) y libre para detenerse.
+- **Qué pasa:**
+  - **La figura sube en el lugar.** Una figura low-poly, *vos*, sube la escalera sin parar. La escalera gira y baja como un tornillo exactamente al ritmo de sus pasos, así que la figura queda siempre en el mismo punto del cuadro. Es una escalera de Escher.
+  - **La escena está casi a oscuras.** La luz del tinte baja a un resto (ver técnica) y la fuente principal pasa a ser **la luna**.
+  - **El scroll mueve la luna.** Una luna que emite luz orbita alrededor de la escalera. Con el progreso da algo más de una vuelta y va subiendo, pasa por detrás de la columna y sale de cuadro por los costados. Aunque no se vea, su luz sigue barriendo los escalones, así que siempre se nota dónde está.
+  - **Luz y sombras.** La luna proyecta sombras: la de la **columna** (el poste central de la escalera caracol), la de los escalones y la de la figura caen sobre los escalones de abajo y giran con la órbita, como la aguja de un reloj de sol. La noche pasa mientras subís en el lugar.
+  - **El reloj del HUD** avanza con la luna, de `02:47 AM` a `03:04 AM` (`hud.clockTo`, 4.4).
+- **Interacción (si te detenés, bajás):**
+  - **Mantener apretado** (mouse o dedo) detiene a la figura: termina el paso y queda parada. **La escalera no se detiene**, así que se la lleva: la figura gira con su escalón alrededor de la columna, baja y termina saliendo de cuadro entre la niebla.
+  - **Al soltar**, la figura retoma la subida más rápido que la escalera (cadencia de recuperación) hasta volver a su lugar, y ahí vuelve al ritmo normal.
+  - La luna, las sombras y el scroll siguen funcionando mientras la figura está detenida.
 - **Copy (frases por progreso):**
   - 0: *You are climbing.*
   - 0.33: *You have been climbing for a long time.*
   - 0.66: *Every landing has the same window, and the same moon in it.*
-  - 1, o al ganar el fragmento: *The handrail is warm, like someone just let go.*
+  - 1: *The handrail is warm, like someone just let go.*
   - Glitch: `moon` → `noon`.
-- **Fragmento `stair`:** *"The rail was warm. It was you."* Se gana cuando el rellano que calentaste se vuelve el rellano de arriba y llegás a él con el scroll (la estela "vieja" entra en cuadro a la altura de la cámara).
+  - La última frase ya no se relaciona con ninguna mecánica: ver decisión abierta 13.7.
+- **Fragmento `stair`:** *"You stopped. The stairs didn't."* Se gana cuando la figura, después de haber sido arrastrada **al menos 2 escalones**, vuelve a su lugar. Es decir: te detuviste, la escalera te llevó y volviste a subir.
+- **Pista:** `PROMPT · HOLD TO STOP`.
+- **DreamAction:** *Stop climbing*. Detiene a la figura 4 s, la suelta y el fragmento se gana cuando vuelve a su lugar.
 - **Técnica:**
-  - **Periodicidad:** 12 escalones = media vuelta = un rellano (`WINDOW_EVERY`). La escalera es invariante si rotás π y subís `12 × RISE`, así que el ascenso infinito es `progress × landings` con la geometría repetida y un `% 1` sobre la fracción de rellano. No hace falta generar escalones nuevos.
-  - **Calor:** un `DataTexture` de 256×1 (canal R) que se mapea al largo de **un** rellano de baranda, con `uv.x = fract(largo / largoDeRellano)`. Hay dos: `heatNow`, lo que tocás ahora, que se enfría con `*= exp(-dt/6)` por frame, y `heatEcho`, una copia congelada de `heatNow` que se muestra **solo en el rellano siguiente al que tocaste** (el `rellanoIndex` se guarda al tocar). El material de la baranda mezcla `color` hacia el tinte según `max(heatNow en el rellano actual, heatEcho en el rellano +1)`. Es un `onBeforeCompile` chico o un `ShaderMaterial` con flat shading.
-  - **Tocar:** un raycast contra el tubo de la baranda (una sola malla, barata) con el `pointer` compartido. El punto de impacto da el parámetro `u` de la curva.
-  - **Validar primero con un prototipo:** que la estela se lea a la distancia de cámara actual (`[0, -1.5, 6.5]`). Si no se lee, acercar la cámara en el scrub o engrosar la baranda. Anotar en `DECISIONS.md`.
-- **Mobile/reduced:** en mobile, arrastrar el dedo *horizontalmente* sobre la baranda calienta y el arrastre vertical scrubbea. Si el gesto es ambiguo, gana el scrub y la estela se hace con tap sobre la baranda. Con reduced motion, el giro del tornillo va al 25% y la estela no cambia.
+  - **El tornillo:** la escalera se repite cada escalón y sus ventanas cada 12 (`WINDOW_EVERY`). 12 escalones son media vuelta (π) y `12 × RISE` de altura. El grupo de la escalera gira `stepAngle` y baja `RISE` por cada paso de la figura, y vuelve al inicio cada 12 escalones, sin salto visible porque la geometría es idéntica. Los 120 escalones actuales sobran para cubrir el cuadro durante el desplazamiento. El sentido de giro es el que hace que el escalón bajo la figura se aleje hacia abajo y hacia atrás de su marcha.
+  - **Ritmo:** un escalón cada `T_STEP = 2 s`, un paso lento y pesado de alguien que viene subiendo hace mucho. Hoy la escalera gira a `SPIN = 0.02` rad/s (unos 13 s por escalón); pasa a `stepAngle / T_STEP ≈ 0.13` rad/s. Ajustar en pantalla y anotarlo.
+  - **La figura** mide unas 1.6 unidades (proporción humana con escalones de `RISE = 0.18` y 1.6 de ancho). Son unas 10 primitivas: torso, cabeza, brazos y piernas en dos tramos con rodilla, en flat shading y `--ink-muted`. Va sobre el radio de los escalones (`STEP_RADIUS`), del lado que mira a la cámara, a una altura que la deje **por encima del bloque de título** (también en portrait), mirando en el sentido de subida.
+    - **Ciclo de caminata sincronizado** con `T_STEP`: cada pie sube `RISE` y se apoya exactamente cuando el escalón pasa bajo él. **Los pies no pueden resbalar**: es lo que vende la ilusión.
+    - Balanceo leve del cuerpo y de los brazos.
+  - **Detenerse, en una sola variable:** `s` = cuántos escalones está la figura por delante (+) o por detrás (−) de su lugar, en el marco de la escalera. Por segundo, `ds/dt = (cadencia − 1) / T_STEP`:
+    - subiendo normal: cadencia 1, `s` queda fijo en 0;
+    - detenida: cadencia 0, `s` baja un escalón cada `T_STEP`;
+    - recuperando: cadencia 1.8 (hasta 3 si `s < −12`) hasta volver a 0.
+    - La posición de la figura es su lugar transformado por el tornillo de `s` escalones: ángulo `+ s · stepAngle`, altura `+ s · RISE`. `s` tiene un piso en `−36` (tres rellanos, bien dentro de la niebla).
+  - **Mantener apretado:** `pointer.down` durante más de 250 ms con menos de 10 px de recorrido (3.6), para que no choque con el swipe del scrub. Si el dedo empieza a moverse, gana el scrub y se cancela la detención. Se ignora sobre elementos interactivos, igual que el tap.
+  - **El puntero ya no rota la escalera.** Hoy suma `pointer.x * POINTER_SPIN` a la rotación, y con la figura sincronizada eso la haría resbalar. El parallax queda solo en la cámara (`useCameraDrift`, como en los otros sueños).
+  - **La luna:**
+    - una esfera de radio ~0.35 en `--ink` con `fog: false`;
+    - un halo aditivo (textura radial en canvas, `depthWrite: false`);
+    - una **`SpotLight` con sombra** en su posición, apuntando al centro de la columna a la altura de la figura, con ángulo amplio y `penumbra` 0.5. Es blanca hueso (`--ink`) contra la niebla ámbar del tinte: dos temperaturas en la escena.
+    - **Órbita elíptica:** más ancha en X que el ancho visible, para que salga de cuadro por los costados. Da `1.25` vueltas y sube de `y ≈ 1` a `y ≈ 6` entre `p = 0` y `p = 1`. Arranca adelante a la izquierda, para que se vea al entrar.
+    - Se suaviza con `easing.damp` hacia el objetivo del scrub.
+  - **Apagar la escena:** `hemisphereLight` de 0.35 a ~0.07 y la `directionalLight` del tinte de 2.2 a ~0.35. El ámbar sigue en la niebla y en el fondo, y el título conserva su color porque es DOM. Las lunas de las ventanas son `meshBasicMaterial` y siguen visibles en la oscuridad: la misma luna en cada ventana.
+  - **Sombras (entran, suman la profundidad):**
+    - `shadows` en el `<Canvas>` **solo de este sueño**: `SceneCanvas` y `LiveCanvas` suman una prop `shadows` que pasa derecho a R3F.
+    - Proyectan sombra (`castShadow`): la columna, los escalones (`InstancedMesh` lo soporta), los marcos de ventana y la figura. La reciben (`receiveShadow`): escalones y columna.
+    - `shadow.mapSize` 1024 en desktop y 512 en mobile, con `shadow.bias` y `normalBias` ajustados para que no aparezca *acne* sobre el flat shading. El `near`/`far` de la cámara de sombra lo más ajustado posible a la escalera visible.
+    - **Respaldo:** si con sombras el sueño baja de 60 fps en una laptop moderna, o de 30 en un teléfono medio, se apagan solo en mobile. Si aun así no rinde, la luna queda sin sombra y la luz sola ya marca la dirección sobre el flat shading. Anotar lo medido en `DECISIONS.md`.
+  - **Captura:** las sombras son parte del canvas, así que no cambia nada (`preserveDrawingBuffer` ya está). Entrando hacia atrás, la luna aparece en su posición final (`p = 1`, 3.3).
+- **Mobile/reduced:** en mobile, el swipe vertical mueve la luna y mantener el dedo quieto detiene a la figura. Con reduced motion, el tornillo y la caminata van al 25%, la luna sigue al scroll sin suavizado largo y la detención funciona igual.
 
 ### 6.2 Dream 02: The Whale Above the City (libre)
 
@@ -438,7 +469,7 @@ Wake responde por fin *Did you keep anything?*
 - **Layout:** igual que hoy (copy arriba y el DR-1 sobre la mesa de luz abajo). Entre el body y los botones entra el **registro de cinta**:
 
 ```
-TAPE 01  THE STAIRCASE ............ The rail was warm. It was you.
+TAPE 01  THE STAIRCASE ............ You stopped. The stairs didn't.
 TAPE 02  THE WHALE ABOVE THE CITY . It looked back.
 TAPE 03  THE HOUSE YOU GREW UP IN . — no signal —
 TAPE 04  THE OCEAN INDOORS ........ You stayed under.
@@ -470,7 +501,8 @@ TAPE 05  THE FALL ................. — no signal —
 Solo los cambios respecto de hoy. Los `melt` no cambian.
 
 ```js
-{ id: 'stair', /* … */ play: { model: 'scrub', length: 2700, stops: [0, 0.33, 0.66, 1] } },
+{ id: 'stair', /* … */ play: { model: 'scrub', length: 2700, stops: [0, 0.33, 0.66, 1] },
+  hud: { state: 'rec', clock: '02:47 AM', clockTo: '03:04 AM', counter: '00:06:31' } },
 { id: 'whale', /* … */ play: { model: 'free' } },
 { id: 'house', /* … */ play: { model: 'free' } },
 { id: 'ocean', /* … */ play: { model: 'beats', beats: 4, beatDuration: 1.6 } },
@@ -498,7 +530,7 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 ### Fase 1: La compuerta
 
 - Todo 3.2, 3.3 y 3.4 en `ScrollSections` y `useSectionTextures`.
-- Para probar: Stair con `play: scrub` y Ocean con `play: beats`, **sin escena nueva todavía**. La escena actual solo lee `target` y lo muestra de forma cruda (Stair: rotación extra de la hélice; Ocean: nivel del agua por beat).
+- Para probar: Stair con `play: scrub` y Ocean con `play: beats`, **sin escena nueva todavía**. La escena actual solo lee `target` y lo muestra de forma cruda (Stair: una esfera que orbita como luna provisoria; Ocean: nivel del agua por beat).
 - **Terminado cuando:**
   - Rueda, trackpad, touch y teclado recorren el scrub y los beats. El gesto que llega al final no derrite. Un gesto nuevo, sí. Hacia atrás funciona igual.
   - Entrando hacia atrás, el sueño aparece en su estado final **y el melt ya lo muestra así** (sin salto al asentarse).
@@ -522,8 +554,17 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 
 ### Fase 3: Staircase
 
-- Todo 6.1. Empezar por el prototipo de la estela (legibilidad a la distancia de cámara) y anotar el resultado.
-- **Terminado cuando:** el scrub se siente como subir; la estela se ve, se enfría y reaparece tibia en el rellano de arriba; el fragmento se gana así y también con `DreamAction`; la última frase aparece; 60 fps.
+- Todo 6.1, en este orden:
+  1. el tornillo con la figura caminando en el lugar (sin luna todavía);
+  2. la luna con la escena apagada;
+  3. las sombras, midiendo fps antes y después y anotándolo;
+  4. detenerse y recuperar.
+- **Terminado cuando:**
+  - La figura sube en el lugar sin que los pies resbalen, y se lee como una persona a la distancia de cámara, en landscape y en portrait, por encima del título.
+  - El scroll mueve la luna alrededor de la escalera; su luz se nota incluso fuera de cuadro o detrás de la columna, y las sombras giran con ella.
+  - Mantener apretado detiene a la figura y la escalera se la lleva; al soltar vuelve a su lugar. El fragmento se gana así y también con `DreamAction`.
+  - Un swipe en mobile mueve la luna sin detener a la figura por error.
+  - 60 fps en laptop con sombras; en mobile, con sombras o con el respaldo documentado.
 
 ### Fase 4: Whale
 
@@ -573,7 +614,7 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 - [ ] Sin WebGL2: un gesto, una sección; Wake muestra la línea de "sin WebGL".
 - [ ] `REPLAY THE NIGHT` resetea fragmentos, lucidez, pistas y estado de juego.
 - [ ] El HUD muestra la lucidez solo en sueños y en Wake; la barra de progreso se llena y parpadea al final.
-- [ ] 60 fps en cada sueño en una laptop moderna, con la interacción más cara activa (10 sombras, burbujas, estela).
+- [ ] 60 fps en cada sueño en una laptop moderna, con la interacción más cara activa (sombras de la luna en Stair, 10 sombras en House, burbujas).
 
 ---
 
@@ -586,8 +627,10 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 | El estado de entrada no coincide con la captura (salto al asentarse) | `prepare()` con `snap` + `invalidate()` del canvas antes de capturar (3.3). Verificarlo explícitamente en la fase 1. |
 | Las sombras de House saltan cuando el pasillo se recicla | Espacio de mundo + compensar `CREEP` (6.3). |
 | Falsos positivos del saludo | Umbral de amplitud y ventana de tiempo; probar un minuto de uso normal (fase 4). |
-| La estela de la baranda no se lee a esa distancia | Prototipo primero (fase 3). |
-| Conflicto entre el scrub vertical y el arrastre en la baranda en mobile | Gana el scrub; la estela se hace con tap (6.1). |
+| Los pies de la figura resbalan sobre la escalera y se rompe la ilusión | Caminata y tornillo comparten `T_STEP`; se construye primero, sin luna (fase 3, paso 1). |
+| Las sombras en tiempo real bajan el rendimiento | Una sola luz con sombra, solo en este sueño, `mapSize` reducido en mobile y respaldo documentado (6.1). |
+| La escena queda demasiado oscura cuando la luna está atrás o fuera de cuadro | Piso de luz ambiente (~0.07) y el ámbar de la niebla; ajustar mirando el póster y el título. |
+| Conflicto entre mantener apretado y el swipe del scrub en mobile | Detenerse exige 250 ms quieto; si el dedo se mueve, gana el scrub (6.1). |
 | El texto transparente del transcript sale en la captura | `color: transparent` no se pinta. Verificarlo con `modern-screenshot` en la fase 2 antes de seguir. |
 | Rendimiento en mobile con las escenas más cargadas | Pools fijos, `InstancedMesh`, tope de DPR actual. Recortar geometría antes que efectos. |
 | Alcance: cinco sueños con interacción | El orden de fases deja cada sueño terminado y publicable por separado. Si el tiempo aprieta, House puede quedar sin sombras espontáneas y Fall sin las nubes de la noche. |
@@ -614,8 +657,9 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 ## 13. Decisiones abiertas (para el usuario)
 
 1. **House: ¿scrub de "caminar sin llegar"?** Que el scroll te haga caminar más rápido por el pasillo sin que la cocina se acerque nunca. Refuerza "inalcanzable", pero suma otro scrub a la noche. Por defecto: **no** (libre).
-2. **Condiciones de los fragmentos.** Las de la sección 6 son una propuesta: baranda propia en el rellano de arriba, saludo, una sombra propia que llega a la cocina, 6 s bajo el agua y 3 s quieto en la caída.
+2. **Condiciones de los fragmentos.** Las de la sección 6 son una propuesta: detenerse y volver a su lugar después de 2 escalones, saludo, una sombra propia que llega a la cocina, 6 s bajo el agua y 3 s quieto en la caída.
 3. **Copy nuevo** (frases por beat y progreso, glitches, etiquetas de fragmento, pistas, líneas de Wake). Todo es borrador y vive en `night/dreams.js` y en `Wake.jsx`.
 4. **¿La lucidez afecta algo más que el copy y los glitches?** Por ejemplo, niebla más liviana o un melt un poco más suave con lucidez alta. Por defecto: **no**, para no contradecir la intensificación de la noche.
-5. **Estado al volver a un sueño.** Por defecto, el estado de juego depende de la dirección de entrada (3.3) y los fragmentos quedan; la estela y las puertas abiertas se pierden si la escena se desmonta.
+5. **Estado al volver a un sueño.** Por defecto, el estado de juego depende de la dirección de entrada (3.3) y los fragmentos quedan; la posición de la figura y las puertas abiertas se pierden si la escena se desmonta.
 6. **Save the tape** (PNG descargable desde Wake). Por defecto: **fuera**, se suma en la fase 8 si hay tiempo.
+7. **La última frase de Staircase.** *"The handrail is warm, like someone just let go"* venía de la baranda, que se descartó. Se puede dejar como imagen suelta o reemplazar por una que acompañe la nueva escena, por ejemplo *"If you stop, the stairs keep going."* Por defecto queda la actual hasta que se retoque la narrativa.
