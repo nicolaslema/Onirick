@@ -623,3 +623,55 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   first; this entry supersedes them. Verified: the title's top measured every 40 ms stayed within
   0.00 px from arrival through all four Ocean beats and across the Staircase scrub, at 1440 × 900
   and 390 × 844; the phase 2 checks still all pass.
+
+## Night 2 — Phase 3
+
+- **The camera moved up** (`[0, -1.5, 6.5]` → `[0, 2.6, 8]`, looking at `[0, 4.4, 0]` instead of
+  `[0, 3.5, 0]`). From the old low angle the camera saw the treads from underneath, and the figure
+  standing on them was hidden by its own step and the ones in front — a first screenshot showed
+  barely a head. Nearly level with the climber, the treads are almost edge-on and the whole figure
+  reads, still with the spiral rising above. The climber stands on step 44 at `-π/2 + 0.7` (front,
+  right of the column), above the title and clear of its last letters; on a 390 px phone it's large
+  and above the title too. PLAN-2.md 6.1 updated.
+
+- **No foot slip, by construction.** Everything about the figure is computed relative to your place
+  on the stair: `n` (steps the stair has turned), `s` (where you are relative to your place) and `u`
+  (stride phase, 0-2). A planted foot's stair index is always a whole step, so it rides its tread
+  whether you walk (cadence 1), stand (0) or catch up (1.8 / 3). Legs are thigh + shin with a
+  forward-bending knee (two-bone IK to each foot's spot); arms swing against them. The stair's own
+  turn wraps every 12 steps (one landing), invisibly.
+
+- **Stopping finishes the step under way**, then stands; the stair carries you down (`s` falls a
+  step every 2 s, floored three landings down). Releasing climbs back at 1.8× (3× past a landing).
+  Back in place after being carried 2+ steps keeps the fragment. Holding is `onHold` (250 ms, 10 px
+  tolerance) — a swipe that scrubs never counts (verified with four touch swipes). Only the current,
+  settled Staircase listens (`live`, passed from the section, since its neighbours' scenes are
+  mounted too).
+
+- **DreamAction needed a repeatable signal.** Its first version fired a play event, and events
+  happen once a night — a second "Stop climbing" would have done nothing. `play.js` now has
+  `act(id)` / `subscribeAction()`; DreamAction calls `act`. The button stops the climber for 6.5 s
+  (PLAN-2.md said 4 s, which can't carry you the 2 steps the fragment needs once finishing the step
+  under way is counted).
+
+- **The moon starts back-right and high** (y 4.5 → 7 over the scrub; the plan had front-left, y 1 →
+  6): with the new camera, front-left put it on top of the title and the log. It's a sphere, an
+  additive halo and a `SpotLight` with shadows aimed at your place; the tint's own light drops to a
+  remnant (hemisphere 0.07, directional 0.35).
+
+- **Shadows only here**: `shadows` threads DreamFrame → SceneCanvas → LiveCanvas → `<Canvas>`.
+  Casters: column, steps, window frames, figure; receivers: steps, column. Shadow map 1024 (512 under
+  700 px wide), bias −0.0006 / normalBias 0.03. Measured on this machine's GPU (RTX 5080, D3D11):
+  144 fps in the Staircase with shadows, 142 in the Whale without — both at the display's refresh.
+  Not measured: a laptop iGPU or a phone; the fallback (shadows off on small screens) is one line if
+  needed.
+
+- **Posters are stale for the Staircase** (new camera). They're regenerated in phase 9 — and
+  `scripts/posters.mjs` will need to step through the gated dreams' stops, since one arrow press no
+  longer leaves the Staircase.
+
+- **Verified** (headless Chrome, ?debug): screenshots at progress 0 / 0.33 / 0.66 / 1, held and
+  released, at 1440 × 900 and 390 × 844; a 2 s hold doesn't earn the fragment, an 8 s hold and the
+  climb back does, and the prompt is gone after holding; the keyboard "Stop climbing" earns it; touch
+  swipes scrub to 0.89 without ever stopping the climber; the stair still melts into the whale; no
+  console errors. `pnpm lint` (no warnings), `pnpm build`, `pnpm test` clean.

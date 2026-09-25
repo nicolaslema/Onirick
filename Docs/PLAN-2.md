@@ -330,7 +330,8 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - 1: *If you stop, the stairs keep going.* Reemplaza a *"The handrail is warm, like someone just let go"*, que venía de la baranda descartada. Ahora anticipa la interacción (13.7).
 - **Fragmento `stair`:** *"You stopped. The stairs didn't."* Se gana cuando la figura, después de haber sido arrastrada **al menos 2 escalones**, vuelve a su lugar. Es decir: te detuviste, la escalera te llevó y volviste a subir.
 - **Pista:** `PROMPT · HOLD TO STOP`.
-- **DreamAction:** *Stop climbing*. Detiene a la figura 4 s, la suelta y el fragmento se gana cuando vuelve a su lugar.
+- **DreamAction:** *Stop climbing*. Detiene a la figura 6.5 s, la suelta y el fragmento se gana cuando vuelve a su lugar. (Eran 4 s: terminar el paso en curso lleva hasta 2 s, y con 4 s la escalera no alcanzaba a arrastrarla los 2 escalones del fragmento.)
+- **Cámara:** más alta que la original, casi a la altura de la figura (`[0, 2.6, 8]` mirando a `[0, 4.4, 0]`, antes `[0, -1.5, 6.5]` hacia `[0, 3.5, 0]`). Desde abajo, los escalones tapaban a quien estaba parado encima.
 - **Técnica:**
   - **El tornillo:** la escalera se repite cada escalón y sus ventanas cada 12 (`WINDOW_EVERY`). 12 escalones son media vuelta (π) y `12 × RISE` de altura. El grupo de la escalera gira `stepAngle` y baja `RISE` por cada paso de la figura, y vuelve al inicio cada 12 escalones, sin salto visible porque la geometría es idéntica. Los 120 escalones actuales sobran para cubrir el cuadro durante el desplazamiento. El sentido de giro es el que hace que el escalón bajo la figura se aleje hacia abajo y hacia atrás de su marcha.
   - **Ritmo:** un escalón cada `T_STEP = 2 s`, un paso lento y pesado de alguien que viene subiendo hace mucho. Hoy la escalera gira a `SPIN = 0.02` rad/s (unos 13 s por escalón); pasa a `stepAngle / T_STEP ≈ 0.13` rad/s. Ajustar en pantalla y anotarlo.
@@ -348,7 +349,7 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
     - una esfera de radio ~0.35 en `--ink` con `fog: false`;
     - un halo aditivo (textura radial en canvas, `depthWrite: false`);
     - una **`SpotLight` con sombra** en su posición, apuntando al centro de la columna a la altura de la figura, con ángulo amplio y `penumbra` 0.5. Es blanca hueso (`--ink`) contra la niebla ámbar del tinte: dos temperaturas en la escena.
-    - **Órbita elíptica:** más ancha en X que el ancho visible, para que salga de cuadro por los costados. Da `1.25` vueltas y sube de `y ≈ 1` a `y ≈ 6` entre `p = 0` y `p = 1`. Arranca adelante a la izquierda, para que se vea al entrar.
+    - **Órbita elíptica:** más ancha en X que el ancho visible, para que salga de cuadro por los costados. Da `1.25` vueltas y sube de `y ≈ 4.5` a `y ≈ 7` entre `p = 0` y `p = 1`. Arranca atrás a la derecha y alta: se ve al entrar y queda lejos del título y del log, que ocupan abajo a la izquierda.
     - Se suaviza con `easing.damp` hacia el objetivo del scrub.
   - **Apagar la escena:** `hemisphereLight` de 0.35 a ~0.07 y la `directionalLight` del tinte de 2.2 a ~0.35. El ámbar sigue en la niebla y en el fondo, y el título conserva su color porque es DOM. Las lunas de las ventanas son `meshBasicMaterial` y siguen visibles en la oscuridad: la misma luna en cada ventana.
   - **Sombras (entran, suman la profundidad):**

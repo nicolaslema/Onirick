@@ -111,6 +111,18 @@ export function trigger(id, event) {
   return true;
 }
 
+// The dream's keyboard action (DreamAction, PLAN-2.md 3.7): a repeatable
+// signal, not a once-a-night event — the scene decides what it means each
+// time (stop climbing, wave, open a door...). `listener(id)`.
+const actionListeners = new Set();
+export function act(id) {
+  actionListeners.forEach(listener => listener(id));
+}
+export function subscribeAction(listener) {
+  actionListeners.add(listener);
+  return () => actionListeners.delete(listener);
+}
+
 // The visitor tried the dream's interaction (held, waved, opened a door...):
 // its Hud prompt is no longer needed. Scenes call it; no re-render.
 export function markTouched(id) {
