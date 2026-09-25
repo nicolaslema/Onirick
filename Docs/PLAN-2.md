@@ -399,18 +399,20 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 
 **Lectura:** un camino constante. La gente va y viene, tiene su vida y no siempre camina con vos ni hacia donde vas. La cocina queda inalcanzable.
 
-- **Modelo:** libre. La opción de sumarle un scrub de "caminar sin llegar" queda abierta (13).
+- **Modelo:** libre. Sin scrub: el avance lento del pasillo ya transmite el camino constante, y Stair y Fall ya usan scrub.
 - **Qué pasa:** el pasillo avanza lento y se recicla (como hoy). La cocina, al fondo, siempre a la misma distancia.
+- **Coherencia con el log:** *"every door opens onto the same kitchen, and someone is always just leaving it"*. Como cada puerta da a la cocina, las sombras que salen de las puertas están **saliendo de la cocina**.
 - **Interacción (puertas y sombras):**
   - **Hover** entreabre la puerta cercana (ya existe).
   - **Click o tap** sobre una puerta la **abre del todo** (`AJAR` → 1.35 rad en 0.5 s): la luz de la habitación se derrama más fuerte en el piso y, 0.4 s después, **sale una sombra**.
   - **Las sombras** son siluetas oscuras low-poly (cápsula + esfera) en `--surface`, así que contra el resplandor naranja se leen como recortes. Al salir, doblan hacia un carril del pasillo y caminan:
     - **hacia la cocina** (~60%): se alejan, y cerca de la puerta de la cocina se funden con el brillo (color → el de la cocina, opacidad → 0, un poco de escala en Y). *Se pierden en la luz.*
-    - **hacia vos** (~40%): caminan hacia la cámara por el carril opuesto, pasan de costado y se desvanecen antes de alcanzarla. **No te miran.**
-  - **La vida sigue sin vos:** cada 7–12 s, una puerta lejana se abre sola y sale una sombra.
-  - La cocina no se alcanza nunca: el pasillo se recicla y el `Kitchen` está fijo respecto de la cámara (ya es así).
+    - **hacia vos** (~40%): caminan hacia la cámara por el carril opuesto, pasan de costado y se desvanecen antes de alcanzarla. **Ninguna te mira, nunca**: tienen su vida y no caminan con vos.
+  - **La vida sigue sin vos:** cada 7–12 s, una puerta lejana se abre sola y sale una sombra. Es un punto de partida: si el pasillo se siente muy transitado o muy vacío, se ajusta en la fase 5 y se anota en `DECISIONS.md`.
+  - **La cocina no se alcanza nunca:** el pasillo se recicla y el `Kitchen` está fijo respecto de la cámara (ya es así).
+  - **Click en la puerta de la cocina: el pasillo se estira.** La cocina retrocede unas 6 unidades en 0.8 s (`power2.out`) y vuelve despacio a su distancia en 6 s. *"The hallway is longer than it was"* pasa a ser algo que te ocurre: intentás llegar y se aleja. Mientras dura, un nuevo click en la cocina no hace nada.
 - **Copy:** el log actual (`at: 0`). Glitch: `toast` → `ghost`.
-- **Fragmento `house`:** *"Someone reached the kitchen."* Se gana cuando una sombra **que liberaste vos** se funde con la luz de la cocina. Las sombras espontáneas no cuentan.
+- **Fragmento `house`:** *"You never saw their face."* Se gana cuando una sombra **que liberaste vos** se funde con la luz de la cocina. Las sombras espontáneas no cuentan.
 - **Pista:** `PROMPT · OPEN A DOOR`.
 - **DreamAction:** *Open a door*. Abre la puerta más cercana al centro del cuadro y libera una sombra que va hacia la cocina.
 - **Técnica:**
@@ -419,7 +421,12 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - **Pool** de 10 sombras en un `InstancedMesh` por pieza (cuerpo y cabeza), más opacidad por instancia (atributo + `onBeforeCompile`) o 10 mallas simples si es más claro: con 10, ambas opciones andan.
   - **Estados de la sombra:** `emerging` (0.6 s, de dentro de la habitación al umbral) → `turning` (0.4 s, al carril) → `walking` → `fading`. Carriles: `x = ±0.35` (a la kitchen por un lado y hacia vos por el otro, con 30% de mezcla para que no parezca tráfico ordenado). Velocidad de 0.6 a 0.9 u/s. Un bamboleo leve en Y (0.02 a 2 Hz) para que caminen y no se deslicen.
   - Una puerta abierta del todo se cierra sola a los 6 s.
-- **Mobile/reduced:** tap abre. Con reduced motion, las sombras caminan al 25% y la puerta abre sin rebote.
+  - **Estirar el pasillo:**
+    - Detectar el tap dentro del rectángulo proyectado del vano de la cocina (sus 4 esquinas a NDC con la cámara actual).
+    - Animar un `stretch` de 0 a 6 que desplaza el grupo `Kitchen` a `END_Z - stretch`.
+    - Hoy hay `BAYS = 11` y el último termina cerca de `END_Z`. Para que al retroceder no aparezca el vacío detrás, subir a `BAYS = 14` y alargar piso y techo en la misma medida. La niebla (0.075) disimula el resto.
+    - Las sombras que van a la cocina toman como destino la posición **actual** de la cocina, así que durante el estiramiento caminan más antes de fundirse.
+- **Mobile/reduced:** tap abre la puerta y tap en la cocina estira el pasillo. Con reduced motion, las sombras caminan al 25%, la puerta abre sin rebote y el estiramiento es un fundido corto en vez de un desplazamiento.
 
 ### 6.4 Dream 04: The Ocean Indoors (beats)
 
@@ -489,10 +496,12 @@ Wake responde por fin *Did you keep anything?*
 ```
 TAPE 01  THE STAIRCASE ............ You stopped. The stairs didn't.
 TAPE 02  THE WHALE ABOVE THE CITY . It looked back.
-TAPE 03  THE HOUSE YOU GREW UP IN . — no signal —
+TAPE 03  THE HOUSE YOU GREW UP IN . You never saw their face.
 TAPE 04  THE OCEAN INDOORS ........ You stayed under.
 TAPE 05  THE FALL ................. — no signal —
 ```
+
+En este ejemplo se guardaron cuatro fragmentos: el de la caída no.
 
   - Mono `small` (13px). La columna del título va en `--ink-muted`. Los fragmentos guardados van en `--ink` y en itálica serif (la voz del sueño). `— no signal —` va en `--ink-faint`.
   - En mobile (≤ 640px), cada entrada ocupa dos líneas (`TAPE 02 · THE WHALE…` arriba y el fragmento abajo), sin puntos de relleno.
@@ -600,7 +609,15 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 ### Fase 5: House
 
 - Todo 6.3.
-- **Terminado cuando:** click o tap abre la puerta correcta; las sombras salen, doblan y caminan en las dos direcciones sin saltar cuando el pasillo se recicla; las que van a la cocina se funden con el brillo; hay sombras espontáneas; hacer click en un botón no abre puertas; el fragmento se gana solo con una sombra propia; 60 fps con 10 sombras activas.
+- **Terminado cuando:**
+  - Click o tap abre la puerta correcta.
+  - Las sombras salen, doblan y caminan en las dos direcciones sin saltar cuando el pasillo se recicla. Las que vienen hacia vos nunca miran a cámara.
+  - Las que van a la cocina se funden con el brillo, también mientras el pasillo está estirado.
+  - Hay sombras espontáneas (cada 7–12 s, o el valor ajustado y anotado).
+  - Click en la cocina la aleja y vuelve despacio, sin que aparezca el final del pasillo.
+  - Click en un botón no abre puertas.
+  - El fragmento se gana solo con una sombra propia.
+  - 60 fps con 10 sombras activas.
 
 ### Fase 6: Ocean
 
@@ -682,7 +699,7 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 
 ## 13. Decisiones abiertas (para el usuario)
 
-1. **House: ¿scrub de "caminar sin llegar"?** Que el scroll te haga caminar más rápido por el pasillo sin que la cocina se acerque nunca. Refuerza "inalcanzable", pero suma otro scrub a la noche. Por defecto: **no** (libre).
+1. ~~**House: ¿scrub de "caminar sin llegar"?**~~ **Cerrada: no.** House queda libre; el click en la cocina estira el pasillo (6.3).
 2. **Condiciones de los fragmentos.** Las de la sección 6 son una propuesta: detenerse y volver a su lugar después de 2 escalones, saludo, una sombra propia que llega a la cocina, 6 s bajo el agua y 3 s quieto en la caída.
 3. **Copy nuevo** (frases por beat y progreso, glitches, etiquetas de fragmento, pistas, líneas de Wake). Todo es borrador y vive en `night/dreams.js` y en `Wake.jsx`.
 4. **¿La lucidez afecta algo más que el copy y los glitches?** Por ejemplo, niebla más liviana o un melt un poco más suave con lucidez alta. Por defecto: **no**, para no contradecir la intensificación de la noche.
