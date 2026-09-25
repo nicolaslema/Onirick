@@ -196,7 +196,10 @@ Hoy el overlay de texto de cada sección se captura **una vez** (`overlayCacheRe
 Store externo con `useSyncExternalStore`, persistido en `sessionStorage` (`onirick.recording`, envuelto en `try/catch`: si falla, funciona solo en memoria).
 
 ```js
-{ kept: { stair: 1712..., whale: null, house: null, ocean: null, fall: null } } // timestamp o null
+{
+  nightOf: '2026-09-25',  // fecha local al cargar la página (etiqueta de cinta y Save the tape, 7)
+  kept: { stair: 1712..., whale: null, house: null, ocean: null, fall: null } // timestamp o null
+}
 
 keep(id)        // guarda el fragmento (idempotente), anuncia y notifica
 lucidity()      // 0–5 = cantidad de fragmentos guardados
@@ -526,7 +529,10 @@ En este ejemplo se guardaron cuatro fragmentos: el de la caída no.
   - Mono `small` (13px). La columna del título va en `--ink-muted`. Los fragmentos guardados van en `--ink` y en itálica serif (la voz del sueño). `— no signal —` va en `--ink-faint`.
   - En mobile (≤ 640px), cada entrada ocupa dos líneas (`TAPE 02 · THE WHALE…` arriba y el fragmento abajo), sin puntos de relleno.
   - Es una `<ol>` real con `aria-label="Your recording"`.
-- **Una línea según la lucidez**, entre el display y el body (borrador):
+  - **Los sueños sin fragmento siempre aparecen**, como `— no signal —`. Se ve lo que te perdiste, y eso invita a repetir la noche. Con 0 fragmentos, el registro muestra las cinco líneas sin señal.
+  - **La máquina lo imprime.** Después del melt, las líneas se tipean una por una con el mismo sistema del log (4.1): primero el número y el título de la cinta, rápido (unos 60 caracteres/s), una pausa de 300 ms y después el fragmento o `— no signal —`, al ritmo normal. Sin glitches. En reposo, las líneas todavía no impresas están en `color: transparent`, así la captura del melt muestra el registro vacío y el tipeo empieza sin parpadeo. Con reduced motion aparece completo. El `<ol>` accesible siempre tiene el contenido completo, y la versión tipeada lleva `aria-hidden`.
+  - Los botones aparecen recién cuando termina de imprimirse el registro (fade de 0.4 s), para que no compitan con la lectura. Sin animación con reduced motion.
+- **Una línea según la lucidez**, entre el display y el body (borrador, se retoca con el resto de la narrativa). Se imprime antes del registro:
 
 | Fragmentos | Línea |
 | --- | --- |
@@ -536,10 +542,31 @@ En este ejemplo se guardaron cuatro fragmentos: el de la caída no.
 | 5 | *You kept all of it. That almost never happens.* |
 | sin WebGL2 | *The tape is blank. Your browser couldn't reach the dream.* |
 
-- **La cinta expulsada:** `DR1` recibe `tapeLabel={`Tape 05 · ${kept}/5 kept`}`. Ya genera la textura de la etiqueta desde texto (`useTapeLabel`), así que hay que regenerarla cuando cambia (`useMemo` sobre el texto y `dispose` de la anterior).
+- **La cinta expulsada lleva la fecha de tu noche:** `DR1` recibe `tapeLabel={`Night of ${fecha} · ${kept}/5 kept`}`, por ejemplo `NIGHT OF SEP 25 · 3/5 KEPT`.
+  - La fecha es la del navegador de quien visita, tomada una vez al cargar la página (`Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })`, en mayúsculas). Así no cambia si la visita cruza la medianoche. El texto visible sigue en inglés.
+  - `recording.js` guarda esa fecha junto con los fragmentos (`nightOf`). La usan la etiqueta 3D y *Save the tape*.
+  - `useTapeLabel` ya genera la textura desde texto: hay que regenerarla cuando cambia (`useMemo` sobre el texto y `dispose` de la anterior). Verificar que la etiqueta más larga entre en la cinta. Si no, bajar el tamaño de fuente de la textura.
 - **Captura:** Wake es vecina de Fall y queda cacheada **antes** de que ganes el fragmento de Fall. Cada `keep()` invalida la captura de Wake si está cacheada, y la recaptura en idle (3.4). El gesto en espera (3.2.8) cubre el caso de ganar el fragmento y scrollear enseguida.
-- **Botones:** `REPLAY THE NIGHT` llama a `recording.reset()` y después a `goTo('hero')`. `VIEW SOURCE →` queda igual.
-- **Opcional (decisión abierta, 13): *Save the tape*.** Un tercer botón que genera un PNG de la etiqueta de cinta con los fragmentos (canvas 2D, fuentes ya cargadas) y lo descarga. No agrega dependencias.
+- **Botones:** `REPLAY THE NIGHT` llama a `recording.reset()` y después a `goTo('hero')`. `SAVE THE TAPE ↓` (ver abajo). `VIEW SOURCE →` queda igual.
+
+### 7.1 Save the tape
+
+Un botón secundario, `SAVE THE TAPE ↓`, que te llevás tu grabación como imagen. Es compartible y buen material de portfolio. Sin dependencias nuevas.
+
+- **La imagen:** un PNG de 1200×630 (proporción de tarjeta para redes) que imita una **etiqueta de casete** en tema `paper`:
+  - fondo `--surface` de paper (hueso) y tinta `--ink` de paper;
+  - arriba, en mono: `ONIRICK DR-1 · NIGHT OF SEP 25`, con el punto `rec`;
+  - las cinco líneas del registro: número y título en mono, fragmento en serif itálica, `— no signal —` en `--ink-faint`;
+  - abajo: `3/5 KEPT` y la línea de lucidez de Wake, más la URL del sitio en `small`;
+  - un marco de etiqueta con esquinas cuadradas y líneas finas (`line`), sin sombras (`PLAN.md` 4.3).
+- **Cómo:** un canvas 2D fuera de pantalla. Antes de dibujar, esperar `document.fonts.ready` y cargar explícitamente las variantes usadas (`document.fonts.load('italic 28px "Instrument Serif"')`, etc.). Los colores se leen de los tokens con `readToken`, dentro de un elemento con `data-theme="paper"`.
+- **Entrega:**
+  - Si el navegador puede compartir archivos (`navigator.canShare?.({ files: [file] })`, sobre todo en mobile), abrir la hoja de compartir del sistema.
+  - Si no, descargar: `canvas.toBlob` + un `<a download="onirick-night-2026-09-25.png">` temporal.
+  - Si el usuario cancela la hoja de compartir, no pasa nada ni se muestra ningún error.
+- **Funciona siempre**, con 0 fragmentos y sin WebGL2, porque la imagen es 2D.
+- **Accesibilidad:** es un `<button>` real. Al terminar, un anuncio `aria-live`: *"Tape saved."*.
+- Va en la fase 8.
 
 ---
 
@@ -663,8 +690,14 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 
 ### Fase 8: Wake
 
-- Todo 7.
-- **Terminado cuando:** con 0, 3 y 5 fragmentos (usar `?debug`), Wake muestra el registro, la línea y la etiqueta de cinta correctos; el melt Fall → Wake ya muestra el fragmento de Fall aunque lo hayas ganado un segundo antes de scrollear; `REPLAY THE NIGHT` resetea todo; la lista se lee bien en 390px.
+- Todo 7 y 7.1.
+- **Terminado cuando:**
+  - Con 0, 3 y 5 fragmentos (usar `?debug`), Wake imprime la línea de lucidez y el registro correctos, con `— no signal —` donde falta el fragmento. Después aparecen los botones.
+  - El melt Fall → Wake muestra el registro vacío (sin texto a medio tipear) y la etiqueta 3D ya con la cuenta correcta, aunque el fragmento de Fall se haya ganado un segundo antes de scrollear.
+  - La etiqueta dice `NIGHT OF <fecha> · N/5 KEPT` y entra en la cinta.
+  - `SAVE THE TAPE ↓` descarga el PNG en desktop y abre la hoja de compartir en un teléfono. La imagen usa las fuentes reales (no las de fallback) y muestra los mismos fragmentos que el registro.
+  - `REPLAY THE NIGHT` resetea todo, incluida la fecha si cambió el día.
+  - La lista se lee bien en 390px.
 
 ### Fase 9: Pulido, pósters y QA
 
@@ -736,5 +769,5 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 3. **Copy nuevo** (frases por beat y progreso, glitches, etiquetas de fragmento, pistas, líneas de Wake). Todo es borrador y vive en `night/dreams.js` y en `Wake.jsx`.
 4. **¿La lucidez afecta algo más que el copy y los glitches?** Por ejemplo, niebla más liviana o un melt un poco más suave con lucidez alta. Por defecto: **no**, para no contradecir la intensificación de la noche.
 5. **Estado al volver a un sueño.** Por defecto, el estado de juego depende de la dirección de entrada (3.3) y los fragmentos quedan; la posición de la figura y las puertas abiertas se pierden si la escena se desmonta.
-6. **Save the tape** (PNG descargable desde Wake). Por defecto: **fuera**, se suma en la fase 8 si hay tiempo.
+6. ~~**Save the tape**~~ **Cerrada: entra** en la fase 8 (7.1).
 7. **La última frase de Staircase.** *"The handrail is warm, like someone just let go"* venía de la baranda, que se descartó. Se puede dejar como imagen suelta o reemplazar por una que acompañe la nueva escena, por ejemplo *"If you stop, the stairs keep going."* Por defecto queda la actual hasta que se retoque la narrativa.
