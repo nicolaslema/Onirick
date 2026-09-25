@@ -722,3 +722,18 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   complete; the keyboard action keeps it; a narrow-screen wave works; screenshots of the whale
   looking (desktop and phone), the light sweep mid-way and after; no console errors or warnings.
   `pnpm lint`, `pnpm build`, `pnpm test` clean.
+
+- **After review — a reload is a new night** (user report: after reloading, waving did nothing but
+  glance, and the light sweep could never be seen again). Phase 0 persisted the recording and the
+  scene events in sessionStorage, so a reload kept "you already waved" — and the Whale's first
+  reaction, which happens once a night by design (PLAN-2.md 6.2), was gone for the rest of the tab's
+  life. The night now lives in memory only (`recording.js` and `play.js` events), so reloading
+  starts over; within one visit the full reaction still plays once, and the ?debug "reset night"
+  replays it without reloading. PLAN-2.md 3.5 and phase 0 updated. Verified: wave → fragment and full
+  log; reload → blank recording, log waiting at "You wave,", no events; wave again → the whole
+  reaction and the fragment again; reset night clears it; no console errors or warnings.
+
+- **A test-reading bug, caught while checking this**: the phase 4 script read the whale's log as the
+  whole overlay's text, which includes the transparent, not-yet-typed rest — so "the log finishes its
+  line" and "coming back, the log is already complete" would have passed with nothing typed. Fixed
+  to subtract the rest; both still pass.

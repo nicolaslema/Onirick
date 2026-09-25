@@ -22,28 +22,17 @@ import { DREAMS, DREAM_IDS } from './dreams';
 // subscribeTarget() hears every change, for scenes that must redraw a frame
 // while their canvas only renders on demand (a neighbour being prepared).
 //
-// Events outlive leaving the dream: they last the night, and survive a
-// reload (sessionStorage), so a whale you already waved at still has its
-// full log. resetNight() (REPLAY THE NIGHT) clears them.
+// Events outlive leaving the dream: they last the night, so a whale you
+// already waved at still has its full log when you come back. resetNight()
+// (REPLAY THE NIGHT) clears them, and so does a reload — the night lives in
+// memory only (user decision, Night 2 phase 4).
 
-const EVENTS_KEY = 'onirick.events';
 const EPS = 1e-6;
-
-function loadEvents() {
-  try {
-    const raw = sessionStorage.getItem(EVENTS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-const stored = loadEvents();
 
 const entries = Object.fromEntries(
   DREAM_IDS.map(id => [
     id,
-    { target: 0, beat: 0, reveal: 0, events: new Set(stored[id] ?? []), settledAt: 0, snaps: 0, typed: 0, hinted: false, touched: false }
+    { target: 0, beat: 0, reveal: 0, events: new Set(), settledAt: 0, snaps: 0, typed: 0, hinted: false, touched: false }
   ])
 );
 
@@ -65,14 +54,6 @@ const snapshots = Object.fromEntries(DREAM_IDS.map(id => [id, snapshotOf(entries
 
 const listeners = new Set();
 const targetListeners = new Set();
-
-function saveEvents() {
-  try {
-    sessionStorage.setItem(EVENTS_KEY, JSON.stringify(Object.fromEntries(DREAM_IDS.map(id => [id, [...entries[id].events]]))));
-  } catch {
-    // Private mode or blocked storage: events just last until the tab reloads.
-  }
-}
 
 // Recomputes the derived fields and tells React — but only if something
 // React cares about actually changed.
@@ -106,7 +87,6 @@ export function trigger(id, event) {
   const entry = entries[id];
   if (!entry || entry.events.has(event)) return false;
   entry.events.add(event);
-  saveEvents();
   update(id);
   return true;
 }
@@ -146,7 +126,6 @@ export function resetNight() {
     entry.touched = false;
     update(id);
   }
-  saveEvents();
 }
 
 export function subscribePlay(listener) {

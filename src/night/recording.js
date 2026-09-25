@@ -7,10 +7,9 @@ import { resetNight } from './play';
 // night's date for the tape label. Lucidity isn't stored — it's just how many
 // fragments were kept, so there's one source of truth.
 //
-// Persisted in sessionStorage: it survives a reload of the tab and is gone
-// once the tab is closed. If storage is unavailable it lives in memory only.
-
-const KEY = 'onirick.recording';
+// It lives in memory only: a reload is a new night (user decision, Night 2
+// phase 4 — a kept fragment surviving the reload made its dream's first
+// reaction impossible to see again).
 
 // Local date, e.g. '2026-09-25' — taken once, so a visit that crosses
 // midnight keeps the night it started on.
@@ -26,32 +25,11 @@ const fresh = () => ({
   announcement: null
 });
 
-function load() {
-  try {
-    const raw = sessionStorage.getItem(KEY);
-    if (!raw) return fresh();
-    const saved = JSON.parse(raw);
-    const base = fresh();
-    return {
-      ...base,
-      nightOf: typeof saved.nightOf === 'string' ? saved.nightOf : base.nightOf,
-      kept: Object.fromEntries(DREAM_IDS.map(id => [id, saved.kept?.[id] ?? null]))
-    };
-  } catch {
-    return fresh();
-  }
-}
-
-let state = load();
+let state = fresh();
 const listeners = new Set();
 
 function commit(next) {
   state = next;
-  try {
-    sessionStorage.setItem(KEY, JSON.stringify({ nightOf: state.nightOf, kept: state.kept }));
-  } catch {
-    // Private mode or blocked storage: the recording lasts until the tab reloads.
-  }
   listeners.forEach(listener => listener());
 }
 

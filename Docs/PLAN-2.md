@@ -68,7 +68,7 @@ src/
   night/
     config.js              ← cada sueño suma `play` (3.1); Fall suma `hud.clockTo`
     play.js                ← NUEVO: estado de juego por sección + la compuerta (gate) que usa ScrollSections
-    recording.js           ← NUEVO: fragmentos + lucidez (store externo, sessionStorage)
+    recording.js           ← NUEVO: fragmentos + lucidez (store externo, en memoria)
     dreams.js              ← NUEVO: el copy de cada sueño (frases del log, fragmento, pista), un solo lugar
     DreamFrame.jsx         ← pasa el id del sueño a DreamTitle y monta DreamAction
     Dream*/…Scene.jsx      ← cada escena lee `usePlayRef(id)` en su useFrame
@@ -192,7 +192,7 @@ Hoy el overlay de texto de cada sección se captura **una vez** (`overlayCacheRe
 
 ### 3.5 La grabación: `night/recording.js`
 
-Store externo con `useSyncExternalStore`, persistido en `sessionStorage` (`onirick.recording`, envuelto en `try/catch`: si falla, funciona solo en memoria).
+Store externo con `useSyncExternalStore`, **solo en memoria**: recargar la página empieza una noche nueva (decidido con el usuario en la fase 4; al principio se guardaba en `sessionStorage`, y un fragmento que sobrevivía a la recarga hacía imposible volver a ver la reacción de su sueño).
 
 ```js
 {
@@ -589,11 +589,11 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 ### Fase 0: Estado y herramientas
 
 - `night/play.js` (store + `usePlayRef` + `usePlay`), sin compuerta todavía.
-- `night/recording.js` (`keep`, `lucidity`, `reset`, sessionStorage con `try/catch`).
+- `night/recording.js` (`keep`, `lucidity`, `reset`, en memoria).
 - `night/dreams.js` con el copy de la sección 6. `DreamX.jsx` y `DreamTitle` leen el log de ahí (todavía estático, todas las frases visibles).
 - `three/pointer.js`: `vx/vy`, `stillSince`, `down`, `onTap`. `three/gestures.js`: `createWaveDetector`.
 - Panel de debug (4.5).
-- **Terminado cuando:** la web se ve y navega **exactamente igual que hoy**, `?debug` muestra el estado, ganar o resetear fragmentos desde el panel persiste al recargar la pestaña y se borra al cerrarla, y `createWaveDetector` tiene un test mínimo o un script de verificación anotado.
+- **Terminado cuando:** la web se ve y navega **exactamente igual que hoy**, `?debug` muestra el estado, ganar o resetear fragmentos desde el panel se refleja en el estado (desde la fase 4: recargar empieza una noche nueva), y `createWaveDetector` tiene un test mínimo o un script de verificación anotado.
 
 ### Fase 1: La compuerta
 
