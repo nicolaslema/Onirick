@@ -7,6 +7,7 @@ import Atmosphere from '../../three/Atmosphere';
 import { FLAT, readTint, readToken } from '../../three/materials';
 import { pointer, trackPointer } from '../../three/pointer';
 import { useCameraDrift } from '../../three/useCameraDrift';
+import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 
 const STEPS = 120;
@@ -95,7 +96,29 @@ const Staircase = ({ colors }) => {
   );
 };
 
+// PROVISIONAL (Night 2 phase 1): a bare sphere on the moon's orbit, so the
+// scrub can be seen doing something. Night 2 phase 3 replaces it with the
+// real moon — light, halo and shadows (PLAN-2.md 6.1).
+const MOON_TURNS = 1.25;
+const MOON_START = Math.PI * 0.75; // front-left, in view on entry
+const MoonProbe = ({ progress, color }) => {
+  const ref = useRef(null);
+  useFrame(() => {
+    if (!ref.current) return;
+    const p = progress.current;
+    const a = MOON_START + p * MOON_TURNS * Math.PI * 2;
+    ref.current.position.set(Math.cos(a) * 6.5, 1 + p * 5, Math.sin(a) * 4);
+  });
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[0.35, 16, 12]} />
+      <meshBasicMaterial color={color} fog={false} />
+    </mesh>
+  );
+};
+
 const StairScene = ({ camera }) => {
+  const progress = usePlayProgress('stair');
   useCameraDrift({ position: camera.position, target: [0, 3.5, 0] });
   const colors = useMemo(
     () => ({
@@ -114,6 +137,7 @@ const StairScene = ({ camera }) => {
       <hemisphereLight args={[colors.tint, colors.surface, 0.35]} />
       <directionalLight position={[3, 10, 4]} intensity={2.2} color={colors.tint} />
       <Staircase colors={colors} />
+      <MoonProbe progress={progress} color={colors.moon} />
     </>
   );
 };

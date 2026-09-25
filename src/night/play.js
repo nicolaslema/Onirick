@@ -10,11 +10,14 @@ import { DREAMS, DREAM_IDS } from './dreams';
 //   reveal    how many log lines are enabled (from target, events and DREAMS[id].lines)
 //   events    scene events that already happened this night ('wave', 'let-go', ...)
 //   settledAt performance.now() of the last change
-//   snap      true when a scene should jump straight to `target`, unsmoothed
+//   snaps     bumped when a scene should jump straight to `target`, unsmoothed
+//             (a counter, not a flag, so every reader of the entry sees it)
 //
 // Scenes read the entry every frame through usePlayRef() and smooth toward
 // `target` themselves — nothing here re-renders React per frame. React only
 // hears about `beat`, `reveal` and `events` (usePlay), which change rarely.
+// subscribeTarget() hears every change, for scenes that must redraw a frame
+// while their canvas only renders on demand (a neighbour being prepared).
 //
 // Events outlive leaving the dream: they last the night, and survive a
 // reload (sessionStorage), so a whale you already waved at still has its
@@ -35,7 +38,7 @@ function loadEvents() {
 const stored = loadEvents();
 
 const entries = Object.fromEntries(
-  DREAM_IDS.map(id => [id, { target: 0, beat: 0, reveal: 0, events: new Set(stored[id] ?? []), settledAt: 0, snap: false }])
+  DREAM_IDS.map(id => [id, { target: 0, beat: 0, reveal: 0, events: new Set(stored[id] ?? []), settledAt: 0, snaps: 0 }])
 );
 
 function revealFor(id, target, events) {
@@ -55,6 +58,7 @@ for (const id of DREAM_IDS) entries[id].reveal = revealFor(id, 0, entries[id].ev
 const snapshots = Object.fromEntries(DREAM_IDS.map(id => [id, snapshotOf(entries[id])]));
 
 const listeners = new Set();
+const targetListeners = new Set();
 
 function saveEvents() {
   try {
@@ -71,6 +75,7 @@ function update(id) {
   entry.beat = Math.round(entry.target);
   entry.reveal = revealFor(id, entry.target, entry.events);
   entry.settledAt = performance.now();
+  targetListeners.forEach(listener => listener(id));
   const prev = snapshots[id];
   if (prev.beat === entry.beat && prev.reveal === entry.reveal && prev.events.length === entry.events.size) return;
   snapshots[id] = snapshotOf(entry);
@@ -85,7 +90,7 @@ export function setTarget(id, value, { snap = false } = {}) {
   const entry = entries[id];
   if (!entry) return;
   entry.target = value;
-  entry.snap = snap;
+  if (snap) entry.snaps += 1;
   update(id);
 }
 
@@ -110,7 +115,7 @@ export function resetNight() {
   for (const id of DREAM_IDS) {
     entries[id].events.clear();
     entries[id].target = 0;
-    entries[id].snap = true;
+    entries[id].snaps += 1;
     update(id);
   }
   saveEvents();
@@ -119,6 +124,12 @@ export function resetNight() {
 export function subscribePlay(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+// Every change to any dream's entry, as `listener(id)` — not for React.
+export function subscribeTarget(listener) {
+  targetListeners.add(listener);
+  return () => targetListeners.delete(listener);
 }
 
 // For scenes, inside useFrame: `usePlayRef(id).current.target`.

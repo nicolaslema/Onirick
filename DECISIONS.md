@@ -499,3 +499,64 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   survives a reload, is absent in a new tab, and "reset night" clears fragments and play state;
   setting a scrub stop updates `target` and `reveal`; no console errors. `pnpm lint`, `pnpm build`
   and `pnpm test` clean.
+
+## Night 2 — Phase 1
+
+- **The gate lives in `night/gate.js`**, not in `play.js` as PLAN-2.md 3.2 sketches: it needs the
+  NIGHT config (each dream's `play`), and `config.js` imports the sections, whose scenes import
+  `play.js` — putting it in `play.js` would close that cycle. `App.jsx` builds it once
+  (`createNightGate(NIGHT)`) and passes it only when WebGL2 exists; without it every gesture changes
+  section, exactly as before (verified with WebGL disabled).
+
+- **`ScrollSections` stays generic**: one optional `gate` prop, four methods by index (`canLeave`,
+  `consume`, `prepare`, `reset`). `consume` gets a `step` flag — the start of a wheel gesture, a
+  touch crossing the 40 px swipe threshold, a key press — so beats advance once per gesture while a
+  scrub follows every delta. The edge rule is the manual's: the gesture that brings a gated dream to
+  its end never also melts it; a fresh one does (a 60-event trackpad-style flick past the end stays
+  put, verified).
+
+- **Beats swallow gestures while a beat plays** (`beatDuration`, 150 ms under reduced motion), and
+  keys in a scrub tween to the next stop over 0.8 s with power2.inOut. PageUp/PageDown behave like the
+  arrows in a gated dream (one step / one stop); only the manual pages by a screen.
+
+- **Touch needed its own flag.** The first cut marked the touch `consumed` when it crossed the swipe
+  threshold, and `handleTouchMove` returns early on `consumed` — so a scrub stopped following the
+  finger after 40 px (a 300 px swipe moved the stair 0.046 instead of 0.278). A gated beat now sets
+  `stepped`; `consumed` keeps meaning "this touch changed section".
+
+- **`snap` became a counter (`snaps`)**, not a boolean: a scene may read the entry from more than one
+  place, and the first reader clearing a flag would hide the snap from the rest. Scenes use the new
+  `three/usePlayProgress(id, smoothTime)`, which eases toward the target, jumps on a snap, and calls
+  R3F's `invalidate()` on every change — a neighbour's canvas renders on demand, and it must draw its
+  prepared state before the melt samples it.
+
+- **Neighbours are prepared before they're captured** (the pre-capture effect), and a prepare that
+  changed state invalidates that section's capture. Entering backward therefore shows the end state
+  from the melt's first frame: screenshots mid-melt Fall → Ocean show the room already at its last
+  water level, matching the settled frame. Consequence worth knowing: coming back from Wake you
+  enter the Fall at its end and walk its stops back to 0 before it lets you leave — as designed
+  (PLAN-2.md 3.3), but it's four gestures, not one.
+
+- **Captures carry a generation per section**: `invalidate(index)` bumps it, and a capture or
+  overlay still in flight from before won't land in the cache afterwards. `recapture(index)` (on the
+  ScrollSections context) is in place — debounced 250 ms, deferred while anything moves, run in idle
+  time — but nothing calls it until the transcript (phase 2).
+
+- **A gesture that arrives before its captures is held, not dropped** (600 ms). In headless software
+  GL, a key pressed the instant Whale settled — House only just mounted and still capturing — went
+  through 3/3 times.
+
+- **Provisional scenes, to be replaced:** the Staircase shows a bare sphere on the moon's orbit
+  (phase 3 makes it the real moon), and the Ocean's water no longer rises and falls on a 12 s cycle —
+  it rises one level per beat, with the last level still just under the camera (phase 6 takes it
+  under the surface, adds the breathing). The Ocean's poster still shows the old cyclic level; posters
+  are regenerated in phase 9.
+
+- **Verified** (headless Chrome, dev server, ?debug panel for state): wheel scrubs the stair (900 px
+  ≈ 1/3); the gesture reaching the end doesn't melt, a fresh one does; backward entry lands at the
+  end, forward at 0; arrows tween between stops and leave at the ends; a 300 px touch swipe moves the
+  stair by the ×2.5 gain; the ocean takes one beat per long wheel gesture, swallows gestures during a
+  beat, stops at beat 3, melts on the next fresh gesture, and is entered backward at beat 3; the
+  fall's first key stop is 0.25; the manual detour still returns to the hero; no WebGL2 → no gate;
+  no console errors. `pnpm lint`, `pnpm build`, `pnpm test` clean. Not verified: real touch hardware
+  and Safari/Firefox.

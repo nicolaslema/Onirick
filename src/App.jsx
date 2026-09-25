@@ -6,6 +6,12 @@ import Grain from './components/Grain/Grain'
 import Loader from './components/Loader/Loader'
 import { IntroContext } from './components/Loader/IntroContext'
 import { NIGHT } from './night/config'
+import { createNightGate } from './night/gate'
+import { HAS_WEBGL2 } from './lib/webgl'
+
+// Dreams keep their own scrub/beats (PLAN-2.md 3.2). Without WebGL2 there's
+// no scene to play with: every gesture changes section, as before.
+const nightGate = HAS_WEBGL2 ? createNightGate(NIGHT) : undefined
 
 // Dev only, with ?debug (PLAN-2.md 4.5). import.meta.env.DEV is a literal
 // false in a production build, so the import below is dead code there and
@@ -42,7 +48,7 @@ function App() {
         title={current?.title}
       />
       <IntroContext.Provider value={ready}>
-        <ScrollSections sections={NIGHT} mode="snap" onStateChange={handleStateChange} onReady={handleReady} />
+        <ScrollSections sections={NIGHT} mode="snap" gate={nightGate} onStateChange={handleStateChange} onReady={handleReady} />
       </IntroContext.Provider>
       <Loader ready={ready} />
       {DebugPanel && (

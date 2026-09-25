@@ -7,16 +7,18 @@ import { FLAT, readTint, readToken } from '../../three/materials';
 import { pointer, trackPointer } from '../../three/pointer';
 import { seeded } from '../../three/random';
 import { useCameraDrift } from '../../three/useCameraDrift';
+import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 
-// A room (inverted box) slowly filling and draining (PLAN.md 6.5).
+// A room (inverted box) filling with water, one level per beat (PLAN.md 6.5,
+// PLAN-2.md 6.4).
 const ROOM_W = 8;
 const ROOM_D = 9;
 const FLOOR = -1.5;
 const CEIL = 2.5;
 const LOW = FLOOR + 0.3;
 const HIGH = FLOOR + 2; // stays under the camera and the window
-const RISE = 12; // s up, 12 s back down
+const LEVEL_SMOOTH = 0.5; // s — each beat's rise takes about a beatDuration (1.6 s)
 
 // Water surface: a height field the pointer disturbs (discrete wave
 // equation on the grid, stepped at a fixed 60 Hz).
@@ -26,7 +28,16 @@ const DAMPING = 0.985;
 const RIPPLE_AMP = 0.14;
 const STEP = 1 / 60;
 
-const waterLevel = t => LOW + (HIGH - LOW) * (0.5 - 0.5 * Math.cos((Math.PI * t) / RISE));
+// The water rises one level per beat (PLAN-2.md 6.4), no longer on a cycle.
+// PROVISIONAL (Night 2 phase 1): the last beat stops just under the camera;
+// Night 2 phase 6 takes it over the camera — under the surface — with the
+// underwater look and the water's breathing.
+const LEVELS = [LOW, LOW + (HIGH - LOW) * 0.4, LOW + (HIGH - LOW) * 0.75, HIGH];
+const levelAt = beat => {
+  const b = Math.min(Math.max(beat, 0), LEVELS.length - 1);
+  const i = Math.min(Math.floor(b), LEVELS.length - 2);
+  return LEVELS[i] + (LEVELS[i + 1] - LEVELS[i]) * (b - i);
+};
 const swell = (x, z, t) => 0.06 * Math.sin(x * 1.3 + t * 1.1) + 0.05 * Math.sin(z * 1.7 - t * 0.9);
 
 function useClock() {
@@ -38,7 +49,7 @@ function useClock() {
   return t;
 }
 
-const Water = ({ time, color }) => {
+const Water = ({ time, level: levelRef, color }) => {
   const geometry = useMemo(() => new PlaneGeometry(ROOM_W, ROOM_D, SEGMENTS, SEGMENTS).rotateX(-Math.PI / 2), []);
   useEffect(() => () => geometry.dispose(), [geometry]);
   const mesh = useRef(null);
@@ -60,7 +71,7 @@ const Water = ({ time, color }) => {
     const s = sim.current;
     const { ray, plane, hit, ndc } = s;
     const t = time.current;
-    const level = waterLevel(t);
+    const level = levelRef.current;
 
     // Where the pointer's ray meets the water: a moving pointer drops a
     // small disturbance there.
@@ -133,12 +144,12 @@ function useCausticTexture() {
   return texture;
 }
 
-const Caustics = ({ time, color }) => {
+const Caustics = ({ time, level, color }) => {
   const texture = useCausticTexture();
   const group = useRef(null);
   useFrame(() => {
     texture.offset.set(time.current * 0.02, time.current * 0.013);
-    if (group.current) group.current.position.y = waterLevel(time.current) + 0.6;
+    if (group.current) group.current.position.y = level.current + 0.6;
   });
   const walls = [
     { position: [0, 0, -ROOM_D / 2 + 0.01], rotation: [0, 0, 0], width: ROOM_W },
@@ -223,13 +234,13 @@ const Book = ({ color, pages }) => (
   </>
 );
 
-const Floating = ({ item, time, colors }) => {
+const Floating = ({ item, time, level, colors }) => {
   const ref = useRef(null);
   useFrame(() => {
     if (!ref.current) return;
     const t = time.current;
     const onFloor = FLOOR + item.rest;
-    const afloat = waterLevel(t) + swell(item.x, item.z, t) - item.draft + item.rest;
+    const afloat = level.current + swell(item.x, item.z, t) - item.draft + item.rest;
     const lift = Math.min(1, Math.max(0, (afloat - onFloor) / 0.25));
     ref.current.position.set(item.x + Math.sin(t * 0.13 + item.phase) * 0.25 * lift, Math.max(onFloor, afloat), item.z);
     ref.current.rotation.set(Math.sin(t * 0.7 + item.phase) * 0.08 * lift, item.phase + t * 0.03 * lift, Math.cos(t * 0.6 + item.phase) * 0.07 * lift);
@@ -273,6 +284,12 @@ const Room = ({ colors }) => (
 );
 
 const OceanScene = ({ camera }) => {
+  const beat = usePlayProgress('ocean', LEVEL_SMOOTH);
+  // The water height every piece below reads, from the (smoothed) beat.
+  const level = useRef(levelAt(beat.current));
+  useFrame(() => {
+    level.current = levelAt(beat.current);
+  });
   useCameraDrift({ position: camera.position, target: [0, -0.3, -4], pivot: 'camera' });
   const time = useClock();
   const colors = useMemo(
@@ -295,10 +312,10 @@ const OceanScene = ({ camera }) => {
       <hemisphereLight args={[colors.tint, colors.surface, 0.35]} />
       <directionalLight position={[0.4, 3, -6]} intensity={2} color={colors.tint} />
       <Room colors={colors} />
-      <Water time={time} color={colors.water} />
-      <Caustics time={time} color={colors.tint} />
+      <Water time={time} level={level} color={colors.water} />
+      <Caustics time={time} level={level} color={colors.tint} />
       {FURNITURE.map(item => (
-        <Floating key={item.kind} item={item} time={time} colors={colors} />
+        <Floating key={item.kind} item={item} time={time} level={level} colors={colors} />
       ))}
     </>
   );

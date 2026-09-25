@@ -14,7 +14,8 @@ export const SectionIndexContext = createContext(null);
 export const SectionIdContext = createContext(null);
 
 // { currentIndex, activeTransition: {from,to} | null, goTo(idOrIndex),
-//   inDetour: the current section was reached as a detour (see ScrollSections) }
+//   inDetour: the current section was reached as a detour (see ScrollSections),
+//   recapture(index): retake a section's melt capture after its text changed }
 export function useScrollSections() {
   const ctx = useContext(ScrollSectionsContext);
   if (!ctx) throw new Error('useScrollSections must be called from a section rendered inside <ScrollSections>');
