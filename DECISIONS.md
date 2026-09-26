@@ -910,3 +910,37 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
     to 0.75 → in Wake 6.0 s later with an ArrowUp mid-way ignored; screenshots of the rings concentric
     in the middle of the view during the descent; no console errors or warnings.
   - PLAN-2.md 6.5 updated.
+
+## Night 2 — Phase 8
+
+- **Wake prints the recording** (`night/Wake/Wake.jsx`, PLAN-2.md 7): a line for how much you kept
+  (0 / 1–2 / 3–4 / 5, and one for no WebGL2) and the tape's log, one row per dream — `Tape 0N · Title`
+  in mono, then the kept fragment in serif italic or `— no signal —` in `--ink-faint`. The machine
+  types it: heads at 70 cps with a 250 ms pause, bodies at 45 cps, 120 ms between rows. Each segment
+  is its full text with the unprinted rest in `color: transparent`, so nothing moves as it prints. It
+  prints only while Wake is current and settled; anywhere else it's blank, so the melt in shows it
+  empty and every arrival prints it again. Reduced motion: all of it at once. The typed copy is
+  `aria-hidden`; each row carries a screen-reader line with the whole entry. The buttons fade in
+  (0.4 s) once printing is done. On ≤640px each row is two lines, no leader.
+- **Dream titles in `night/dreams.js`** (a copy of config.js's): the log and the saved image need them,
+  and `dreams.js` is the per-dream copy both already read.
+- **The ejected tape carries the night**: `Night of Sep 25 · 3/5 kept`. `useTapeLabel` redraws the same
+  texture on a new label, at the largest size (56 → 18px) that fits. A change in the count retakes
+  Wake's melt capture (`recapture`), so a fragment kept in the Fall a second before the melt shows in it.
+- **Save the tape** (`night/Wake/saveTape.js`, PLAN-2.md 7.1): a 1200×630 cassette label on paper, drawn
+  on a 2D canvas (paper tokens read off a hidden `data-theme="paper"` probe; the fonts loaded
+  explicitly first). Shared through the system sheet where the browser can share files, downloaded as
+  `onirick-night-YYYY-MM-DD.png` otherwise; closing the sheet is not an error. "Tape saved." is
+  announced.
+- **Replay the night** goes to the hero and resets the recording once the hero has settled
+  (`stage.onceSettledAt`) — first tried as a fixed 1.4 s timer, which a check caught still at 3/5.
+- **Layout**: with the log, the copy outgrew the top 70% and ran over the DR-1. The title is one line
+  on desktop (64px max, the column 640px wide), gaps 16px; on phones smaller type (title 36px, tier
+  18px, body 13px, heads 11px) and tighter gaps, Replay on its own row and the other two beside each
+  other. Every row has one line height, kept or not.
+- **Verified** (headless Chrome on the GPU, ?debug, desktop and 390×844): with 0, 3 and 5 kept, blank
+  on arrival, the right tier line and rows, `— no signal —` where missing, screen-reader rows,
+  buttons after printing; Save downloads the PNG and announces it; Replay leaves lucidity 0/5; a
+  fragment kept in the Fall with Wake cached shows as 4/5 on the tape mid-melt; screenshots of the
+  printing, the finished screen and the saved image; no console errors or warnings. `pnpm lint`,
+  `pnpm build`, `pnpm test` clean.

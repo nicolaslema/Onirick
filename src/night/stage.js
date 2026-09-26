@@ -40,6 +40,17 @@ export function subscribeNavigate(listener) {
   return () => navigateListeners.delete(listener);
 }
 
+// Runs `callback` once, the next time `id` is on screen and settled — e.g.
+// Replay's new night, once Wake has faded out behind the hero.
+export function onceSettledAt(id, callback) {
+  const check = () => {
+    if (state.currentId !== id || !state.settled) return;
+    listeners.delete(check);
+    callback();
+  };
+  listeners.add(check);
+}
+
 // True while `id` is the section on screen and nothing is moving.
 export function useLive(id) {
   const { currentId, settled } = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

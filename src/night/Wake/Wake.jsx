@@ -7,6 +7,7 @@ import { HAS_WEBGL2 } from '../../lib/webgl';
 import { useReducedMotion } from '../../three/useReducedMotion';
 import { DREAMS, DREAM_IDS } from '../dreams';
 import { isKept, lucidity, reset, useRecording } from '../recording';
+import { onceSettledAt } from '../stage';
 import { saveTape } from './saveTape';
 import './Wake.css';
 
@@ -102,19 +103,29 @@ function usePrinter(segments, printing, reduced) {
 }
 
 const Wake = () => {
-  const { goTo, currentIndex, activeTransition } = useScrollSections();
-  const printing = useSectionIndex() === currentIndex && !activeTransition;
+  const { goTo, currentIndex, activeTransition, recapture } = useScrollSections();
+  const index = useSectionIndex();
+  const printing = index === currentIndex && !activeTransition;
   const reduced = useReducedMotion();
   const recording = useRecording();
   const segments = useSegments(recording);
   const { counts, done } = usePrinter(segments, printing, reduced);
   const [saved, setSaved] = useState('');
 
+  // The ejected tape's label counts what you kept: a fragment kept while
+  // Wake sits cached (the Fall's, a second before the melt) retakes its
+  // capture, so the melt shows the right count. The printed log needs
+  // nothing — at rest it's blank.
+  const kept = lucidity(recording);
+  useEffect(() => {
+    recapture(index);
+  }, [kept, index, recapture]);
+
   const replay = () => {
+    // A new night — once the hero has settled and Wake is gone, so the
+    // recording doesn't empty itself before your eyes.
+    onceSettledAt('hero', reset);
     goTo('hero');
-    // A new night — once Wake has faded out (the 1.2 s crossfade home), so
-    // the recording doesn't empty itself before your eyes.
-    setTimeout(reset, 1400);
   };
   const save = async () => {
     setSaved('');

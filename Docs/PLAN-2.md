@@ -525,7 +525,7 @@ En este ejemplo se guardaron cuatro fragmentos: el de la caída no.
   - En mobile (≤ 640px), cada entrada ocupa dos líneas (`TAPE 02 · THE WHALE…` arriba y el fragmento abajo), sin puntos de relleno.
   - Es una `<ol>` real con `aria-label="Your recording"`.
   - **Los sueños sin fragmento siempre aparecen**, como `— no signal —`. Se ve lo que te perdiste, y eso invita a repetir la noche. Con 0 fragmentos, el registro muestra las cinco líneas sin señal.
-  - **La máquina lo imprime.** Después del melt, las líneas se tipean una por una con el mismo sistema del log (4.1): primero el número y el título de la cinta, rápido (unos 60 caracteres/s), una pausa de 300 ms y después el fragmento o `— no signal —`, al ritmo normal. En reposo, las líneas todavía no impresas están en `color: transparent`, así la captura del melt muestra el registro vacío y el tipeo empieza sin parpadeo. Con reduced motion aparece completo. El `<ol>` accesible siempre tiene el contenido completo, y la versión tipeada lleva `aria-hidden`.
+  - **La máquina lo imprime.** Después del melt, las líneas se tipean una por una con el mismo sistema del log (4.1): primero el número y el título de la cinta, rápido (70 caracteres/s), una pausa de 250 ms y después el fragmento o `— no signal —` (45 caracteres/s), con 120 ms entre filas. Cada llegada a Wake lo vuelve a imprimir desde cero; fuera de Wake queda en blanco. En reposo, las líneas todavía no impresas están en `color: transparent`, así la captura del melt muestra el registro vacío y el tipeo empieza sin parpadeo. Con reduced motion aparece completo. El `<ol>` accesible siempre tiene el contenido completo, y la versión tipeada lleva `aria-hidden`.
   - Los botones aparecen recién cuando termina de imprimirse el registro (fade de 0.4 s), para que no compitan con la lectura. Sin animación con reduced motion.
 - **Una línea según la lucidez**, entre el display y el body (borrador, se retoca con el resto de la narrativa). Se imprime antes del registro:
 
@@ -540,9 +540,9 @@ En este ejemplo se guardaron cuatro fragmentos: el de la caída no.
 - **La cinta expulsada lleva la fecha de tu noche:** `DR1` recibe `tapeLabel={`Night of ${fecha} · ${kept}/5 kept`}`, por ejemplo `NIGHT OF SEP 25 · 3/5 KEPT`.
   - La fecha es la del navegador de quien visita, tomada una vez al cargar la página (`Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })`, en mayúsculas). Así no cambia si la visita cruza la medianoche. El texto visible sigue en inglés.
   - `recording.js` guarda esa fecha junto con los fragmentos (`nightOf`). La usan la etiqueta 3D y *Save the tape*.
-  - `useTapeLabel` ya genera la textura desde texto: hay que regenerarla cuando cambia (`useMemo` sobre el texto y `dispose` de la anterior). Verificar que la etiqueta más larga entre en la cinta. Si no, bajar el tamaño de fuente de la textura.
-- **Captura:** Wake es vecina de Fall y queda cacheada **antes** de que ganes el fragmento de Fall. Cada `keep()` invalida la captura de Wake si está cacheada, y la recaptura en idle (3.4). El gesto en espera (3.2.8) cubre el caso de ganar el fragmento y scrollear enseguida.
-- **Botones:** `REPLAY THE NIGHT` llama a `recording.reset()` y después a `goTo('hero')`. `SAVE THE TAPE ↓` (ver abajo). `VIEW SOURCE →` queda igual.
+  - `useTapeLabel` redibuja la misma textura cuando cambia el texto, con el tamaño de fuente más grande (de 56px a 18px) que entra en el ancho de la etiqueta.
+- **Captura:** Wake es vecina de Fall y queda cacheada **antes** de que ganes el fragmento de Fall. El registro impreso no necesita nada (en reposo está en blanco), pero la etiqueta 3D sí: cuando cambia la cuenta, Wake pide `recapture(index)` (3.4). El gesto en espera (3.2.8) cubre el caso de ganar el fragmento y scrollear enseguida.
+- **Botones:** `REPLAY THE NIGHT` hace `goTo('hero')` y llama a `recording.reset()` cuando el hero quedó asentado (`stage.onceSettledAt`), así la grabación no se vacía a la vista durante el crossfade. `SAVE THE TAPE ↓` (ver abajo). `VIEW SOURCE →` queda igual.
 
 ### 7.1 Save the tape
 
