@@ -879,3 +879,17 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   1, looking up (with stair, whale and ocean kept) and the burn, on desktop and phone — title and log
   readable in all of them; no console errors or warnings. `pnpm lint`, `pnpm build`, `pnpm test`
   clean.
+
+- **After review — the Fall is scroll only** (user request: scrolling and moving the pointer at the
+  same time was awkward). The pointer no longer steers: the camera follows its own path, two slow
+  sine waves per axis driven by the distance fallen (so it weaves faster the faster you fall), looks
+  8 units ahead along it and banks into the curves (up to 0.22 rad). Letting go is no longer "keep
+  still 3 s": it's a stretch of the scroll — the camera turns up by itself from 0.4, is fully up from
+  0.5 to 0.62, back down by 0.72 — so the arrows' 0.5 stop lands in it and a wheel flick passing
+  through turns up on the way. The fragment is kept the first time the turn passes 0.9, checked
+  against the recording rather than a local flag (so a new night can keep it again without
+  remounting). "Let go" from the keyboard scrolls to 0.55. Reduced motion: the path at 30%, no bank.
+  PLAN-2.md 6.5 updated. Verified (GPU, twice): keeping still at the top keeps nothing; the 0.5 stop
+  turns up and keeps it; one quick wheel gesture 0 → 0.78 keeps it; the keyboard keeps it; two
+  screenshots 1.5 s apart without input show the view moved and banked; no console errors or
+  warnings.

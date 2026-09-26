@@ -1,25 +1,24 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { AdditiveBlending, BufferGeometry, Color, Float32BufferAttribute, Vector3 } from 'three';
-import { easing } from 'maath';
 
-import { markTouched, subscribeAction, trigger } from '../../night/play';
+import { markTouched, setTarget, subscribeAction, trigger } from '../../night/play';
 import { isKept, keep, useRecording } from '../../night/recording';
 import { readTint, readToken } from '../../three/materials';
 import Atmosphere from '../../three/Atmosphere';
-import { pointer, trackPointer } from '../../three/pointer';
 import { seeded } from '../../three/random';
 import { useCloudTexture } from '../../three/useCloudTexture';
 import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 import { useLive } from '../stage';
 
-// Dream 05, The Fall (PLAN-2.md 6.5). The scroll is depth: the fall speeds
-// up, an alarm grows — red rings rising from below, and the HUD's REC dot
-// racing — and a white light opens underneath until the last melt burns into
-// it. You've been steering the whole way down. Let go — keep still — and the
-// camera turns up: the whole night is above you, and what you kept of it
-// glows.
+// Dream 05, The Fall (PLAN-2.md 6.5). The scroll is depth, and the only thing
+// you do: the fall speeds up, an alarm grows — red rings rising from below,
+// and the HUD's REC dot racing — and a white light opens underneath until the
+// last melt burns into it. The fall carries you on its own, weaving between
+// the rings. Halfway down you're let go of: the camera turns up by itself and
+// the whole night is above you, what you kept of it glowing — passing through
+// that moment is the fragment.
 
 // Falling forever (PLAN.md 6.6). Everything lives in a column H tall that
 // scrolls upward past a camera looking down; each layer is drawn twice,
@@ -32,7 +31,20 @@ const POINTS = 2000;
 const CLOUDS = 26;
 const LINES = 140;
 const SHAKE = 0.002;
-const STEER = 2.2; // how far the pointer pulls the camera, in units
+// The fall's own path (no steering: scrolling is all you do — user decision,
+// Night 2 phase 7): two slow waves per axis, driven by the distance fallen,
+// so the deeper and faster you go, the quicker it weaves.
+const WANDER = [
+  [1.7, 0.045, 0],
+  [0.7, 0.11, 1.3]
+];
+const WANDER_Z = [
+  [1.5, 0.037, 0.6],
+  [0.6, 0.093, 2.1]
+];
+const LOOK_AHEAD = 8; // units: look toward where the path is going
+const BANK = 0.9; // roll into the curves, per unit of sideways drift per unit fallen
+const BANK_MAX = 0.22; // rad
 
 // The alarm: a ring every 3 s at the top, three a second at the bottom; from
 // 0.6 on each one also pulses the fog.
@@ -56,11 +68,18 @@ const LIGHT_PORTRAIT = { scale: [2, 15], x: 0, z: -15 };
 // up, off the title block.
 const NIGHT_PORTRAIT_Z = 5;
 
-// Letting go (PLAN-2.md 6.5).
-const STILL_FOR_MS = 3000;
-const LET_GO_BEFORE = 0.9; // no letting go right at the bottom
-const UP_SMOOTH = 1.8; // s — the camera's turn up
-const ACTION_UP_MS = 5000; // "Let go" from the keyboard
+// Letting go: a stretch of the scroll where the camera turns up by itself —
+// in from 0.4 to 0.5, all the way up until 0.62, back down by 0.72. The
+// arrow keys' 0.5 stop lands in it; a wheel passing through turns up on the
+// way. The fragment is kept the first time the turn passes 0.9.
+const UP_IN = [0.4, 0.5];
+const UP_OUT = [0.62, 0.72];
+const LET_GO_AT = 0.55; // "Let go" from the keyboard scrolls here
+const smoothstep = (a, b, x) => {
+  const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+  return t * t * (3 - 2 * t);
+};
+const upAt = p => smoothstep(UP_IN[0], UP_IN[1], p) * (1 - smoothstep(UP_OUT[0], UP_OUT[1], p));
 
 function useColumnPoints(count, seed) {
   const geometry = useMemo(() => {
@@ -309,27 +328,35 @@ const NightAbove = ({ fall, colors }) => {
   );
 };
 
-// Looking down the fall; the pointer steers (moves the camera across X/Z,
-// eased) and a tiny tremor keeps it from ever feeling still. Letting go turns
-// it up toward the night above, and calms the tremor.
+// Where the fall's own path is, `d` units down.
+const wave = (terms, d) => terms.reduce((sum, [amp, freq, phase]) => sum + amp * Math.sin(freq * d + phase), 0);
+
+// Looking down the fall, carried along a path that weaves between the rings
+// and leans into its curves, with a tiny tremor so it never feels still.
+// Letting go turns it up toward the night above, and calms it all.
 const FallCamera = ({ position, fall }) => {
   const reduced = useReducedMotion();
-  const s = useRef({ offset: { x: 0, z: 0 }, down: new Vector3(), upDir: new Vector3(0, 1, -0.35).normalize(), look: new Vector3() });
-  useEffect(trackPointer, []);
+  const s = useRef({ down: new Vector3(), upDir: new Vector3(0, 1, -0.35).normalize(), look: new Vector3(), roll: 0 });
   useFrame((state, delta) => {
     const k = s.current;
-    const up = fall.current.up;
-    const o = k.offset;
-    const steer = reduced ? 0 : 1 - up;
-    easing.damp(o, 'x', pointer.x * STEER * steer, 0.6, delta);
-    easing.damp(o, 'z', -pointer.y * STEER * steer, 0.6, delta);
+    const { up, distance: d } = fall.current;
+    const calm = 1 - up;
+    const amp = (reduced ? 0.3 : 1) * calm;
+    const x = wave(WANDER, d) * amp;
+    const z = wave(WANDER_Z, d) * amp;
+    const aheadX = wave(WANDER, d + LOOK_AHEAD) * amp;
+    const aheadZ = wave(WANDER_Z, d + LOOK_AHEAD) * amp;
     const t = state.clock.elapsedTime;
-    const shake = reduced ? 0 : SHAKE * (1 - up);
+    const shake = reduced ? 0 : SHAKE * calm;
     const cam = state.camera;
-    cam.position.set(position[0] + o.x + Math.sin(t * 47.3) * shake, position[1] + Math.sin(t * 53.1 + 1.3) * shake, position[2] + o.z);
-    k.down.set(o.x * 0.6, -12, o.z * 0.6 - 2).sub(cam.position).normalize();
+    cam.position.set(position[0] + x + Math.sin(t * 47.3) * shake, position[1] + Math.sin(t * 53.1 + 1.3) * shake, position[2] + z);
+    k.down.set(aheadX * 0.6, -12, aheadZ * 0.6 - 2).sub(cam.position).normalize();
     k.look.copy(k.down).lerp(k.upDir, up).normalize().add(cam.position);
     cam.lookAt(k.look);
+    // Bank into the curve: roll with the path's sideways drift ahead.
+    const goal = reduced ? 0 : Math.max(-BANK_MAX, Math.min(BANK_MAX, ((aheadX - x) / LOOK_AHEAD) * BANK)) * calm;
+    k.roll += (goal - k.roll) * Math.min(1, delta * 2);
+    cam.rotateZ(k.roll);
   });
   return null;
 };
@@ -345,18 +372,17 @@ function useFall(progress, live, colors) {
     sinceRing: 0,
     pulse: 0,
     up: 0,
-    upUntil: 0, // DreamAction: looking up until this performance.now()
-    lookedUp: false
   });
   const fogBase = useMemo(() => new Color(colors.tint), [colors.tint]);
   const fogAlarm = useMemo(() => new Color(colors.rec), [colors.rec]);
 
+  // "Let go" from the keyboard: scroll to the moment it happens.
   useEffect(() => {
     if (!live) return undefined;
     return subscribeAction(id => {
       if (id !== 'fall') return;
       markTouched('fall');
-      fall.current.upUntil = performance.now() + ACTION_UP_MS;
+      setTarget('fall', LET_GO_AT);
     });
   }, [live]);
 
@@ -366,15 +392,11 @@ function useFall(progress, live, colors) {
     const pace = reduced ? REDUCED_SPEED : 1;
     const p = progress.current;
 
-    // Letting go: still for a while (or the keyboard's "Let go").
-    const now = performance.now();
-    const still = !pointer.down && now - pointer.stillSince > STILL_FOR_MS;
-    const wantUp = live && p < LET_GO_BEFORE && (still || now < f.upUntil);
-    easing.damp(f, 'up', wantUp ? 1 : 0, UP_SMOOTH, dt);
-    // Turned up far enough to see the night (0.9: the last tenth of the eased
-    // turn takes over a second more and changes nothing you see).
-    if (!f.lookedUp && f.up > 0.9) {
-      f.lookedUp = true;
+    // Letting go: the camera turns up by itself in the middle of the fall.
+    f.up = upAt(p);
+    // Asked of the recording, not a local flag, so a new night (REPLAY, or
+    // ?debug's reset) can keep it again without remounting the scene.
+    if (live && f.up > 0.9 && !isKept('fall')) {
       trigger('fall', 'let-go');
       keep('fall');
     }

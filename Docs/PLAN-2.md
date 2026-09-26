@@ -476,9 +476,9 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
     - **En el HUD:** el punto REC parpadea cada vez más rápido. El período baja de 1.2 s a 0.3 s con el progreso: el `Hud` escribe `--rec-period` desde el store de juego y `.onk-rec` lo usa como `animation-duration`. Con reduced motion el REC sigue fijo, como hoy.
   - **La luz de abajo**: un disco sin niebla, en `--dream-fall` (el blanco cálido), crece desde el fondo del pozo, y el melt a Wake se quema a blanco (`burn: 1`) desde ahí. **No llena el cuadro** (fase 7): tiene un tope y se corre a la derecha, y en pantallas verticales es más chico y sube; si no, el título y el log quedaban blanco sobre blanco. Los anillos de la alarma salen de ella.
   - **El reloj del HUD** avanza de `06:41 AM` a `07:01 AM` (4.4, `hud.clockTo`), un minuto antes de despertar. El melt a Wake lo lleva a `07:02 AM`, la hora que ya muestra Wake.
-- **Interacción:**
-  - **Dirigir** la caída con el puntero (ya existe).
-  - **Soltarse:** si el puntero queda **quieto 3 s** (`pointer.stillSince`) y `p < 0.9`, la caída se calma. El temblor se apaga y la cámara **gira despacio hacia arriba**. Mover el puntero te devuelve a mirar hacia abajo.
+- **Interacción: solo scroll o flechas** (decidido con el usuario en la fase 7: scrollear y mover el puntero a la vez era incómodo).
+  - **La caída se maneja sola:** la cámara sigue un recorrido que serpentea entre los anillos (dos ondas lentas por eje, en función de la distancia caída, así que cuanto más rápido caés, más rápido serpentea), mira hacia donde va y se inclina en las curvas. El puntero ya no la dirige.
+  - **Soltarse es un tramo del scroll:** entre 0.4 y 0.72 la cámara gira sola hacia arriba (del todo entre 0.5 y 0.62) y la caída se calma. La parada 0.5 de las flechas cae adentro; una ruedita que pasa de largo también gira al pasar.
 - **Lo que ves arriba: la noche entera.** Lejos, en la niebla y a distintas alturas, flotan siluetas de los cuatro sueños anteriores:
   - la **escalera caracol** (una hélice corta con su columna);
   - la **ballena** (el mismo `WhaleBody`, a escala);
@@ -491,8 +491,8 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - 0.25: *The clouds go past in the wrong direction.*
   - 0.5, o al soltarse, lo que pase primero (`at: 0.5, on: 'let-go'`): *You're not falling so much as being let go of.*
   - 0.75: *Somewhere below, an alarm is starting.*
-- **Fragmento `fall`:** *"You let go."* Se gana la primera vez que la cámara termina de girar hacia arriba. El brillo de las siluetas se lee **antes** de ganarlo, así que la silueta de Fall no está en el cielo: el fragmento de este sueño se ve en Wake.
-- **DreamAction:** *Let go*. Hace el giro durante 5 s y gana el fragmento.
+- **Fragmento `fall`:** *"You let go."* Se gana **al pasar por ese tramo**: la primera vez que el giro supera 0.9. El brillo de las siluetas se lee **antes** de ganarlo, así que la silueta de Fall no está en el cielo: el fragmento de este sueño se ve en Wake.
+- **DreamAction:** *Let go*. Lleva el scroll a 0.55, dentro del tramo.
 - **Técnica:**
   - Los anillos son un pool de 12 `RingGeometry` finos, en un `Tiled` propio con velocidad mayor a la de las nubes.
   - **Siluetas de la noche:** 4 grupos de primitivas, `fog: false`, en `y` altos y repartidos para que entren todos en el cuadro al mirar arriba (en landscape y en portrait). Hay que reutilizar lo que ya existe en vez de duplicarlo: exportar `WhaleBody` desde `WhaleScene` y `Lamp` desde `OceanScene` (o moverlos a `three/`), y armar la hélice y la puerta con 3 o 4 primitivas cada una.
@@ -500,7 +500,7 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
     - **Guardado:** color = el tinte del sueño, opacidad 0.9, y un halo aditivo detrás (la misma textura radial que el halo de la luna en Stair, 6.1). La lámpara, además, con su pantalla emisiva en `--dream-stair`.
     - El estado sale de `recording.js` al montar la escena y se actualiza si cambia.
   - El giro de cámara es un peso `up` 0 → 1 (damp de 1.8 s) que mezcla el `lookAt` hacia abajo actual con uno hacia arriba. Solo se dibujan las siluetas mientras `up > 0` (visibilidad por peso), para no pagar su costo cuando nadie las mira.
-- **Mobile/reduced:** en mobile, "quieto" = sin tocar la pantalla 3 s. El giroscopio para dirigir queda fuera de alcance (necesita permiso en iOS). Con reduced motion, sin temblor y con anillos a 1/4 de frecuencia.
+- **Mobile/reduced:** en mobile es igual: el swipe es el scroll. Con reduced motion, el recorrido serpentea al 30%, sin inclinación ni temblor, y con anillos a 1/4 de frecuencia.
 
 ---
 
@@ -761,7 +761,7 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 Registro de lo que se decidió con el usuario mientras se iteraba el plan. Si durante el desarrollo aparece una decisión nueva que cambia la narrativa, lo visual o la arquitectura, se pregunta (0.5) y se agrega acá.
 
 1. **House: ¿scrub de "caminar sin llegar"?** **No.** House queda libre; el click en la cocina estira el pasillo (6.3).
-2. **Condiciones de los fragmentos.** **Confirmadas** sueño por sueño (sección 6): mantenerse detenido 5 s en la escalera, saludar, 5 s después de que sale una sombra de una puerta que abriste, 6 s bajo el agua y 3 s quieto en la caída.
+2. **Condiciones de los fragmentos.** **Confirmadas** sueño por sueño (sección 6): mantenerse detenido 5 s en la escalera, saludar, 5 s después de que sale una sombra de una puerta que abriste, 6 s bajo el agua y pasar por el tramo de la caída en que la cámara mira hacia arriba.
 3. **Copy nuevo** (frases por beat y progreso, etiquetas de fragmento, pistas, líneas de Wake). **Borrador aceptado**, concentrado en `night/dreams.js` y `Wake.jsx` para retocarlo con el resto de la narrativa sin tocar lógica.
 4. **¿La lucidez afecta algo más que el copy?** **No.** Solo cambia la línea de Wake y el HUD (los glitches del transcript, que también dependían de ella, se sacaron en la fase 2). Lo visual ya aparece por otro lado (las siluetas del cielo de Fall, 6.5), y cambiar niebla o melt contradiría que la noche se intensifica.
 5. **Estado al volver a un sueño.** **Como está:** el estado de juego depende de la dirección de entrada (3.3) y los fragmentos y eventos se conservan en la noche. Lo que es solo de la escena (dónde quedó la figura, qué puertas estaban abiertas) se pierde si la escena se desmonta.
