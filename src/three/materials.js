@@ -19,11 +19,13 @@ export const FLAT = { flatShading: true, roughness: 0.9, metalness: 0 };
 // Mixed in sRGB, like the tokens themselves: Color.lerp works in linear space,
 // where 15% of a bright tint comes out several times lighter (a mid brown
 // instead of a near-black), and the dream's log text loses its AA contrast.
-export function sceneBackground(tintHex) {
+// `amount` defaults to that 15%; a deeper background (the Ocean, under the
+// surface) asks for more.
+export function sceneBackground(tintHex, amount = 0.15) {
   const bg = new Color(readToken('--surface'));
   if (!tintHex) return bg;
   const a = bg.getRGB({ r: 0, g: 0, b: 0 }, SRGBColorSpace);
   const b = new Color(tintHex).getRGB({ r: 0, g: 0, b: 0 }, SRGBColorSpace);
-  const mix = (x, y) => x + (y - x) * 0.15;
+  const mix = (x, y) => x + (y - x) * amount;
   return new Color().setRGB(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b), SRGBColorSpace);
 }

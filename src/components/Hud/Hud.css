@@ -3,3 +3,88 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* Lucidity (PLAN-2.md 4.2): LUCIDITY ▮▮▯▯▯ in ink-muted, kept segments in
+   ink; a segment kept while you watch blinks rec twice. rec stays the only
+   accent. */
+.onk-hud-lucidity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+}
+.onk-hud-segments {
+  display: inline-flex;
+  gap: 3px;
+}
+.onk-hud-segments i {
+  width: 6px;
+  height: 10px;
+  border: 1px solid var(--line-strong);
+}
+.onk-hud-segments i[data-on] {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.onk-hud-segments i[data-fresh] {
+  animation: onk-hud-fresh 0.6s steps(2, jump-none) 2;
+}
+@keyframes onk-hud-fresh {
+  from {
+    background: var(--rec);
+    border-color: var(--rec);
+  }
+  to {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+}
+
+/* Prompt (PLAN-2.md 4.3), just above the lucidity line. */
+.onk-hud-prompt {
+  color: var(--ink-muted);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.onk-hud-prompt[data-on] {
+  opacity: 1;
+}
+
+/* The current tape of a dream with its own scroll: a bar filling with its
+   progress (PLAN-2.md 4.4); once full it blinks ink once. */
+.onk-hud-tapes span[data-progress] {
+  position: relative;
+  overflow: hidden;
+  background: var(--line-strong);
+}
+.onk-hud-tapes span[data-progress] i {
+  position: absolute;
+  inset: 0;
+  background: var(--rec);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.onk-hud-tapes span[data-full='true'] i {
+  animation: onk-hud-full 0.6s steps(2, jump-none) 1;
+}
+@keyframes onk-hud-full {
+  from {
+    background: var(--ink);
+  }
+  to {
+    background: var(--rec);
+  }
+}
+
+.onk-hud[data-reduced] .onk-hud-prompt {
+  transition: none;
+}
+.onk-hud[data-reduced] .onk-hud-segments i[data-fresh],
+.onk-hud[data-reduced] .onk-hud-tapes span[data-full='true'] i {
+  animation: none;
+}
+
+/* The Fall's alarm speeds the HUD's REC dot up (Hud.jsx useRecPace). */
+.onk-hud .onk-rec {
+  animation-duration: var(--rec-period, 1.2s);
+}

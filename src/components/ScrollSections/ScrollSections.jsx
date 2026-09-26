@@ -16,6 +16,9 @@ const RESIZE_DEBOUNCE_MS = 200;
 // A touch drag past this many vertical pixels commits to one section change,
 // same idea as one wheel tick in 'snap' mode.
 const TOUCH_SWIPE_PX = 40;
+// A finger travels less than a wheel scrolls: touch deltas fed to a gated
+// section's scrub are multiplied by this (PLAN-2.md 3.2.3).
+const TOUCH_SCRUB_GAIN = 2.5;
 // Wheel events closer together than this belong to the same gesture — see
 // handleSnapWheel's edge rule for a 'scroll'-kind section.
 const WHEEL_GESTURE_GAP_MS = 200;
@@ -27,6 +30,12 @@ const KEY_SCROLL_PX = 80;
 // Must match .scroll-sections-canvas's `transition: opacity ...` duration in
 // ScrollSections.css — see setCanvasVisible below.
 const CANVAS_FADE_MS = 150;
+// A gesture held while its captures are taken is dropped after this long
+// (PLAN-2.md 3.2.8) — any later and it would feel like a lag, not a response.
+const PENDING_NAV_MS = 600;
+// Retaking a section's capture after its text changed (PLAN-2.md 3.4):
+// wait for the changes to stop, then for the browser to be idle.
+const RECAPTURE_DEBOUNCE_MS = 250;
 
 // Scroll-driven version of MorphSlider: instead of morphing between slide
 // images on click/drag, this morphs between whole page sections on
@@ -62,6 +71,20 @@ const CANVAS_FADE_MS = 150;
 //   section (used whenever either side of the transition is 'scroll', or
 //   for a goTo() jump landing here).
 //
+// `gate` (optional) lets a section keep gestures for itself before they
+// change section — a dream's own scrub or beats (PLAN-2.md 3.2). Four
+// methods, all by section index:
+// - canLeave(index, dir): may a gesture in `dir` leave this section now?
+// - consume(index, dir, { source: 'wheel' | 'touch' | 'key', deltaPx, step }):
+//   the gesture stays in the section; `step` marks a discrete step (a wheel
+//   gesture's start, a swipe crossing its threshold, a key press).
+// - prepare(index, entryDir): `index` just became a neighbour and will be
+//   entered moving `entryDir` — set it up as it will be found (true if that
+//   changed it, so its capture is retaken).
+// - reset(index): a goTo() jump is landing there.
+// Same edge rule as a 'scroll' section: the gesture that carries a gated
+// section to its end doesn't also leave it; a fresh gesture does.
+//
 // Sections rendered inside <ScrollSections> can call useScrollSections()
 // (ScrollSectionsContext.js) for { currentIndex, activeTransition, goTo,
 // inDetour }.
@@ -81,6 +104,7 @@ export default function ScrollSections({
   drift = 0.4,
   overlayColor = '#000000',
   burn = 0,
+  gate,
   onStateChange,
   onReady
 }) {
@@ -90,7 +114,16 @@ export default function ScrollSections({
   const engineRef = useRef(null);
   const refreshTimerRef = useRef(null);
   const plainTimeoutRef = useRef(null);
-  const touchRef = useRef(null); // { y, consumed, scrolled } | null
+  // { y, lastY, consumed: changed section, stepped: took a gated beat, scrolled } | null
+  const touchRef = useRef(null);
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
+  // One gesture that arrived before its captures were ready, retried once
+  // they are (PLAN-2.md 3.2.8). { target, dir, at } | null.
+  const pendingNavRef = useRef(null);
+  const goToIndexRef = useRef(null);
+  // Sections whose capture must be retaken once nothing is moving (3.4).
+  const recaptureRef = useRef({ indices: new Set(), timer: 0 });
   const wheelGestureRef = useRef({ lastAt: 0, dir: 0, scrolled: false });
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -283,6 +316,16 @@ export default function ScrollSections({
   // in the DOM and capture() waits for it to render (waitForCanvasesReady).
   // A 'scroll' section is never a melt texture, so it's skipped.
   useEffect(() => {
+    // A gated neighbour is left as it will be found before it's captured:
+    // the one below at its start, the one above at its end (PLAN-2.md 3.3).
+    // If that changed it, its cached capture shows the old state — retake it.
+    for (const [i, entryDir] of [
+      [currentIndex - 1, -1],
+      [currentIndex + 1, 1]
+    ]) {
+      if (i < 0 || i >= sections.length) continue;
+      if (gateRef.current?.prepare(i, entryDir)) sectionTextures.invalidate(i, engineRef.current?.gl);
+    }
     if (!HAS_WEBGL2) return undefined;
     let cancelled = false;
     fontsLoaded().then(() => {
@@ -297,6 +340,50 @@ export default function ScrollSections({
       cancelled = true;
     };
   }, [currentIndex, captureEpoch, sections.length, sectionTextures, kindOf]);
+
+  // Throws a section's capture away and retakes it (PLAN-2.md 3.4) — for a
+  // section whose text changed while it sat cached (a transcript that
+  // finished typing, a recording that grew). Debounced, never mid-transition
+  // (the engine may be sampling that texture), and in idle time: a capture
+  // costs 100-400 ms. Only the current section and its neighbours are
+  // retaken right away; any other one is simply captured fresh when it next
+  // becomes a neighbour.
+  const recapture = useCallback(
+    index => {
+      if (!HAS_WEBGL2 || index < 0 || index >= sections.length || kindOf(index) !== 'morph') return;
+      const r = recaptureRef.current;
+      r.indices.add(index);
+      const busy = () => dirRef.current !== 0 || !!engineRef.current?.animating;
+      const idle = window.requestIdleCallback ?? (cb => setTimeout(cb, 0));
+      const flush = () => {
+        if (busy()) {
+          r.timer = setTimeout(flush, RECAPTURE_DEBOUNCE_MS);
+          return;
+        }
+        idle(
+          () => {
+            if (busy()) {
+              r.timer = setTimeout(flush, RECAPTURE_DEBOUNCE_MS);
+              return;
+            }
+            const indices = [...r.indices];
+            r.indices.clear();
+            for (const i of indices) {
+              sectionTextures.invalidate(i, engineRef.current?.gl);
+              if (Math.abs(i - currentIndexRef.current) > 1) continue;
+              sectionTextures.capture(i);
+              sectionTextures.prepareOverlay(i);
+            }
+          },
+          { timeout: 500 }
+        );
+      };
+      clearTimeout(r.timer);
+      r.timer = setTimeout(flush, RECAPTURE_DEBOUNCE_MS);
+    },
+    [sections.length, kindOf, sectionTextures]
+  );
+  useEffect(() => () => clearTimeout(recaptureRef.current.timer), []);
 
   // Mirrors { currentIndex, activeTransition } out to a sibling that can't
   // reach ScrollSectionsContext (e.g. a Hud rendered next to
@@ -452,9 +539,22 @@ export default function ScrollSections({
       if (!engine) return;
 
       if (!sectionTextures.isReady(currentIndexRef.current) || !sectionTextures.isReady(targetIndex)) {
-        sectionTextures.capture(targetIndex);
+        // Not captured yet (or retaken after its text changed): hold this
+        // one gesture and replay it once both captures land, unless that
+        // takes longer than PENDING_NAV_MS or something else moved first.
+        const from = currentIndexRef.current;
+        const at = performance.now();
+        pendingNavRef.current = { target: targetIndex, dir, at };
+        Promise.all([sectionTextures.capture(from), sectionTextures.capture(targetIndex)]).then(() => {
+          const pending = pendingNavRef.current;
+          if (pending?.at !== at) return;
+          pendingNavRef.current = null;
+          if (performance.now() - at > PENDING_NAV_MS || currentIndexRef.current !== from) return;
+          goToIndexRef.current?.(pending.target, pending.dir);
+        });
         return;
       }
+      pendingNavRef.current = null;
 
       const currentDesc = sectionTextures.getTexture(currentIndexRef.current, engine.gl);
       const nextDesc = sectionTextures.getTexture(targetIndex, engine.gl);
@@ -488,6 +588,7 @@ export default function ScrollSections({
     },
     [sections, sectionTextures, setCanvasVisible, settle, startLiveRefresh, kindOf, runPlainTransition]
   );
+  goToIndexRef.current = goToIndex;
 
   // Jumps to any section by id or index. Adjacent to the current section:
   // behaves exactly like a wheel tick (melt if both sides are 'morph',
@@ -515,6 +616,8 @@ export default function ScrollSections({
           detourRef.current = { at: targetIndex, back: from };
           setInDetour(true);
         }
+        // A jump lands on a dream at its start, whatever state it was left in.
+        gateRef.current?.reset(targetIndex);
         runPlainTransition(from, targetIndex, dir, targetIndex);
       }
     },
@@ -537,6 +640,10 @@ export default function ScrollSections({
     },
     [kindOf]
   );
+
+  // The gate's half of "may this gesture leave the section" (see `gate`
+  // above); no gate means yes.
+  const gateCanLeave = useCallback((index, dir) => gateRef.current?.canLeave(index, dir) ?? true, []);
 
   // 'snap': one wheel tick commits a whole transition via goToIndex's tween.
   // While that tween is in flight, engine.animating (and dirRef, set inside
@@ -574,6 +681,13 @@ export default function ScrollSections({
       }
 
       e.preventDefault();
+      // A gated section (a dream's scrub or beats) keeps the gesture until it
+      // reaches its own end — same edge rule as the manual below.
+      if (!gateCanLeave(currentIndexRef.current, wheelDir)) {
+        gateRef.current.consume(currentIndexRef.current, wheelDir, { source: 'wheel', deltaPx, step: !gesture.scrolled });
+        gesture.scrolled = true;
+        return;
+      }
       // The gesture that carried the content to its edge doesn't also leave
       // the section — otherwise the momentum tail of every flick to the
       // bottom of the manual would fire straight into Dream 04. A fresh
@@ -581,7 +695,7 @@ export default function ScrollSections({
       if (gesture.scrolled) return;
       goToIndex(currentIndexRef.current + wheelDir, wheelDir);
     },
-    [goToIndex, atScrollEdge]
+    [goToIndex, atScrollEdge, gateCanLeave]
   );
 
   // 'scrub': progress follows the wheel in real time. `deltaPx` is signed
@@ -647,7 +761,8 @@ export default function ScrollSections({
   const handleTouchStart = useCallback(
     e => {
       if (mode !== 'snap' || e.touches.length !== 1) return;
-      touchRef.current = { y: e.touches[0].clientY, consumed: false, scrolled: false };
+      const y = e.touches[0].clientY;
+      touchRef.current = { y, lastY: y, consumed: false, stepped: false, scrolled: false };
     },
     [mode]
   );
@@ -657,13 +772,34 @@ export default function ScrollSections({
       const start = touchRef.current;
       if (!start || start.consumed) return;
 
-      const deltaY = start.y - e.touches[0].clientY; // >0: swiping up (advance)
+      const y = e.touches[0].clientY;
+      const deltaY = start.y - y; // >0: swiping up (advance)
       const dir = deltaY > 0 ? 1 : deltaY < 0 ? -1 : 0;
 
       if (dir !== 0 && !atScrollEdge(currentIndexRef.current, dir)) {
         start.scrolled = true; // let native scroll happen
         return;
       }
+      // A gated dream keeps the swipe: a scrub follows the finger (the move
+      // since the last touchmove, amplified — a finger travels less than a
+      // wheel), beats take one step when the swipe crosses its threshold.
+      if (dir !== 0 && !gateCanLeave(currentIndexRef.current, dir)) {
+        if (e.cancelable) e.preventDefault();
+        if (engineRef.current?.animating || dirRef.current !== 0) return;
+        // `stepped`, not `consumed`: a scrub keeps following the finger
+        // after the threshold; only a beat is limited to one per swipe.
+        const crossed = !start.stepped && Math.abs(deltaY) >= TOUCH_SWIPE_PX;
+        if (crossed) start.stepped = true;
+        gateRef.current.consume(currentIndexRef.current, dir, {
+          source: 'touch',
+          deltaPx: (start.lastY - y) * TOUCH_SCRUB_GAIN,
+          step: crossed
+        });
+        start.lastY = y;
+        start.scrolled = true;
+        return;
+      }
+      start.lastY = y;
       // Same rule as the wheel: the swipe that scrolled the content to its
       // edge doesn't also change section; the next one does.
       if (start.scrolled) return;
@@ -675,7 +811,7 @@ export default function ScrollSections({
       start.consumed = true;
       goToIndex(currentIndexRef.current + dir, dir);
     },
-    [goToIndex, atScrollEdge]
+    [goToIndex, atScrollEdge, gateCanLeave]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -695,9 +831,14 @@ export default function ScrollSections({
         scroller.scrollBy({ top: dir * amount, behavior: reduced ? 'auto' : 'smooth' });
         return;
       }
+      // A gated dream: a key is one step (a beat, or the scrub's next stop).
+      if (!gateCanLeave(index, dir)) {
+        if (!engineRef.current?.animating && dirRef.current === 0) gateRef.current.consume(index, dir, { source: 'key', page, step: true });
+        return;
+      }
       goToIndex(index + dir, dir);
     },
-    [atScrollEdge, goToIndex]
+    [atScrollEdge, gateCanLeave, goToIndex]
   );
 
   const handleKeyDown = useCallback(
@@ -744,8 +885,8 @@ export default function ScrollSections({
   }, [handleWheel, handleTouchMove, handleKeyDown]);
 
   const contextValue = useMemo(
-    () => ({ currentIndex, activeTransition, goTo, inDetour }),
-    [currentIndex, activeTransition, goTo, inDetour]
+    () => ({ currentIndex, activeTransition, goTo, inDetour, recapture }),
+    [currentIndex, activeTransition, goTo, inDetour, recapture]
   );
 
   // Lets the browser scroll a 'scroll'-kind current section natively (touch

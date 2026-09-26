@@ -19,15 +19,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-6);
-  max-width: 38ch;
+  gap: var(--space-4);
+  max-width: 640px;
 }
 
 .night-wake-display {
   margin: 0;
   font-family: var(--font-serif);
   font-weight: 400;
-  font-size: clamp(44px, 6.5vw, 88px);
+  font-size: clamp(40px, 5vw, 64px);
   line-height: 0.95;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -35,7 +35,7 @@
 
 .night-wake-body {
   margin: 0;
-  max-width: 38ch;
+  max-width: 52ch;
   font-size: 15px;
   line-height: 1.6;
   color: var(--ink-muted);
@@ -56,5 +56,131 @@
 @media (max-width: 640px) {
   .night-wake {
     padding: var(--space-24) var(--space-4) 0;
+  }
+  .night-wake-content {
+    gap: var(--space-2);
+  }
+  .night-wake-display {
+    font-size: 36px;
+  }
+  .night-wake-tier {
+    font-size: 18px;
+  }
+  .night-wake-body {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .night-wake-actions {
+    gap: var(--space-2);
+  }
+  .night-wake-actions .onk-btn-secondary {
+    padding-inline: var(--space-4);
+  }
+}
+
+/* The recording (PLAN-2.md 7): a tier line, then the tape's log, printed. */
+.night-wake-tier {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--ink-muted);
+}
+
+.night-wake-unprinted {
+  color: transparent;
+}
+
+.night-wake-tapes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: min(640px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+/* One line height for every row, kept (serif) or not (mono): even rows. */
+.night-wake-tapes li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  line-height: 24px;
+}
+
+.night-wake-tape-head {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+/* Dotted leader between a tape and what it kept. */
+.night-wake-tape-leader {
+  flex: 1;
+  min-width: var(--space-4);
+  border-bottom: 1px dotted var(--line-strong);
+  transform: translateY(-4px);
+  opacity: 0;
+}
+.night-wake-tape-leader[data-on] {
+  opacity: 1;
+}
+
+.night-wake-tape-body {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.night-wake-tapes li[data-kept] .night-wake-tape-body {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+/* The buttons come once the machine has finished printing. */
+.night-wake-actions {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.night-wake-actions[data-ready] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night-wake-actions {
+    transition: none;
+  }
+}
+
+/* Narrow screens: each tape on two lines, no leader. */
+@media (max-width: 640px) {
+  .night-wake-tapes li {
+    flex-direction: column;
+    gap: 0;
+    line-height: 20px;
+  }
+  .night-wake-tapes {
+    gap: var(--space-1);
+  }
+  .night-wake-tape-head {
+    font-size: 11px;
+  }
+  .night-wake-tapes li[data-kept] .night-wake-tape-body {
+    font-size: 16px;
+  }
+  .night-wake-tape-leader {
+    display: none;
+  }
+  .night-wake-tape-head,
+  .night-wake-tape-body {
+    white-space: normal;
   }
 }

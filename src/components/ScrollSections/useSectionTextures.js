@@ -20,6 +20,11 @@ export function loadCaptureLib() {
 // section paints its own opaque background, so this is only a safety net.
 const SECTION_BG = '#07080d';
 
+// Never part of a melt texture: a dream's keyboard-only action button
+// (PLAN-2.md 3.7) — invisible unless focused, and it must not be caught
+// visible if a capture runs while it has focus.
+const isUncaptured = node => !!node.classList?.contains('dream-action');
+
 // A WebGL canvas doesn't get its real pixel dimensions until its
 // ResizeObserver-driven resize logic has run at least once after mount —
 // until then it sits at the browser's 300x150 default. Wait for it to leave
@@ -113,6 +118,10 @@ export function useSectionTextures(hostRefs) {
   const pendingRef = useRef(new Map());
   const overlayCacheRef = useRef(new Map()); // index -> content-only canvas (background chroma-keyed to transparent)
   const overlayPendingRef = useRef(new Map());
+  // index -> bumped by invalidate(): a capture still in flight from before
+  // it must not land in the cache afterwards.
+  const generationRef = useRef(new Map());
+  const generationOf = index => generationRef.current.get(index) ?? 0;
 
   // One-time capture of a section's static DOM content (headings, buttons,
   // cards) without its <canvas> background: the canvas is filtered out of
@@ -133,26 +142,33 @@ export function useSectionTextures(hostRefs) {
       if (!el || !el.querySelector('canvas')) return Promise.resolve(null);
 
       const scale = cappedDpr();
+      const generation = generationOf(index);
       const promise = loadCaptureLib()
         .then(({ domToCanvas }) =>
           domToCanvas(el, {
             scale,
             // No background fill: the overlay needs true alpha around the text.
             // Text only: no scene canvas, and no poster still standing in for it.
-            filter: node => node.nodeName !== 'CANVAS' && !node.classList?.contains('scene-poster'),
+            filter: node => node.nodeName !== 'CANVAS' && !node.classList?.contains('scene-poster') && !isUncaptured(node),
+            // The section root sits under the capture wrapper (host >
+            // .scroll-sections-capture > section): clear the whole chain of
+            // first children, or the root's background comes back opaque and
+            // the chroma key runs its full-canvas pass on every capture.
             onCloneNode: clone => {
-              clone.firstElementChild?.style.setProperty('background-color', 'transparent', 'important');
+              for (let node = clone.firstElementChild, depth = 0; node && depth < 2; node = node.firstElementChild, depth++) {
+                node.style.setProperty('background-color', 'transparent', 'important');
+              }
             }
           })
         )
         .then(canvas => {
           chromaKeyToTransparent(canvas);
-          overlayCacheRef.current.set(index, canvas);
+          if (generation === generationOf(index)) overlayCacheRef.current.set(index, canvas);
           return canvas;
         })
         .catch(() => null)
         .finally(() => {
-          overlayPendingRef.current.delete(index);
+          if (overlayPendingRef.current.get(index) === promise) overlayPendingRef.current.delete(index);
         });
 
       overlayPendingRef.current.set(index, promise);
@@ -170,6 +186,7 @@ export function useSectionTextures(hostRefs) {
       if (!el) return Promise.resolve(null);
 
       const scale = cappedDpr();
+      const generation = generationOf(index);
       const promise = waitForCanvasesReady(el)
         .then(loadCaptureLib)
         .then(async ({ domToCanvas }) => {
@@ -192,6 +209,7 @@ export function useSectionTextures(hostRefs) {
           }
           return domToCanvas(el, {
             scale,
+            filter: node => !isUncaptured(node),
             // Fallback only — every section paints its own opaque
             // background, so a capture can never come back transparent
             // (which the morph shader would render as solid black).
@@ -199,12 +217,12 @@ export function useSectionTextures(hostRefs) {
           });
         })
         .then(canvas => {
-          cacheRef.current.set(index, canvas);
-          pendingRef.current.delete(index);
+          if (generation === generationOf(index)) cacheRef.current.set(index, canvas);
+          if (pendingRef.current.get(index) === promise) pendingRef.current.delete(index);
           return canvas;
         })
         .catch(() => {
-          pendingRef.current.delete(index);
+          if (pendingRef.current.get(index) === promise) pendingRef.current.delete(index);
           return null;
         });
 
@@ -279,5 +297,20 @@ export function useSectionTextures(hostRefs) {
     overlayPendingRef.current.clear();
   }, []);
 
-  return { capture, isReady, getTexture, prepareOverlay, refresh, invalidateAll };
+  // One section's capture, texture and text overlay, thrown away so the next
+  // capture() / prepareOverlay() takes them afresh — for a section whose
+  // text changed while it sat cached (PLAN-2.md 3.4). Never call it mid-melt:
+  // the engine may be sampling that texture.
+  const invalidate = useCallback((index, gl) => {
+    generationRef.current.set(index, generationOf(index) + 1);
+    const oglTexture = textureCacheRef.current.get(index);
+    if (gl && oglTexture?.texture) gl.deleteTexture(oglTexture.texture);
+    textureCacheRef.current.delete(index);
+    cacheRef.current.delete(index);
+    pendingRef.current.delete(index);
+    overlayCacheRef.current.delete(index);
+    overlayPendingRef.current.delete(index);
+  }, []);
+
+  return { capture, isReady, getTexture, prepareOverlay, refresh, invalidate, invalidateAll };
 }

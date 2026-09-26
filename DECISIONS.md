@@ -452,3 +452,534 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   and end the detour. Verified headless: detour in, long flick stays in the manual, a fresh gesture
   or ArrowUp at the top returns to the hero, the next step from there is Dream 01; the normal walk
   and its label are unchanged; no console errors.
+
+## Night 2 — Phase 0
+
+- **Branch:** `n2-phase-0-state` branches off `plan-2` rather than `develop` (PLAN-2.md 0.3), so
+  `Docs/PLAN-2.md` travels with the code that implements it. `plan-2` is `develop` plus that one
+  document.
+
+- **Copy moved to `night/dreams.js`** and each dream section now passes `dream="<id>"` instead of
+  its own `log` string; `DreamFrame` joins the lines for `DreamTitle`, which stays static until the
+  transcript lands (phase 2). Four logs are word-for-word what they were. The Staircase's last line
+  is now "If you stop, the stairs keep going." — decided with the user (PLAN-2.md 13.7) — so that
+  one screen does differ from before.
+
+- **`play` added to the dream entries in `config.js`** (PLAN-2.md 8) but nothing reads it yet: the
+  gate that uses it is phase 1. `play.js` doesn't need it either — a line is revealed when
+  `target >= at`, which works the same for free (target stays 0), beats and scrub — so `play.js`
+  imports only `dreams.js` and there's no import cycle through `config.js` and the sections.
+
+- **Scene events persist in sessionStorage (`onirick.events`)**, next to the recording, not only in
+  memory. PLAN-2.md 3.3 has events last the night; without persisting them, a reload would keep the
+  whale's fragment (recording.js is persisted) but lose its 'wave' event, and its log would wait for
+  a wave that was already given.
+
+- **The fragment announcement has its own `aria-live` region** in the Hud, beside the section one,
+  rather than sharing it — two polite regions never overwrite each other's message.
+
+- **`pointer.vx`/`vy` are getters** that fade the last measured velocity toward 0 (120 ms time
+  constant) once moves stop — pointermove doesn't fire when the pointer is still, so a plain field
+  would keep the last move's velocity forever. `pointerdown/up/cancel` listeners were added next to
+  `pointermove` (still one set for the whole page); a window `blur` counts as a release, so a hold
+  never gets stuck on alt-tab.
+
+- **`pnpm test`** runs `node --test` (built into Node, no dependency) over `*.test.js`; the only
+  suite so far is `three/gestures.test.js` for `createWaveDetector` (a quick shake fires once, a
+  single sweep, a too-slow shake and sub-`minAmp` jitter don't, and it restarts after firing).
+  Thresholds are still the plan's starting values; phase 4 tunes them on real input.
+
+- **Debug panel** (`?debug`, dev only): the lazy import sits behind `import.meta.env.DEV`, and the
+  production build was checked to contain no trace of it. It re-renders on a 100 ms timer and reads
+  the live `target` on every render, so it never lags the `reveal` React already shows.
+
+- **Verified** (headless Chrome, dev server): the arrow key walks all 8 sections as before; the four
+  unchanged logs match and the Staircase shows its new line; no panel without `?debug`; with it, the
+  panel shows section, play state and lucidity, keeping a fragment updates lucidity and is announced,
+  survives a reload, is absent in a new tab, and "reset night" clears fragments and play state;
+  setting a scrub stop updates `target` and `reveal`; no console errors. `pnpm lint`, `pnpm build`
+  and `pnpm test` clean.
+
+## Night 2 — Phase 1
+
+- **The gate lives in `night/gate.js`**, not in `play.js` as PLAN-2.md 3.2 sketches: it needs the
+  NIGHT config (each dream's `play`), and `config.js` imports the sections, whose scenes import
+  `play.js` — putting it in `play.js` would close that cycle. `App.jsx` builds it once
+  (`createNightGate(NIGHT)`) and passes it only when WebGL2 exists; without it every gesture changes
+  section, exactly as before (verified with WebGL disabled).
+
+- **`ScrollSections` stays generic**: one optional `gate` prop, four methods by index (`canLeave`,
+  `consume`, `prepare`, `reset`). `consume` gets a `step` flag — the start of a wheel gesture, a
+  touch crossing the 40 px swipe threshold, a key press — so beats advance once per gesture while a
+  scrub follows every delta. The edge rule is the manual's: the gesture that brings a gated dream to
+  its end never also melts it; a fresh one does (a 60-event trackpad-style flick past the end stays
+  put, verified).
+
+- **Beats swallow gestures while a beat plays** (`beatDuration`, 150 ms under reduced motion), and
+  keys in a scrub tween to the next stop over 0.8 s with power2.inOut. PageUp/PageDown behave like the
+  arrows in a gated dream (one step / one stop); only the manual pages by a screen.
+
+- **Touch needed its own flag.** The first cut marked the touch `consumed` when it crossed the swipe
+  threshold, and `handleTouchMove` returns early on `consumed` — so a scrub stopped following the
+  finger after 40 px (a 300 px swipe moved the stair 0.046 instead of 0.278). A gated beat now sets
+  `stepped`; `consumed` keeps meaning "this touch changed section".
+
+- **`snap` became a counter (`snaps`)**, not a boolean: a scene may read the entry from more than one
+  place, and the first reader clearing a flag would hide the snap from the rest. Scenes use the new
+  `three/usePlayProgress(id, smoothTime)`, which eases toward the target, jumps on a snap, and calls
+  R3F's `invalidate()` on every change — a neighbour's canvas renders on demand, and it must draw its
+  prepared state before the melt samples it.
+
+- **Neighbours are prepared before they're captured** (the pre-capture effect), and a prepare that
+  changed state invalidates that section's capture. Entering backward therefore shows the end state
+  from the melt's first frame: screenshots mid-melt Fall → Ocean show the room already at its last
+  water level, matching the settled frame. Consequence worth knowing: coming back from Wake you
+  enter the Fall at its end and walk its stops back to 0 before it lets you leave — as designed
+  (PLAN-2.md 3.3), but it's four gestures, not one.
+
+- **Captures carry a generation per section**: `invalidate(index)` bumps it, and a capture or
+  overlay still in flight from before won't land in the cache afterwards. `recapture(index)` (on the
+  ScrollSections context) is in place — debounced 250 ms, deferred while anything moves, run in idle
+  time — but nothing calls it until the transcript (phase 2).
+
+- **A gesture that arrives before its captures is held, not dropped** (600 ms). In headless software
+  GL, a key pressed the instant Whale settled — House only just mounted and still capturing — went
+  through 3/3 times.
+
+- **Provisional scenes, to be replaced:** the Staircase shows a bare sphere on the moon's orbit
+  (phase 3 makes it the real moon), and the Ocean's water no longer rises and falls on a 12 s cycle —
+  it rises one level per beat, with the last level still just under the camera (phase 6 takes it
+  under the surface, adds the breathing). The Ocean's poster still shows the old cyclic level; posters
+  are regenerated in phase 9.
+
+- **Verified** (headless Chrome, dev server, ?debug panel for state): wheel scrubs the stair (900 px
+  ≈ 1/3); the gesture reaching the end doesn't melt, a fresh one does; backward entry lands at the
+  end, forward at 0; arrows tween between stops and leave at the ends; a 300 px touch swipe moves the
+  stair by the ×2.5 gain; the ocean takes one beat per long wheel gesture, swallows gestures during a
+  beat, stops at beat 3, melts on the next fresh gesture, and is entered backward at beat 3; the
+  fall's first key stop is 0.25; the manual detour still returns to the hero; no WebGL2 → no gate;
+  no console errors. `pnpm lint`, `pnpm build`, `pnpm test` clean. Not verified: real touch hardware
+  and Safari/Firefox.
+
+## Night 2 — Phase 2
+
+- **The transcript lays out the whole log, not only the revealed lines** (PLAN-2.md 4.1 says
+  "revealed"): everything not typed yet — unrevealed lines included — is transparent text in place.
+  The title slot is anchored to the bottom of the screen, so a log that grew line by line would push
+  the dream's title upward every time the scrub revealed a sentence. Laid out whole, nothing moves.
+
+- **What was typed lasts the night** (`typed` on the play entry): coming back to a dream shows its
+  log as far as it got, without retyping. The section above the current one — the one you'd enter
+  moving back — is filled in at once, so a backward melt shows the whole log (the plan's "entering
+  backward, everything is revealed and typed"). A dream reset to its start by a jump keeps what was
+  typed but only shows up to its revealed lines. REPLAY THE NIGHT zeroes it.
+
+- **Every time the visible text settles** (a batch typed, a line waiting for an event, a neighbour
+  filled in) the transcript calls `recapture(index)` from phase 1, so the next melt out of that
+  dream shows exactly what's on screen. On arrival the capture shows the log blank and typing starts
+  after the melt: no flicker (verified: the stair's log reads '' as it arrives).
+
+- **The glitch is decided once per dream per night**, the first time its transcript types, from the
+  lucidity at that moment (100/80/60/40/20/0 % for 0-5). It mistypes, holds 350 ms, erases, carries
+  on; the screen-reader copy never has it.
+
+- **The caret has zero net width** (`▍` with `margin-right: -1ch` in the monospaced log), so it can
+  appear and vanish without reflowing a line. It lingers 1.5 s after typing, and stays for good while
+  the next line waits for an event (the whale's "You wave,").
+
+- **DreamAction fires the dream's `'action'` event** (and marks the dream as touched) — what that
+  means is each scene's business in its own phase. It's excluded from every melt capture by its class
+  (`dream-action`), so even a recapture taken while it has focus doesn't show it (verified mid-melt).
+
+- **Prompts** show 6 s into a dream with a `hint` (stair, whale, house) while its fragment isn't kept
+  and the visitor hasn't `markTouched()` it (scenes call that from phase 3 on), for 5 s, once per
+  dream per night.
+
+- **Tape progress and the scrubbed clock stay out of React's frame loop**: the bar's fill is written
+  to the DOM each frame; the clock re-renders only when its minute (or the counter's second)
+  changes. `ScrambleCounter` takes a `group` (the section index) and only scrambles when the group
+  changed — a scrub moving the counter just updates it. Clocks: the Staircase goes 02:47 → 03:04,
+  the Fall 06:41 → 07:01 (counter 00:52:17 → 00:58:31).
+
+- **Verified** (headless Chrome, dev server, ?debug): no lucidity on hero/manual, shown in dreams and
+  Wake; stair blank on arrival, types only line 1 at progress 0, lines 2-3 at 0.66 with "noon"
+  typed and corrected; screen-reader text complete and unglitched; HUD clock 02:58 at 0.66 and the
+  tape filled to 0.66, full at the end; the whale waits at "You wave," with the caret, shows its
+  prompt at 6 s, finishes the line on the wave event; keeping a fragment fills a segment that
+  blinks; Tab from the stage reveals "Wave at the whale", and a melt taken with it focused doesn't
+  show it; a re-entered dream isn't retyped; at lucidity 5 no glitch and no prompt; reduced motion
+  shows revealed lines at once; no console errors. `pnpm lint` (no warnings), `pnpm build`,
+  `pnpm test` clean.
+
+- **After review — the glitch is gone, and the title can't move** (user request). In the Ocean,
+  "politely" typed first as "quietly" (shorter) changed where the line broke; the title slot is
+  anchored to the bottom, so the log gaining or losing a line pushed "The Ocean Indoors" up and
+  down. The glitch was removed entirely (code, `glitches` in dreams.js, the lucidity odds —
+  PLAN-2.md 4.1, 4.2 and 13.4 updated), and the transcript's layout was made independent of its
+  typing: an invisible copy of the whole log (`visibility: hidden`) sets the block's size, and the
+  typed text is an absolutely positioned overlay on top of it — still with the not-yet-typed rest
+  in place, transparent, so no word jumps lines as it completes. Nothing the typing does can
+  change the block's height now. The phase 2 notes above about the glitch describe what was built
+  first; this entry supersedes them. Verified: the title's top measured every 40 ms stayed within
+  0.00 px from arrival through all four Ocean beats and across the Staircase scrub, at 1440 × 900
+  and 390 × 844; the phase 2 checks still all pass.
+
+## Night 2 — Phase 3
+
+- **The camera moved up** (`[0, -1.5, 6.5]` → `[0, 2.6, 8]`, looking at `[0, 4.4, 0]` instead of
+  `[0, 3.5, 0]`). From the old low angle the camera saw the treads from underneath, and the figure
+  standing on them was hidden by its own step and the ones in front — a first screenshot showed
+  barely a head. Nearly level with the climber, the treads are almost edge-on and the whole figure
+  reads, still with the spiral rising above. The climber stands on step 44 at `-π/2 + 0.7` (front,
+  right of the column), above the title and clear of its last letters; on a 390 px phone it's large
+  and above the title too. PLAN-2.md 6.1 updated.
+
+- **No foot slip, by construction.** Everything about the figure is computed relative to your place
+  on the stair: `n` (steps the stair has turned), `s` (where you are relative to your place) and `u`
+  (stride phase, 0-2). A planted foot's stair index is always a whole step, so it rides its tread
+  whether you walk (cadence 1), stand (0) or catch up (1.8 / 3). Legs are thigh + shin with a
+  forward-bending knee (two-bone IK to each foot's spot); arms swing against them. The stair's own
+  turn wraps every 12 steps (one landing), invisibly.
+
+- **Stopping finishes the step under way**, then stands; the stair carries you down (`s` falls a
+  step every 2 s, floored three landings down). Releasing climbs back at 1.8× (3× past a landing).
+  Back in place after being carried 2+ steps keeps the fragment. Holding is `onHold` (250 ms, 10 px
+  tolerance) — a swipe that scrubs never counts (verified with four touch swipes). Only the current,
+  settled Staircase listens (`live`, passed from the section, since its neighbours' scenes are
+  mounted too).
+
+- **DreamAction needed a repeatable signal.** Its first version fired a play event, and events
+  happen once a night — a second "Stop climbing" would have done nothing. `play.js` now has
+  `act(id)` / `subscribeAction()`; DreamAction calls `act`. The button stops the climber for 6.5 s
+  (PLAN-2.md said 4 s, which can't carry you the 2 steps the fragment needs once finishing the step
+  under way is counted).
+
+- **The moon starts back-right and high** (y 4.5 → 7 over the scrub; the plan had front-left, y 1 →
+  6): with the new camera, front-left put it on top of the title and the log. It's a sphere, an
+  additive halo and a `SpotLight` with shadows aimed at your place; the tint's own light drops to a
+  remnant (hemisphere 0.07, directional 0.35).
+
+- **Shadows only here**: `shadows` threads DreamFrame → SceneCanvas → LiveCanvas → `<Canvas>`.
+  Casters: column, steps, window frames, figure; receivers: steps, column. Shadow map 1024 (512 under
+  700 px wide), bias −0.0006 / normalBias 0.03. Measured on this machine's GPU (RTX 5080, D3D11):
+  144 fps in the Staircase with shadows, 142 in the Whale without — both at the display's refresh.
+  Not measured: a laptop iGPU or a phone; the fallback (shadows off on small screens) is one line if
+  needed.
+
+- **Posters are stale for the Staircase** (new camera). They're regenerated in phase 9 — and
+  `scripts/posters.mjs` will need to step through the gated dreams' stops, since one arrow press no
+  longer leaves the Staircase.
+
+- **Verified** (headless Chrome, ?debug): screenshots at progress 0 / 0.33 / 0.66 / 1, held and
+  released, at 1440 × 900 and 390 × 844; a 2 s hold doesn't earn the fragment, an 8 s hold and the
+  climb back does, and the prompt is gone after holding; the keyboard "Stop climbing" earns it; touch
+  swipes scrub to 0.89 without ever stopping the climber; the stair still melts into the whale; no
+  console errors. `pnpm lint` (no warnings), `pnpm build`, `pnpm test` clean.
+
+- **After review — the windows are empty frames** (user request): each landing's window used to
+  hold its own painted moon disc; now that the moon is a real, moving light, those copies
+  competed with it. The frames stay; the only moon is the one orbiting the stair. The log still
+  reads "…and the same moon in it", which now points at the one moon seen through them — part of
+  the narrative pass the user plans anyway.
+
+## Night 2 — Phase 4
+
+- **The wave**: `createWaveDetector` fed `pointer.x` every frame while the Whale is current and
+  settled (`live`, as in the Staircase). A long scripted session of ordinary movement — sweeps,
+  pauses, hesitations — never fired it; a quick side-to-side shake at 12% of the screen width does,
+  with the mouse and on a 390 px screen. The keyboard "Wave at the whale" goes through the same
+  function via `act()`.
+
+- **The first wave** triggers the `wave` event (the log's last line types), keeps the fragment,
+  and plays the reaction: 1.5 s off the route toward a point lower and closer (landscape
+  `[0, 8.6, 1.5]`; portrait `[0, 9.4, -2]` at 0.55 scale so the flank fits), the right flank and eye
+  turned to the camera (slerp from the path orientation), 3 s looking with a blink at 1.4 s, 2 s back.
+  The route's own clock slows by the same weight, so the whale picks up where it left — no jump.
+  Later waves only turn the eye toward you (a yaw toward the camera in the whale's own frame) and
+  blink. Reduced motion: the same reaction, 1.6× slower.
+
+- **The windows' wave became a sweep of light** (PLAN-2.md 6.2 updated). Built as specified, the
+  lit windows never showed: from this camera each row hides the fronts behind it and the first row's
+  sit below the frame — screenshots mid-wave looked exactly like rest. Moving windows up the facades
+  and out of the fog didn't help either. What the eye does see is the skyline's front faces, so a warm
+  point light now runs side to side in front of the first row (3 s, intensity 70, reach 11): the
+  fronts flare as it passes and the whale above catches a glow from below. Tuned by screenshots
+  (110 washed the whale white; reach 8 never reached the fronts). The windows are back to exactly
+  what they were.
+
+- **The watcher** (a capsule and a tipped-back head, bone) stands on the tallest rooftop near
+  `(5, -4)` on a wide screen — right of the copy — or near `(1.2, -3)` on a narrow one; at 1.8× it
+  reads next to the skyline without competing with the whale. It fades in when the whale starts
+  looking, and is there from the start if the night already has the `wave` event.
+
+- **Shadows warning**: `shadows` (true) asks R3F for PCFSoftShadowMap, which three r186 removed — it
+  logged "PCFSoftShadowMap has been removed" every frame in the Staircase. The Staircase now asks for
+  `shadows="percentage"` (PCFShadowMap) directly. (A warning, not an error: phase 3's console check
+  only counted errors.)
+
+- **Verified** (headless Chrome, ?debug): normal movement ≠ wave; a wave keeps the fragment and
+  finishes the log's line; a second wave adds nothing; coming back from the House the log is already
+  complete; the keyboard action keeps it; a narrow-screen wave works; screenshots of the whale
+  looking (desktop and phone), the light sweep mid-way and after; no console errors or warnings.
+  `pnpm lint`, `pnpm build`, `pnpm test` clean.
+
+- **After review — a reload is a new night** (user report: after reloading, waving did nothing but
+  glance, and the light sweep could never be seen again). Phase 0 persisted the recording and the
+  scene events in sessionStorage, so a reload kept "you already waved" — and the Whale's first
+  reaction, which happens once a night by design (PLAN-2.md 6.2), was gone for the rest of the tab's
+  life. The night now lives in memory only (`recording.js` and `play.js` events), so reloading
+  starts over; within one visit the full reaction still plays once, and the ?debug "reset night"
+  replays it without reloading. PLAN-2.md 3.5 and phase 0 updated. Verified: wave → fragment and full
+  log; reload → blank recording, log waiting at "You wave,", no events; wave again → the whole
+  reaction and the fragment again; reset night clears it; no console errors or warnings.
+
+- **A test-reading bug, caught while checking this**: the phase 4 script read the whale's log as the
+  whole overlay's text, which includes the transparent, not-yet-typed rest — so "the log finishes its
+  line" and "coming back, the log is already complete" would have passed with nothing typed. Fixed
+  to subtract the rest; both still pass.
+
+## Night 2 — Phase 5
+
+- **One shared hallway state**, written by a single frame loop in the scene (`useHouse`) and read by
+  the doors, the floor spills, the kitchen and the shadows: the creep offset, each door's angle and
+  "open until", the kitchen's stretch, and a fixed pool of 10 shadows. No React re-renders per frame.
+
+- **The wrap carries the doors along.** The hallway group jumps back one bay when its offset wraps;
+  the door that stood at a spot is then two indices closer (`i → i − 2`). Door angles and open timers
+  are shifted with `copyWithin(0, 2)` at that moment, so an open door never pops a bay away. Shadows
+  live in world space (PLAN-2.md 6.3) and add the creep to their own z, so they never jump either.
+
+- **Clicks**: `onTap` + the projected centre of every door, nearest within 0.15 NDC (no raycast
+  against the instanced leaves — the projection the hover already used is enough and cheaper). The
+  kitchen doorway is checked first, against its projected rectangle as currently drawn (stretched
+  or not). Only the current, settled House listens (`live`).
+
+- **A shadow's life**: waits 0.4 s after its door swings (1.35 rad), steps out of the room 0.6 s,
+  turns into a lane 0.4 s, walks 0.6-0.9 u/s with a 2 Hz bob. 60 % walk to the kitchen and fade into
+  its light over the last 3 → 0.8 units before it (colour toward the kitchen's, opacity to 0, a
+  touch taller); the rest walk toward you and fade out past z 1.2. Lanes ±0.35 with 30 % mixing. A
+  door closes on its own after 6 s. Spontaneous doors open every 7-12 s between z −7 and −16.
+
+- **The fragment** is kept when a shadow you released (click, tap or "Open a door") is lost in the
+  kitchen's light; spontaneous shadows never count (verified: 30 s of watching, nothing). "Open a
+  door" picks the closed door nearest 4.5 units ahead and always sends its shadow to the kitchen.
+
+- **The stretch**: the kitchen draws back 6 units in 0.8 s (ease-out) and comes home over 6 s; the
+  hallway grew from 11 to 14 bays (floor and ceiling with it) so its end never shows. Under reduced
+  motion the kitchen's light dims and recovers instead of moving.
+
+- **The open door's spill of light** reaches up to 4× further into the hallway as the door opens
+  (the spills are no longer static instances).
+
+- **Verified** (headless Chrome, ?debug): screenshots at rest, a door opening with its shadow
+  stepping out, shadows walking into the light, the kitchen stretched — desktop and phone; clicking
+  three doors → one of your shadows reaches the kitchen and keeps the fragment; the keyboard "Open a
+  door" does too; the prompt is gone after a click; the house still leaves for the manual; no console
+  errors or warnings. `pnpm lint`, `pnpm build`, `pnpm test` clean. Not verified: that a button
+  click never opens a door (onTap ignores interactive targets by construction; not observable from
+  the test without exposing state).
+
+## Night 2 — Phase 6
+
+- **Four levels, never crossing the surface on their own**: ankles, waist, 0.25 under your eyes,
+  0.3 over them (the camera sits at 1.3). The breathing (±0.08 over 8 s) plus the swell (±0.11)
+  stays inside those margins, so only a beat takes you under or back up. Each beat's rise eases over
+  ~1.6 s (0.15 s under reduced motion, where it reads as a quick change).
+
+- **Under the surface gets deeper, not paler.** The first pass thickened the fog (0.07 → 0.14 in the
+  plan) in the dream's own tint — a light blue — and everything washed out to pale blue, taking the
+  title's and the log's contrast with it. The fog now also turns from the tint to the deep background
+  blue as you go under, at 0.1; screenshots under water keep both legible, on desktop and phone.
+  Everything under-water (fog, background, floor caustics, the window's shafts) blends by the
+  water's height across your eyes, not by time, so going back up undoes it the same way.
+
+- **The lamp** (the fragment's reward) is a warm point light in the shade plus an emissive shade,
+  in `--dream-stair`. It floats at the surface, above your eyes, so from below the shade itself is
+  hidden — its light had to be strong enough (18, reach 8) to tint the walls, the window frame and
+  the chair's legs amber. It flickers on over 1.2 s, stays lit for the night, and goes dark again on
+  a new night (REPLAY or ?debug reset). Staying under means the last beat with your eyes fully below
+  for 6 s while the dream is current; coming up, or leaving, starts the count over. "Stay under" from
+  the keyboard takes the water all the way up and the count runs the same.
+
+- **Ripples push what floats**: the surface simulation moved into the scene (`useRipples`), which
+  steps it; Water only draws it and the furniture reads its slope to drift (damped, within 1.4 of its
+  spot). Under water a moving pointer lets out bubbles (a pool of 40) that rise to the surface; none
+  under reduced motion. The surface is double-sided so it reads from below.
+
+- **Lint**: the first cut had children mutating things they received (the ripple buffers, `useMemo`
+  scratch objects, the scene from `useThree`); each object is now mutated only where it's owned
+  (scratch in refs, the scene through the frame state).
+
+- **Verified** (headless Chrome, ?debug): four gestures take the water to beat 3; screenshots of each
+  level, under water with bubbles, and with the lamp lit, on desktop and phone; six seconds under
+  keeps the fragment; leaving for the fall and coming back lands under water again; no console errors
+  or warnings. `pnpm lint` (no warnings), `pnpm build`, `pnpm test` clean.
+
+- **After review — House clicks stopped working (intermittent), and a second bug found on the way.**
+  - *House*: clicking a door or the kitchen did nothing. Instrumented: the scene had mounted as the
+    Whale's neighbour with `live={false}` and, in failing runs, never received `live={true}` once the
+    House became current — so it never subscribed to taps. The prop travelled section → DreamFrame →
+    SceneCanvas → LiveCanvas → R3F `<Canvas>` (its own reconciler, behind a lazy Suspense) → scene,
+    and that last hop sometimes didn't land; which run failed depended on timing (adding a log in
+    the section made it pass). Rather than chase the race, the prop is gone: `night/stage.js` is a
+    tiny store of the section on screen and whether it's settled, written by App from
+    ScrollSections' `onStateChange`, and each scene reads `useLive(id)` itself — the update now starts
+    inside the scene's own tree. Applied to all four scenes that listen (Stair, Whale, House, Ocean).
+    Verified: the House checks pass 3/3; Whale and Ocean checks pass.
+  - *Staircase*: re-running its checks after that change showed the fragment sometimes not kept after
+    climbing back — also on the real GPU (2 of 3 runs). Cause: catching up ran while `s < −0.001` and
+    the fragment was awarded on reaching `s ≥ 0`; a step landing `s` inside (−0.001, 0) left the
+    figure "not catching up" and never "back" — a thousandth of a step short of its place forever,
+    more likely the higher the frame rate. Now it catches up while `s < 0` and arrives within 1e-4.
+    Verified 4/4 on the GPU, all seven checks each time. (Phase 3's single passing run was luck.)
+
+- **After review — two fragments come faster** (user request):
+  - *Staircase*: kept after **5 s stopped** (holding, or "Stop climbing", which now stops 5.5 s),
+    counted in real seconds — no longer when the figure climbs back to its place after being carried
+    2 steps. The stair still carries you and you still climb back; only the reward moved earlier.
+  - *House*: kept **5 s after someone steps out of a door you opened** (click, tap or "Open a
+    door") — no longer when your shadow reaches the kitchen's light (~20 s of walking, long enough to
+    move on to the next dream without it). Spontaneous shadows still never count.
+  - PLAN-2.md 6.1, 6.3 and 13.2 updated. Measured (GPU): a 2 s hold earns nothing; holding earns it
+    at 5.3 s; "Stop climbing" at 5.1 s; a clicked door at 5.4 s; no console errors or warnings.
+
+## Night 2 — Phase 7
+
+- **The scroll is depth**: fall speed × (1 + 1.5·progress) (and × 0.4 while you look up), speed lines
+  0.35 → 0.6 opacity, the HUD clock 06:41 → 07:01 and counter to 00:58:31 (phase 2's `clockTo` /
+  `counterTo`).
+
+- **The alarm**: a pool of 12 thin `--rec` rings rising from below out of the light, one every 3 s at
+  the top down to three a second at the bottom (¼ as often under reduced motion); past 0.6 each ring
+  also pulses the fog toward `--rec`. In the HUD, a new `hud.recTo` (0.3 for the Fall) runs the REC
+  dot's blink from 1.2 s down to it with the scrub — a CSS variable set on the HUD only, in 0.05 s
+  steps, so TapeLabel's REC dots inside the sections keep their pace.
+
+- **The light below doesn't fill the frame** (PLAN-2.md 6.5 said it nearly would). Screenshots at the
+  bottom showed it covering the title and the log — bone on bone, unreadable — and on a phone, where
+  they span the whole width, covering the title outright. It's capped (scale 34, set 2.5 right) on a
+  wide screen, and smaller (15) and pushed up the frame on a portrait one; the rings rise from under
+  it. The white burn into Wake still starts from it. PLAN-2.md 6.5 updated.
+
+- **Letting go**: pointer still 3 s (not pressed), progress under 0.9, the Fall current → the camera
+  turns up (eased, 1.8 s), the tremor and steering fade, the fall slows. The fragment and the log's
+  `let-go` event come when the turn passes 0.9 — at 0.97 (the first cut) the eased turn took ~4.7 s
+  more, ~7.7 s from the last move; 0.9 looks the same and arrives ~1 s sooner. "Let go" from the
+  keyboard looks up for 5 s.
+
+- **The night above is drawn locally, not by reusing WhaleBody and Lamp** (as PLAN-2.md 6.5 sketched):
+  those use lit, fogged materials; the silhouettes need flat unlit colour and their own opacity. Four
+  small groups — a spiral stair, a whale, a lit door, the lamp — kept ones in their dream's tint with a
+  halo (the lamp amber), the rest as cut-outs in `--line-strong` (`--line` was invisible against the
+  sky). Placed clear of the title block; on a portrait screen they move up. Only drawn while looking up.
+
+- **Verified** (headless Chrome on the GPU, ?debug): entered from Wake the Fall is at its bottom
+  (REC 0.30 s), at its top 1.20 s; keeping still turns you up, keeps the fragment and types "being let
+  go of"; "Let go" from the keyboard keeps it; the Fall still melts into Wake; screenshots at 0 / 0.5 /
+  1, looking up (with stair, whale and ocean kept) and the burn, on desktop and phone — title and log
+  readable in all of them; no console errors or warnings. `pnpm lint`, `pnpm build`, `pnpm test`
+  clean.
+
+- **After review — the Fall is scroll only** (user request: scrolling and moving the pointer at the
+  same time was awkward). The pointer no longer steers: the camera follows its own path, two slow
+  sine waves per axis driven by the distance fallen (so it weaves faster the faster you fall), looks
+  8 units ahead along it and banks into the curves (up to 0.22 rad). Letting go is no longer "keep
+  still 3 s": it's a stretch of the scroll — the camera turns up by itself from 0.4, is fully up from
+  0.5 to 0.62, back down by 0.72 — so the arrows' 0.5 stop lands in it and a wheel flick passing
+  through turns up on the way. The fragment is kept the first time the turn passes 0.9, checked
+  against the recording rather than a local flag (so a new night can keep it again without
+  remounting). "Let go" from the keyboard scrolls to 0.55. Reduced motion: the path at 30%, no bank.
+  PLAN-2.md 6.5 updated. Verified (GPU, twice): keeping still at the top keeps nothing; the 0.5 stop
+  turns up and keeps it; one quick wheel gesture 0 → 0.78 keeps it; the keyboard keeps it; two
+  screenshots 1.5 s apart without input show the view moved and banked; no console errors or
+  warnings.
+
+- **After review — through the rings, and the last stretch on its own** (user request):
+  - *Through the rings*: the rings rose centred under the light while the camera wove elsewhere, so
+    they went past to one side. Each ring is now centred on where the camera will be when it reaches
+    its height (the path at `distance + speed · (eye − y) / rise`), keeps rising past the camera (gone
+    3 units above it) and fades as it goes, and the camera looks nearly straight down its own column —
+    so every ring comes up in the middle of the view and sweeps out past the edges as you fall through
+    it. The camera and the rings share one speed and one weave amplitude, computed once per frame.
+  - *Losing control*: crossing 0.75 going down, the scene takes the scroll (`play.setLocked`; the gate
+    swallows wheel, touch and keys while it's set), drives the progress to 1 accelerating (k², 4 s),
+    and 0.3 s later asks to move on — `night/stage.js requestNavigate('wake')`, which the DreamFall
+    section (the one with ScrollSections' `goTo`) carries out: the white-burn melt into Wake. Not
+    triggered when you arrive already past 0.75 (from Wake), which would bounce you straight back.
+    Verified (GPU): from Wake, 7 s at the bottom and still in the Fall; from the top, three ArrowDowns
+    to 0.75 → in Wake 6.0 s later with an ArrowUp mid-way ignored; screenshots of the rings concentric
+    in the middle of the view during the descent; no console errors or warnings.
+  - PLAN-2.md 6.5 updated.
+
+## Night 2 — Phase 8
+
+- **Wake prints the recording** (`night/Wake/Wake.jsx`, PLAN-2.md 7): a line for how much you kept
+  (0 / 1–2 / 3–4 / 5, and one for no WebGL2) and the tape's log, one row per dream — `Tape 0N · Title`
+  in mono, then the kept fragment in serif italic or `— no signal —` in `--ink-faint`. The machine
+  types it: heads at 70 cps with a 250 ms pause, bodies at 45 cps, 120 ms between rows. Each segment
+  is its full text with the unprinted rest in `color: transparent`, so nothing moves as it prints. It
+  prints only while Wake is current and settled; anywhere else it's blank, so the melt in shows it
+  empty and every arrival prints it again. Reduced motion: all of it at once. The typed copy is
+  `aria-hidden`; each row carries a screen-reader line with the whole entry. The buttons fade in
+  (0.4 s) once printing is done. On ≤640px each row is two lines, no leader.
+- **Dream titles in `night/dreams.js`** (a copy of config.js's): the log and the saved image need them,
+  and `dreams.js` is the per-dream copy both already read.
+- **The ejected tape carries the night**: `Night of Sep 25 · 3/5 kept`. `useTapeLabel` redraws the same
+  texture on a new label, at the largest size (56 → 18px) that fits. A change in the count retakes
+  Wake's melt capture (`recapture`), so a fragment kept in the Fall a second before the melt shows in it.
+- **Save the tape** (`night/Wake/saveTape.js`, PLAN-2.md 7.1): a 1200×630 cassette label on paper, drawn
+  on a 2D canvas (paper tokens read off a hidden `data-theme="paper"` probe; the fonts loaded
+  explicitly first). Shared through the system sheet where the browser can share files, downloaded as
+  `onirick-night-YYYY-MM-DD.png` otherwise; closing the sheet is not an error. "Tape saved." is
+  announced.
+- **Replay the night** goes to the hero and resets the recording once the hero has settled
+  (`stage.onceSettledAt`) — first tried as a fixed 1.4 s timer, which a check caught still at 3/5.
+- **Layout**: with the log, the copy outgrew the top 70% and ran over the DR-1. The title is one line
+  on desktop (64px max, the column 640px wide), gaps 16px; on phones smaller type (title 36px, tier
+  18px, body 13px, heads 11px) and tighter gaps, Replay on its own row and the other two beside each
+  other. Every row has one line height, kept or not.
+- **Verified** (headless Chrome on the GPU, ?debug, desktop and 390×844): with 0, 3 and 5 kept, blank
+  on arrival, the right tier line and rows, `— no signal —` where missing, screen-reader rows,
+  buttons after printing; Save downloads the PNG and announces it; Replay leaves lucidity 0/5; a
+  fragment kept in the Fall with Wake cached shows as 4/5 on the tape mid-melt; screenshots of the
+  printing, the finished screen and the saved image; no console errors or warnings. `pnpm lint`,
+  `pnpm build`, `pnpm test` clean.
+
+## Night 2 — Phase 9
+
+- **Posters regenerated** (`pnpm posters`), every dream at its state 0 — the Stair's new camera, the
+  moon and the figure; the Fall looking down through its rings. The script walked the night one key per
+  section, which a gated dream now spends on its own stops: it keeps pressing (up to 30 times, 2 s
+  each) until the next section enters, having taken the poster on arrival. The Fall carries itself
+  into Wake. Wake's poster bakes the tape label of the day it was made; it's only seen without WebGL2,
+  where the count is 0/5 anyway.
+- **Overlay captures were running the chroma key on every section** (found profiling): the capture
+  clears the background of the clone's first child, which since the capture wrapper
+  (`.scroll-sections-capture`) is that wrapper, not the section — so every overlay came back opaque
+  and the full-canvas pass (~85 ms on a throttled phone) ran each time. `prepareOverlay` now clears
+  the first-child chain down to the section. Checked no section has another opaque background the key
+  used to remove (only buttons and the REC dot, which are content).
+- **Save the tape loads on its first click** (`import('./saveTape')`), out of the first chunk.
+- **README**: the night as a game (fragments, Wake, Save the tape), the gate's four methods and the
+  edge rule, the play models, how to add one, the transcript and `?debug`; the new modules in the tree.
+- **Lighthouse mobile (vite preview, Lighthouse 12, this machine): Performance 79–80, Accessibility
+  100**, FCP 1.5 s, LCP 4.0 s, TBT 320–350 ms, CLS 0.001. Night 1 (`develop`) measured the same day on
+  the same machine: 79–81, TBT 330–350 ms — the 82–83 in Phase 6 of Night 1 was a different
+  environment, not a regression. What's left: the first R3F frame (compiling the hero's and Stair's
+  shaders together, ~200 ms unthrottled) and the WebGL2 probe (before FCP). Turning the Stair's
+  shadows off changed nothing measurable. `charset`/`robots.txt` are still the deploy's (`vite
+  preview` sends no charset header). Worth re-measuring with PageSpeed Insights on the deployed site.
+- **QA** (PLAN-2.md 10), Chrome headless on the GPU, desktop and 390px, all passing: a wheel-only
+  night reaches Wake through every section in 47 gestures and keeps 1/5 (the Fall's — by design since
+  its Phase 7 review; the checklist now says so); the key that ends the Stair stays, the next melts;
+  back from the Whale the Stair is at its end (target 1, 4 lines); every fragment by keyboard
+  (DreamAction) → 5/5 and its tier line; HUD lucidity on in the five dreams and Wake, off in the hero
+  and the manual; Replay leaves every dream at 0 with no events; reduced motion, the whole night by
+  keys (36 s) and Wake printed at once; without WebGL2 one key per section and Wake's no-WebGL line.
+  The production build: a whole night and Save the tape on desktop and phone, no console errors or
+  warnings. Frame rate with each dream's costliest state (Stair holding, a House door open, Ocean
+  under, the Fall falling): the display's 144 fps everywhere, p95 7.1 ms; one 42 ms frame in the Whale
+  after a wave.
+- **Not done here — needs real devices:** Safari/Firefox desktop, Safari iOS, Chrome Android, and
+  tuning the numbers marked as starting points (hold times, beat durations, the Fall's window, fog and
+  light levels) by feel on a phone.

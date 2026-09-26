@@ -22,7 +22,9 @@ const Poster = ({ id }) => {
 // `data-scene-ready` on this wrapper (present from the first commit, before
 // the R3F chunk or its <canvas> exist) and `data-async-ready` on the canvas.
 // Offstage sections unmount their scene entirely and show their poster.
-const SceneCanvas = ({ children, camera }) => {
+// `shadows`: turn R3F's shadow maps on for this one scene (PLAN-2.md 6.1 —
+// only the Staircase pays for them).
+const SceneCanvas = ({ children, camera, shadows = false }) => {
   const presence = useSectionPresence();
   const id = useSectionId();
   const wrapRef = useRef(null);
@@ -49,6 +51,7 @@ const SceneCanvas = ({ children, camera }) => {
       <Suspense fallback={null}>
         <LiveCanvas
           camera={camera}
+          shadows={shadows}
           frameloop={presence === 'active' ? 'always' : 'demand'}
           onCreated={({ gl }) => {
             glRef.current = gl;

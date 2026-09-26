@@ -23,8 +23,16 @@ function MarkReady({ onReady }) {
 // lazily loaded chunk, not the first one. `children` are the (lazy) scene;
 // MarkReady sits in the same Suspense, so it only fires once that scene's
 // code has arrived and rendered.
-const LiveCanvas = ({ camera, frameloop, onCreated, onReady, children }) => (
-  <Canvas gl={{ preserveDrawingBuffer: true, antialias: false }} dpr={[1, DPR_CAP]} frameloop={frameloop} flat camera={camera} onCreated={onCreated}>
+const LiveCanvas = ({ camera, frameloop, shadows = false, onCreated, onReady, children }) => (
+  <Canvas
+    gl={{ preserveDrawingBuffer: true, antialias: false }}
+    dpr={[1, DPR_CAP]}
+    frameloop={frameloop}
+    flat
+    shadows={shadows}
+    camera={camera}
+    onCreated={onCreated}
+  >
     <Suspense fallback={null}>
       {children}
       <MarkReady onReady={onReady} />

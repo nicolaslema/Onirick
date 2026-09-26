@@ -4,6 +4,7 @@ import Atmosphere from '../../three/Atmosphere';
 import DR1 from '../../three/DR1';
 import { FLAT, readToken } from '../../three/materials';
 import { useCameraDrift } from '../../three/useCameraDrift';
+import { lucidity, nightLabel, useRecording } from '../recording';
 
 // Frames the DR-1 + ejected tape in the bottom ~30% of the screen, under
 // the copy (Wake.css keeps the copy in the top ~70%).
@@ -38,6 +39,10 @@ const Nightstand = ({ color }) => (
 // low warm light from the left (dawn). Centered, below the copy.
 const WakeScene = ({ camera }) => {
   useCameraDrift({ position: camera.position, target: TARGET });
+  // The ejected tape carries your night: its date and what you kept
+  // (PLAN-2.md 7). The label redraws itself when this changes.
+  const recording = useRecording();
+  const label = `Night of ${nightLabel(recording)} · ${lucidity(recording)}/5 kept`;
   const colors = useMemo(
     () => ({
       dawn: readToken('--dream-stair'),
@@ -53,7 +58,7 @@ const WakeScene = ({ camera }) => {
       <hemisphereLight args={[colors.ink, colors.surface, 0.2]} />
       <directionalLight position={[-4, 0.4, 2]} intensity={2.4} color={colors.dawn} />
       <Nightstand color={colors.table} />
-      <DR1 recording={false} ejected tapeLabel="Tape 05" position={[0, DEVICE_Y, 0]} rotation={[0, -0.25, 0]} />
+      <DR1 recording={false} ejected tapeLabel={label} position={[0, DEVICE_Y, 0]} rotation={[0, -0.25, 0]} />
     </>
   );
 };
