@@ -13,9 +13,10 @@ export const MUSIC = {
   crossfade: 3,
   // Slow and gentle, so the crests (≈ −20 dB RMS in the file, against −37 in
   // its quiet passages) stay background; then a trim, because Web Audio's
-  // compressor adds its own makeup gain. Rendered offline through this chain:
-  // ≈ −36 dB RMS overall on the music layer, quiet passages ≈ −41, crests
-  // ≈ −32 (PLAN-3.md 6).
+  // compressor adds its own makeup gain. Rendered offline through this chain
+  // at a −11.5 trim: ≈ −36 dB RMS overall, quiet passages ≈ −41, crests ≈ −32.
+  // Lowered 6 dB after the user's listen (phase 1): background, accompanying,
+  // ≈ −42 dB RMS on the music layer.
   compress: { threshold: -34, ratio: 2.5, knee: 6, attack: 0.3, release: 1 },
-  trimDb: -11.5
+  trimDb: -17.5
 };

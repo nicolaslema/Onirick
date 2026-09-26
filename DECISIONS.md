@@ -1131,3 +1131,11 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   same machine and day): `develop` 80 / 80, this branch 79 / 79 — within the noise seen in phase 0
   (80/79 on both), Accessibility and SEO 100 on both. `pnpm lint`, `pnpm build`, `pnpm test` (20) clean.
   **Not heard:** the user approves the phase by ear.
+
+- **After review — quieter music, and the machine barely there** (user, after listening to phase 1):
+  the music should accompany, not lead; the motor and hiss covered it. They measured 13 dB under the
+  music (−49.6 vs −37 dB RMS), but RMS isn't loudness: the hiss sits at 3–9 kHz, where the ear is most
+  sensitive, and the motor's saw is all harmonics. Now: music trim −11.5 → −17.5 dB; motor and hiss
+  gains −43/−40 → −62 dB each, the hiss darkened (lowpass 9 → 7 kHz); standby −54 → −70. Measured in
+  the Staircase, 10 s average: music −42.9, motor + hiss −68.8 (≈ 26 dB under the music), master −39.4;
+  standby alone −72.7. PLAN-3.md 6 updated. One-offs (keys, clicks, STOP/eject) unchanged.

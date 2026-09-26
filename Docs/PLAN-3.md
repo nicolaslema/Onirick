@@ -269,14 +269,13 @@ Con la música de fondo, cada sueño suma **pocos sonidos, solo ligados a lo que
 
 ## 6. Mezcla: niveles de partida
 
-~8 dB más bajos que el plan original, después de escuchar la fase 0 (el zumbido de prueba a −28 dB RMS en el master sonaba alto). Puntos de partida, a ajustar de oído y anotar en `DECISIONS.md`. Medidos con el panel (3.8), en dBFS.
+Ajustados dos veces de oído por el usuario: ~8 dB más bajos que el plan original después de la fase 0, y otra vez en la fase 1 (la música −6 dB, de fondo; motor e hiss ~−20 dB, porque tapaban la música aun medidos 13 dB por debajo). Antes: después de escuchar la fase 0 (el zumbido de prueba a −28 dB RMS en el master sonaba alto). Puntos de partida, a ajustar de oído y anotar en `DECISIONS.md`. Medidos con el panel (3.8), en dBFS.
 
 | Capa | RMS objetivo | Pico máximo |
 | --- | --- | --- |
-| Master | −32 a −28 | −14 |
-| Música | −38 a −34 | −20 |
-| Hiss de cinta | −56 | — |
-| Motor | −50 | — |
+| Master | −40 a −36 | −14 |
+| Música | −44 a −40 (medido −42.9) | −20 |
+| Hiss + motor (juntos) | ≈ −69, apenas perceptible, ~25 dB bajo la música | — |
 | Puntuales de escena (pasos, puertas, ballena, agua) | — | −22 |
 | Puntuales de interfaz (botones, fragmento) | — | −28 |
 | Alarma de Fall en su punto más alto | — | −20 |
