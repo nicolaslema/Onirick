@@ -35,14 +35,18 @@ function useBand(enabled) {
     if (!enabled) return undefined;
     const content = gl.domElement.closest('section')?.querySelector('.night-hero-content');
     if (!content) return undefined;
+    // Both top corners: the left one also holds the sound toggle (PLAN-3.md
+    // 3.6), 44px tall on a phone, so it can end lower than the right one.
+    const corners = [...document.querySelectorAll('.onk-hud-tl, .onk-hud-tr')];
     const measure = () => {
-      const hud = document.querySelector('.onk-hud-tr')?.getBoundingClientRect().bottom ?? 70;
+      const hud = corners.length ? Math.max(...corners.map(corner => corner.getBoundingClientRect().bottom)) : 70;
       // offsetTop: layout position, unaffected by the copy's entrance transform
       setBand({ top: hud + BAND_GAP_PX, bottom: content.offsetTop - BAND_GAP_PX });
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(content);
+    corners.forEach(corner => ro.observe(corner));
     return () => ro.disconnect();
   }, [enabled, gl]);
   return band;

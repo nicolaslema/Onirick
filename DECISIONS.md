@@ -990,3 +990,63 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   than a fourth button: on a phone the buttons already take two rows just above the DR-1, and a third
   would run into it again. `--ink` with a dotted underline that turns solid on hover; the buttons'
   focus ring. Verified at 1440 and 390 px: same layout as before, no console errors.
+
+## Sound — Phase 0
+
+- **Branch:** `snd-phase-0-engine` branches straight off `develop`, not off a `plan-3` branch (PLAN-3.md
+  0.3): the user had already merged `Docs/PLAN-3.md` into `develop`, which is all `plan-3` would have
+  carried.
+
+- **`sound/bus.js` has no React** (PLAN-3.md 3.1), so `node --test` can load it; `SoundToggle` holds the
+  `useSyncExternalStore`. First chunk: 241.56 → 242.79 kB (77.63 → 78.01 kB gzip, +0.38 kB) for the bus,
+  the toggle and its CSS; the engine is its own 3.4 kB chunk, loaded on the first click.
+
+- **The toggle lives inside the HUD's top-left corner**, not as a separately positioned sibling
+  (PLAN-3.md 3.6). The plan's point was that it can't sit under `aria-hidden`: the HUD's `aria-hidden`
+  moved from its root to each corner (and, in the top-left one, to `ONIRICK` and `DR-1`), so the toggle
+  is reachable while the rest reads exactly as before. In the corner's own flow it lines up with the HUD
+  without measuring its height in CSS.
+
+- **Where it sits:** under `DR-1` on a wide screen; beside it on a narrow (≤ 640 px) or portrait one.
+  First cut had it on its own line everywhere: with its 44 px touch height the top-left corner ended at
+  122 px instead of 70, and on a 375 × 667 phone the band the hero fits the DR-1 into became too small —
+  the device stopped being drawn (DeviceScene's `MIN_SCALE` rule). Beside `DR-1`, with `margin-block:
+  -14px` keeping the 44 px target without growing the line, both corners end at 70 px again and the hero
+  looks as it did at 390 × 844 and 375 × 667. DeviceScene now measures the lower of both top corners
+  anyway, and observes them.
+
+- **Accessible name "Sound" + `aria-pressed`**; the visible "off"/"on" is `aria-hidden`, or a screen
+  reader would say "Sound on, not pressed". Icon: three bars, a flat line while off, moving while on,
+  still under reduced motion.
+
+- **Safari's gesture rule:** the `AudioContext` is created and resumed synchronously in the click
+  handler, before `import('./engine')` is awaited. Turned off again while the engine loads: it's built,
+  and the context suspended.
+
+- **Ramps never use `cancelAndHoldAtTime`.** The dev meter counted clicks on every fade to silence
+  (hiding the tab, the test hum stopping). Reproduced in an `OfflineAudioContext`: in Chrome, once the
+  previous ramp has finished, `cancelAndHoldAtTime` + a linear ramp jumps (gain 1 → 0.33 in one sample).
+  Reading `param.value`, `cancelScheduledValues` and `setValueAtTime` before the ramp measured a 0.00005
+  max step, mid-ramp and after it — the same as a clean ramp. `synth.hold()` does that always (Firefox
+  has no `cancelAndHoldAtTime` either).
+
+- **Noise loop seam:** the buffer is generated 10 ms long and its first 10 ms fade in from that
+  continuation, so sample 0 follows the last sample. The first cut faded the end toward the *start*,
+  which left a (small) jump. A test for it couldn't tell: this pink noise's own sample-to-sample steps
+  are large (p99 0.24) against the old seam's 0.056, so it was removed rather than kept as a test that
+  can't fail. Noise is seeded (`three/random.js`), same on every load.
+
+- **Dev meters are an AudioWorklet** (`sound/meter.worklet.js`), one per layer and one after the
+  limiter: RMS and peak every 100 ms and a click count (a sample step > 0.02 and > 8× the signal's
+  running RMS step, 128-sample refractory). An `AnalyserNode` polled on a timer would miss samples or
+  count them twice. Loaded from the ?debug panel only; the production build has no trace of it.
+
+- **Verified** (Chrome headless, dev server, ?debug): the toggle comes before the sections in the DOM,
+  shows the focus ring, and Enter and Space turn it on and off without moving the section; on →
+  `running`, off → `suspended` after the fade; test tone peaks at −17.3 dBFS on the master, test hum
+  −31.7 dB RMS on the ambience layer; hiding the tab suspends, showing it resumes; **0 clicks** through
+  on, tone, hum, hide, show, off, on, hum off; manual → HUD and toggle in the paper theme; reload → off;
+  44 px on a touch viewport; no console errors or warnings. Lighthouse mobile (vite preview, Lighthouse
+  12, two runs each, same machine, same day): `develop` 80 / 79, this branch 80 / 79; Accessibility 100,
+  SEO 100, Best Practices 96 on both (`vite preview` sends no charset header; 100 deployed). `pnpm lint`,
+  `pnpm build`, `pnpm test` clean. **Not heard:** the user approves the phase by ear (PLAN-3.md 0.5).

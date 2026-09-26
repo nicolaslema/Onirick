@@ -59,3 +59,13 @@
   border-color: var(--rec);
   color: var(--ink);
 }
+
+/* Sound meters (PLAN-3.md 3.8): one grid row per layer. */
+.debug-meter {
+  display: contents;
+}
+
+.debug-row button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

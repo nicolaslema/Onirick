@@ -4,6 +4,7 @@ import { NIGHT } from '../../night/config';
 import { DREAMS, DREAM_IDS } from '../../night/dreams';
 import { getPlay, setTarget, trigger, usePlay } from '../../night/play';
 import { forget, isKept, keep, lucidity, reset, useRecording } from '../../night/recording';
+import SoundDebug from './SoundDebug';
 import './DebugPanel.css';
 
 // Dev only, with ?debug in the URL (PLAN-2.md 4.5): the current dream's play
@@ -96,6 +97,7 @@ const DebugPanel = ({ currentId }) => {
           reset night
         </button>
       </div>
+      <SoundDebug />
     </aside>
   );
 };

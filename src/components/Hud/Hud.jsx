@@ -4,6 +4,7 @@ import { DREAMS } from '../../night/dreams';
 import { getPlay } from '../../night/play';
 import { isKept, lucidity, useRecording } from '../../night/recording';
 import { useReducedMotion } from '../../three/useReducedMotion';
+import SoundToggle from '../SoundToggle/SoundToggle';
 import ScrambleCounter from './ScrambleCounter';
 import './Hud.css';
 
@@ -203,12 +204,12 @@ const Hud = ({
   lucid = false,
   settled = true
 }) => {
-  // The visual HUD is aria-hidden (it's redundant with each section's own
-  // content, and a four-corner fixed overlay reads as noise to a screen
-  // reader) — this announces the same change in words instead, on every
-  // section change. It has to be a sibling of the aria-hidden div, not
-  // nested inside it: an aria-hidden ancestor suppresses aria-live
-  // descendants too.
+  // The visual HUD is aria-hidden corner by corner (it's redundant with each
+  // section's own content, and a four-corner fixed overlay reads as noise to
+  // a screen reader) — except the sound toggle, the one control in it
+  // (PLAN-3.md 3.6). This announces the section change in words instead. It
+  // has to be a sibling of the aria-hidden corners, not nested inside one:
+  // an aria-hidden ancestor suppresses aria-live descendants too.
   const announce = tape ? `Tape ${String(tape).padStart(2, '0')}, ${title}` : title;
   // "Fragment kept: …" (PLAN-2.md 3.5) gets its own live region, so it never
   // overwrites — or is overwritten by — the section announcement.
@@ -221,23 +222,28 @@ const Hud = ({
 
   return (
     <>
-      <div ref={root} className="onk-hud" data-theme={theme} data-reduced={reduced || undefined} aria-hidden="true">
+      <div ref={root} className="onk-hud" data-theme={theme} data-reduced={reduced || undefined}>
         <div className="onk-hud-tl">
-          <span className="onk-hud-mark">Onirick</span>
-          <span>DR-1</span>
+          <span className="onk-hud-mark" aria-hidden="true">
+            Onirick
+          </span>
+          <div className="onk-hud-device">
+            <span aria-hidden="true">DR-1</span>
+            <SoundToggle />
+          </div>
         </div>
-        <div className="onk-hud-tr">
+        <div className="onk-hud-tr" aria-hidden="true">
           <span className="onk-hud-state">
             {hud.state === 'rec' && <span className="onk-rec" />}
             {STATE_LABEL[hud.state] ?? hud.state}
           </span>
           <span>{clock}</span>
         </div>
-        <div className="onk-hud-bl">
+        <div className="onk-hud-bl" aria-hidden="true">
           <Prompt dream={dream} settled={settled} />
           {lucid && <Lucidity />}
         </div>
-        <div className="onk-hud-br">
+        <div className="onk-hud-br" aria-hidden="true">
           {/* Scrambles when the section changes, not while a scrub moves it second by second. */}
           <ScrambleCounter className="onk-hud-counter" value={counter} group={index} />
           <div className="onk-hud-tapes">
