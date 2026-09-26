@@ -11,7 +11,7 @@
 // ui sounds skip both on purpose — a button's click doesn't bend with the
 // tape or go under water.
 
-import { dbToGain, envelope, filter, gain, oscillator, rampTo } from './synth';
+import { dbToGain, envelope, filter, gain, glideTo, oscillator, rampTo } from './synth';
 
 const FADE_IN = 1; // turning sound on is never a hit (PLAN-3.md 3.2)
 const FADE_BACK = 0.3; // coming back to the tab
@@ -104,6 +104,12 @@ export function createEngine(ctx, bus) {
     depth.linearRampToValueAtTime(0, t + duration);
   }
 
+  // Under water, 0 (the surface is below your ears) to 1 (well under): the
+  // lowpass on everything but the ui closes down to ~500 Hz, as ears do.
+  function setUnder(u) {
+    glideTo(under.frequency, 20000 * (500 / 20000) ** u, 0.05, ctx);
+  }
+
   // The dev panel's test tone (phase 0), still handy to check the chain.
   function testTone() {
     const t = ctx.currentTime + 0.01;
@@ -128,6 +134,7 @@ export function createEngine(ctx, bus) {
     start: () => fadeIn(FADE_IN),
     stop: () => fadeOutAndSuspend(() => !bus.isOn()),
     melt,
+    setUnder,
     testTone,
     onQuiet(listener) {
       quietListeners.add(listener);

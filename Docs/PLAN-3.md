@@ -307,7 +307,9 @@ Hecha en `snd-phase-1-tape`: ver `DECISIONS · Sound — Phase 1`. Desvíos: la 
 
 Hecha en `snd-phase-2-stair-whale`: ver `DECISIONS · Sound — Phase 2`. Niveles: pasos pico ≈ −42 dB, canto ≈ −43 (completo) / −46 (corto), bajo la música como el resto.
 
-### Fase 3: House + Ocean (5.3, 5.5)
+### Fase 3: House + Ocean (5.3, 5.5) ✔ (a aprobar de oído)
+
+Hecha en `snd-phase-3-house-ocean`: ver `DECISIONS · Sound — Phase 3`. Sin el golpe de agua 'sordo' separado: la ola de cada beat ya lo es. Las burbujas van por la capa ui para que el filtro de bajo el agua no las entierre.
 
 ### Fase 4: Fall + Wake (5.6, 5.7)
 

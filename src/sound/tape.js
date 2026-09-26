@@ -8,7 +8,7 @@
 // playbackRate isn't an AudioParam: the start/stop curves are stepped every
 // frame, under a gain fade that hides the steps.
 
-import { dbToGain, gain, rampTo } from './synth';
+import { dbToGain, gain, glideTo, rampTo } from './synth';
 
 const START = { from: 0.6, seconds: 0.6 };
 const STOP = { to: 0.25, seconds: 0.8 };
@@ -42,8 +42,13 @@ export function createTape(ctx, destination, { elements, loopStart = 0, loopEnd,
     out = comp;
   }
   // `ducker`: the music makes room for a dream's moment (duck(), below).
+  // `far`: it recedes — muffled and quieter — as the House's kitchen does.
   const ducker = gain(ctx, 1);
-  out.connect(gain(ctx, dbToGain(trimDb))).connect(ducker).connect(destination);
+  const farTone = ctx.createBiquadFilter();
+  farTone.type = 'lowpass';
+  farTone.frequency.value = 20000;
+  const farLevel = gain(ctx, 1);
+  out.connect(gain(ctx, dbToGain(trimDb))).connect(ducker).connect(farTone).connect(farLevel).connect(destination);
 
   const decks = elements.map(el => {
     tapeLike(el);
@@ -200,6 +205,15 @@ export function createTape(ctx, destination, { elements, loopStart = 0, loopEnd,
     g.linearRampToValueAtTime(1, t + attack + hold + release);
   }
 
+  // How far away the music sounds, 0 (here) to 1 (at the end of a long
+  // hallway): the highs go first, and it drops ~7 dB.
+  let distance = 0;
+  function setDistance(x) {
+    distance = x;
+    glideTo(farTone.frequency, 20000 * (1400 / 20000) ** x, 0.05, ctx);
+    glideTo(farLevel.gain, dbToGain(-7 * x), 0.05, ctx);
+  }
+
   // For the dev panel: jump the running deck (e.g. just before the loop).
   function seek(seconds) {
     cancelCrossing();
@@ -209,7 +223,11 @@ export function createTape(ctx, destination, { elements, loopStart = 0, loopEnd,
 
   return {
     duck,
+    setDistance,
     seek,
+    get distance() {
+      return distance;
+    },
     get loopEnd() {
       return end();
     },

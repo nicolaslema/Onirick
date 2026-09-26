@@ -25,11 +25,12 @@ export function createSound(ctx, env) {
   const { layers } = engine.nodes;
   const machine = createMachine(ctx, layers);
   const tape = createTape(ctx, layers.music, { elements: env.media, ...MUSIC });
-  const dreams = createDreamSounds(ctx, layers.scene);
+  const dreams = createDreamSounds(ctx, layers);
 
   let loud = false;
   let prev = getStage();
   let burnTimer = 0;
+  let nextBubble = 0;
 
   function runTape(action, seconds) {
     if (action === 'start') {
@@ -78,13 +79,37 @@ export function createSound(ctx, env) {
     machine.setStandby(stateOf(target) === 'standby');
   }
 
+  // A dream's sounds only sound while that dream is on screen, or melting
+  // in or out: its scene can run as a neighbour too (PLAN-3.md 5).
+  const heard = id => {
+    const { currentId, transition } = getStage();
+    return currentId === id || transition?.fromId === id || transition?.toId === id;
+  };
+
+  // Continuous values the scenes write (bus.param), applied every frame
+  // while sound is on: how far under water (the Ocean) and how far away the
+  // kitchen is (the House, which takes the music with it). Outside their
+  // dream they ease back to nothing.
+  let frame = 0;
+  const applied = { under: 0, far: 0 };
+  function follow() {
+    const under = heard('ocean') ? env.getParam('ocean.under', 0) : 0;
+    const far = heard('house') ? env.getParam('house.far', 0) : 0;
+    if (Math.abs(under - applied.under) > 0.001) engine.setUnder((applied.under = under));
+    if (Math.abs(far - applied.far) > 0.001) tape.setDistance((applied.far = far));
+    frame = requestAnimationFrame(follow);
+  }
+
   engine.onLoud(() => {
     loud = true;
     sync();
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(follow);
   });
   engine.onQuiet(() => {
     loud = false;
     clearTimeout(burnTimer);
+    cancelAnimationFrame(frame);
     tape.hold();
   });
 
@@ -104,12 +129,6 @@ export function createSound(ctx, env) {
   };
   document.addEventListener('click', onClick, true);
 
-  // A dream's one-offs only sound while that dream is on screen, or melting
-  // in or out: its scene can run as a neighbour too (PLAN-3.md 5).
-  const heard = id => {
-    const { currentId, transition } = getStage();
-    return currentId === id || transition?.fromId === id || transition?.toId === id;
-  };
   const inDream = (id, play) => options => (options?.debug || heard(id)) && play(options);
 
   const CUES = {
@@ -119,6 +138,15 @@ export function createSound(ctx, env) {
     'whale-call': inDream('whale', options => {
       const seconds = dreams.whaleCall(options);
       tape.duck(options?.full === false ? -4 : -6, { attack: 0.6, hold: Math.max(seconds - 1.2, 0), release: 1.8 });
+    }),
+    door: inDream('house', dreams.door),
+    water: inDream('ocean', dreams.water),
+    // The scene lets out ~18 bubbles a second: one sound for some of them.
+    bubble: inDream('ocean', options => {
+      const now = ctx.currentTime;
+      if (!options?.debug && (now < nextBubble || Math.random() < 0.4)) return;
+      nextBubble = now + 0.15;
+      dreams.bubble();
     }),
     'stop-clack': () => machine.stopClack(),
     eject: () => machine.eject(),
@@ -138,6 +166,7 @@ export function createSound(ctx, env) {
       CUES[name]?.(options);
     },
     dispose() {
+      cancelAnimationFrame(frame);
       unsubscribeStage();
       unsubscribeRecording();
       document.removeEventListener('click', onClick, true);

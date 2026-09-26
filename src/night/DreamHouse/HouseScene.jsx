@@ -11,6 +11,7 @@ import { seeded } from '../../three/random';
 import { useCameraDrift } from '../../three/useCameraDrift';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 import { useLive } from '../stage';
+import { cue, param } from '../../sound/bus';
 
 // Dream 03, The House You Grew Up In (PLAN-2.md 6.3). A hallway that never
 // ends. Open a door and someone steps out — every door opens onto the same
@@ -301,6 +302,7 @@ function useHouse(live) {
     (i, { owned, dir }) => {
       const h = house.current;
       h.openUntil[i] = h.clock + DOOR_OPEN_S;
+      cue('door', { z: doorWorldZ(i), side: doorSide(i), owned }); // PLAN-3.md 5.3
       if (owned && h.keepAt === null) h.keepAt = h.clock + STEP_OUT_DELAY + KEEP_AFTER_S;
       const s = h.shadows.find(sh => sh.phase === 'free');
       if (!s) return;
@@ -419,6 +421,8 @@ function useHouse(live) {
         h.stretchT = -1;
       }
     }
+    // The music recedes with the kitchen (PLAN-3.md 5.3).
+    param('house.far', h.stretch / STRETCH);
 
     // Someone you let out has been walking their own way for a while now.
     if (h.keepAt !== null && h.clock >= h.keepAt) {

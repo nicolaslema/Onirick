@@ -1203,3 +1203,39 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   first mix, they had become the loudest things once the music came down 10 dB. It showed as three
   "clicks" at the first wave — the fragment's tape click, now alone over the ducked music, 3 steps in
   1 ms up to 0.067. Lowered, the same run counts none.
+
+## Sound — Phase 3
+
+- **Continuous values go through `bus.param`**, written by the scenes every frame and applied by a
+  score loop (`requestAnimationFrame`, only while sound is on) to two filters: `ocean.under` (0–1, the
+  scene's own `underBy(level)`, so the sound crosses the surface exactly with the camera) closes the
+  engine's `under` lowpass from 20 kHz to ~500 Hz on everything but the ui layer; `house.far` (the
+  kitchen's stretch, 0–1) moves a new lowpass + gain on the music alone (`tape.setDistance`: 20 kHz →
+  1.4 kHz, −7 dB). Outside its dream each value eases back to 0 — heard during a transition from/to it,
+  so the Ocean stays muffled through the melt out of it and comes up in the Fall.
+
+- **House (PLAN-3.md 5.3):** `openDoor()` cues `door` with the door's hallway depth and side, for your
+  doors and the ones that open on their own alike: the latch, then a creak — narrow noise resonance
+  (~980 Hz, gliding down) chopped by a slowing square wave (28 → 15 Hz, the hinge's stick-slip) — into a
+  short hallway reverb, lowpassed, quieter and panned by distance. The creak's narrow band loses a lot
+  of level: first cut peaked at −52.8 dB, raised 12 dB → ≈ −38 for a door you open, ≈ −46 for the far,
+  spontaneous ones. The kitchen: the music recedes with it (−5 dB and muffled at its farthest, measured)
+  and comes back over its 6 s.
+
+- **Ocean (PLAN-3.md 5.5):** each beat you take (the play target changing while the dream is live — not
+  when it prepares itself as a neighbour) cues `water`: a low pink surge with a mid wash and a glug,
+  ≈ −35.5 dB peak. At beat 3 the under-water lowpass sits at 500 Hz; back above (the Fall), 20 kHz.
+  Bubbles: the scene lets out ~18 a second; the score voices some (one per ≥ 0.15 s, 40% skipped) as a
+  short rising sine, into the **ui layer** — the under-water lowpass would bury them otherwise.
+
+- **Found on the way: the master reads ~3.5 dB over the music layer, always** — Web Audio's
+  DynamicsCompressor applies automatic makeup gain even when it isn't compressing (the limiter:
+  threshold −6, ratio 20 → about +3.4 dB), the same surprise as the music's compressor in phase 1. It
+  changes nothing heard — every level was set by ear with it in — so it stays; the meters' master row
+  just reads that much higher.
+
+- **Verified** (Chrome headless, dev server, `?debug` meters and the panel's `under`/`far` readouts): the
+  House's own doors open on their own and sound far; "Open a door" creaks near; tapping the kitchen takes
+  `far` to 1.00 and back; each Ocean beat surges; `under` 500 Hz at beat 3 and 20000 Hz again in the
+  Fall; bubbles while the pointer moves under water; no clicks, no console errors or warnings.
+  `pnpm lint`, `pnpm build`, `pnpm test` (21) clean. **Not heard:** the user approves by ear.

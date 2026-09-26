@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, BackSide, CanvasTexture, Color, DoubleSide, Object3D, Plane, PlaneGeometry, Raycaster, RepeatWrapping, Vector2, Vector3 } from 'three';
 
-import { setTarget, subscribeAction } from '../../night/play';
+import { getPlay, setTarget, subscribeAction } from '../../night/play';
 import { isKept, keep, useRecording } from '../../night/recording';
 import Atmosphere from '../../three/Atmosphere';
 import { FLAT, readTint, readToken, sceneBackground } from '../../three/materials';
@@ -13,6 +13,7 @@ import { useCloudTexture } from '../../three/useCloudTexture';
 import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 import { useLive } from '../stage';
+import { cue, param } from '../../sound/bus';
 
 // Dream 04, The Ocean Indoors (PLAN-2.md 6.4). The water comes in without a
 // sound and keeps rising — one level per gesture, until you're under. The one
@@ -258,6 +259,7 @@ const Bubbles = ({ level, under, color }) => {
         spawn.current -= 1;
         const b = pool.current[next.current];
         next.current = (next.current + 1) % BUBBLES;
+        cue('bubble'); // the score lets some of them be heard (PLAN-3.md 5.5)
         s.dir.set(pointer.x, pointer.y, 0.5).unproject(camera).sub(camera.position).normalize();
         s.at.copy(camera.position).addScaledVector(s.dir, 1.6 + rand() * 1.4);
         Object.assign(b, { alive: true, x: s.at.x + (rand() - 0.5) * 0.2, y: s.at.y, z: s.at.z, speed: 0.4 + rand() * 0.4, phase: rand() * 6 });
@@ -472,10 +474,22 @@ const OceanScene = ({ camera }) => {
   const stayed = useRef(0);
   const litAt = useRef(kept ? -Infinity : null);
 
+  // The level you're taking the water to, to hear each beat's rise.
+  const heardBeat = useRef(Math.round(getPlay('ocean').target));
+
   useFrame((_, delta) => {
     const breath = BREATH * Math.sin((Math.PI * 2 * time.current) / BREATH_PERIOD);
     level.current = levelAt(beat.current) + breath;
     under.current = underBy(level.current);
+    // Sound (PLAN-3.md 5.5): under the surface everything is muffled, exactly
+    // as far as the camera is; each beat you take, the water surges. Not when
+    // the dream prepares itself as a neighbour (it isn't live then).
+    param('ocean.under', under.current);
+    const goal = Math.round(getPlay('ocean').target);
+    if (goal !== heardBeat.current) {
+      if (live) cue('water', { up: goal > heardBeat.current });
+      heardBeat.current = goal;
+    }
 
     // Staying under (the last beat, eyes fully below the surface) for
     // STAY_UNDER_S: the fragment. Coming up, or leaving, starts it over.

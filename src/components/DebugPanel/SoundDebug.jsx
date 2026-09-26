@@ -77,7 +77,7 @@ const SoundDebug = () => {
   return (
     <>
       <p className="debug-title">
-        Sound · {engine.ctx.state} · limiter {engine.nodes.limiter.reduction.toFixed(1)} dB · wow {(engine.nodes.wowDepth.gain.value * 1000).toFixed(2)} ms · clicks {clicks}
+        Sound · {engine.ctx.state} · limiter {engine.nodes.limiter.reduction.toFixed(1)} dB · wow {(engine.nodes.wowDepth.gain.value * 1000).toFixed(2)} ms · under {Math.round(engine.nodes.under.frequency.value)} Hz · far {engine.tape.distance.toFixed(2)} · clicks {clicks}
       </p>
       <dl className="debug-grid debug-meters">
         {METERED.map(name => (

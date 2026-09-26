@@ -14,13 +14,22 @@ export const LEVELS = {
   step: dbToGain(-32), // a step's peak, before its echo
   stepEcho: 0.35, // send into the stairwell
   whale: dbToGain(-28),
-  whaleSpace: 0.55 // send into the open night
+  whaleSpace: 0.55, // send into the open night
+  door: dbToGain(-18), // a door you open, near (≈ −40 dB peak: the creak's narrow resonance loses a lot); far ones fall off with distance
+  hallEcho: 0.3,
+  water: dbToGain(-32), // a beat's surge
+  bubble: dbToGain(-46)
 };
 
 const vary = amount => 1 + (Math.random() * 2 - 1) * amount;
 
-export function createDreamSounds(ctx, scene) {
-  // Two spaces: a stone stairwell, and the sky over the city.
+// `scene`: the scene layer (bent by melts, muffled under water); `ui`: the
+// layer that skips both — for the bubbles, which are heard *under* water.
+export function createDreamSounds(ctx, { scene, ui }) {
+  // Three spaces: a stone stairwell, the sky over the city, a long hallway.
+  const hallway = reverb(ctx, { seconds: 1.8, decay: 2.6, darken: 0.6 });
+  const hallwayLevel = gain(ctx, LEVELS.hallEcho);
+  hallway.connect(hallwayLevel).connect(scene);
   const stairwell = reverb(ctx, { seconds: 2.4, decay: 3.2, darken: 0.7 });
   const stairwellLevel = gain(ctx, LEVELS.stepEcho);
   stairwell.connect(stairwellLevel).connect(scene);
@@ -149,5 +158,91 @@ export function createDreamSounds(ctx, scene) {
     return phrase(at + 4.8 * slow, [126, 168, 202, 140], 2.0 * slow, peak * 0.75) - ctx.currentTime;
   }
 
-  return { step, whaleCall };
+  // A door swinging open (PLAN-3.md 5.3): the latch, then the hinge's creak
+  // — a resonant squeal stick-slipping at a rate that slows as it opens.
+  // `z`: how far down the hallway (negative); `side`: -1 left, 1 right.
+  function door({ z = -4, side = 1, owned = true } = {}) {
+    const at = ctx.currentTime + 0.01;
+    const distance = Math.max(-z - 2, 0);
+    const near = 1 / (1 + distance * 0.25);
+    const level = LEVELS.door * near * (owned ? 1 : 0.8) * vary(0.1);
+    const pan = side * 0.55 * (1 / (1 + -z * 0.1));
+    const far = filter(ctx, { type: 'lowpass', frequency: 9000 / (1 + distance * 0.35) });
+    const out = gain(ctx, 1);
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = pan;
+    out.connect(far).connect(panner);
+    panner.connect(scene);
+    panner.connect(hallway);
+
+    // The latch.
+    const latch = noise(ctx, 'white');
+    const latchLevel = gain(ctx, 0);
+    latch.connect(filter(ctx, { type: 'bandpass', frequency: 2200, Q: 3 })).connect(latchLevel).connect(out);
+    envelope(latchLevel.gain, { attack: 0.002, decay: 0.012, release: 0.012, peak: level * 0.6 }, at);
+    latch.start(at, Math.random() * 3);
+    latch.stop(at + 0.06);
+
+    // The creak: noise through a narrow resonance gliding down, its level
+    // chopped by a square wave (the stick-slip) slowing from ~28 to ~15 Hz.
+    const seconds = 0.75 * vary(0.2);
+    const t0 = at + 0.05;
+    const creak = noise(ctx, 'white');
+    const resonance = filter(ctx, { type: 'bandpass', frequency: 980 * vary(0.1), Q: 8 });
+    resonance.frequency.setValueAtTime(resonance.frequency.value, t0);
+    resonance.frequency.exponentialRampToValueAtTime(resonance.frequency.value * 0.7, t0 + seconds);
+    const chop = gain(ctx, 0.35);
+    const slip = oscillator(ctx, { type: 'square', frequency: 28 });
+    slip.frequency.setValueAtTime(28 * vary(0.1), t0);
+    slip.frequency.linearRampToValueAtTime(15, t0 + seconds);
+    const slipDepth = gain(ctx, 0.3);
+    slip.connect(slipDepth).connect(chop.gain);
+    const creakLevel = gain(ctx, 0);
+    creak.connect(resonance).connect(chop).connect(creakLevel).connect(out);
+    const end = envelope(creakLevel.gain, { attack: 0.06, decay: seconds, sustain: 0.6, release: 0.25, peak: level * 1.6 }, t0);
+    [creak, slip].forEach(source => {
+      source.start(t0);
+      source.stop(end);
+    });
+    creak.onended = () => panner.disconnect();
+  }
+
+  // The water rising one level (PLAN-3.md 5.5): a low surge and a glug.
+  // Its mids carry it; the low end is for speakers that have one.
+  function water({ up = true } = {}) {
+    const at = ctx.currentTime + 0.01;
+    const level = LEVELS.water * (up ? 1 : 0.7);
+    const surge = noise(ctx, 'pink');
+    const body = filter(ctx, { type: 'lowpass', frequency: 380 });
+    body.frequency.setValueAtTime(380, at);
+    body.frequency.linearRampToValueAtTime(up ? 900 : 500, at + 0.6);
+    body.frequency.linearRampToValueAtTime(420, at + 1.6);
+    voice(surge, body, { at, peak: level, attack: 0.35, decay: 0.9, release: 0.6 });
+    const wash = noise(ctx, 'white');
+    voice(wash, filter(ctx, { type: 'bandpass', frequency: 700, Q: 0.9 }), { at: at + 0.1, peak: level * 0.35, attack: 0.3, decay: 0.8, release: 0.5 });
+    const glug = oscillator(ctx, { frequency: 190 });
+    glug.frequency.setValueAtTime(190 * vary(0.1), at + 0.25);
+    glug.frequency.exponentialRampToValueAtTime(95, at + 0.4);
+    voice(glug, gain(ctx, 1), { at: at + 0.25, peak: level * 0.5, attack: 0.01, decay: 0.12, release: 0.08 });
+  }
+
+  // A bubble (PLAN-3.md 5.5): a short tone rising fast, as a real one does.
+  // Into `ui`, so the under-water lowpass doesn't bury it.
+  function bubble() {
+    const at = ctx.currentTime + 0.005;
+    const from = 420 * vary(0.35);
+    const osc = oscillator(ctx, { frequency: from });
+    osc.frequency.setValueAtTime(from, at);
+    osc.frequency.exponentialRampToValueAtTime(from * 2.2, at + 0.05);
+    const level = gain(ctx, 0);
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = (Math.random() * 2 - 1) * 0.4;
+    osc.connect(level).connect(panner).connect(ui);
+    const end = envelope(level.gain, { attack: 0.004, decay: 0.05, release: 0.03, peak: LEVELS.bubble * vary(0.3) }, at);
+    osc.start(at);
+    osc.stop(end);
+    osc.onended = () => panner.disconnect();
+  }
+
+  return { step, whaleCall, door, water, bubble };
 }
