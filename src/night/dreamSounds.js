@@ -15,7 +15,7 @@ export const LEVELS = {
   stepEcho: 0.35, // send into the stairwell
   whale: dbToGain(-28),
   whaleSpace: 0.55, // send into the open night
-  door: dbToGain(-30), // a door you open, near; far ones fall off with distance
+  door: dbToGain(-26), // a door you open, near (≈ −38 dB peak); far ones fall off with distance
   hallEcho: 0.3,
   water: dbToGain(-32), // a beat's surge
   bubble: dbToGain(-46)

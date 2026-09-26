@@ -1239,3 +1239,10 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   `far` to 1.00 and back; each Ocean beat surges; `under` 500 Hz at beat 3 and 20000 Hz again in the
   Fall; bubbles while the pointer moves under water; no clicks, no console errors or warnings.
   `pnpm lint`, `pnpm build`, `pnpm test` (21) clean. **Not heard:** the user approves by ear.
+- **After review — a plain door** (user: the House's door sound, as doors opened and shadows stepped
+  out, didn't sound natural). The synthesized hinge creak read as an effect, not a door. Now it's what a
+  quiet door actually makes: the handle turning and the latch letting go — two short dry clicks
+  (bandpassed noise, ~1.7 and ~1.15 kHz, ~90 ms apart) and a small knock of wood (150 → 95 Hz) — then
+  the air the leaf moves, a soft swell of low pink noise. No creak. Distance, pan and the hallway's echo
+  as before. Measured: a door you open ≈ −40…−43 dB peak, then +4 dB (short clicks read quieter than a
+  long sound) → ≈ −38; the far, spontaneous ones lower still.
