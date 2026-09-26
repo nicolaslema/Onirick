@@ -45,10 +45,12 @@ const HOME_Y = stepY(HOME_INDEX) + TREAD;
 const CATCH_UP = 1.8; // cadence while climbing back
 const CATCH_UP_FAR = 3; // ...when more than a landing behind
 const S_FLOOR = -36; // three landings down: deep in the fog
-const FRAGMENT_STEPS = 2; // carried at least this far, then back: fragment
-// DreamAction: stop this long, then let go — long enough (finishing the
-// step under way takes up to T_STEP) to be carried past FRAGMENT_STEPS.
-const ACTION_HOLD_MS = 6500;
+// The fragment: stay stopped this long (user decision, Night 2 phase 6 — it
+// used to wait for the figure to climb back after being carried 2 steps,
+// which took too long and was easy to miss). Real seconds, not scene time.
+const HOLD_FOR_S = 5;
+// DreamAction: stop this long, then let go — just past HOLD_FOR_S.
+const ACTION_HOLD_MS = 5500;
 
 // The figure (you), in a stair-relative frame: x lateral (inward), y up, z
 // along the climb. About 1.6 tall on 0.18 risers.
@@ -329,9 +331,10 @@ const Moon = ({ progress, color }) => {
 
 // The climb's clock: `n` steps the stair has turned, `s` where you are
 // relative to your place, `u` your stride phase (0-2). Stop, carry, catch up.
+// `held`: seconds stopped in a row — HOLD_FOR_S of them keeps the fragment.
 function useClimb(live) {
   const reduced = useReducedMotion();
-  const climb = useRef({ n: 0, s: 0, u: 0, cadence: 1, stopping: false, deepest: 0 });
+  const climb = useRef({ n: 0, s: 0, u: 0, cadence: 1, stopping: false, held: 0 });
   const stopTimer = useRef(0);
 
   useEffect(() => {
@@ -343,6 +346,7 @@ function useClimb(live) {
     };
     const go = () => {
       c.stopping = false;
+      c.held = 0;
     };
     const offHold = onHold({ delay: 250, tolerance: 10 }, { start: stop, end: go });
     const offAction = subscribeAction(id => {
@@ -365,6 +369,9 @@ function useClimb(live) {
     c.n += dt;
 
     if (c.stopping) {
+      // Stopped long enough, and the stairs kept going: that's the fragment.
+      c.held += Math.min(delta, 0.1);
+      if (c.held >= HOLD_FOR_S) keep('stair');
       // Finish the step under way, then stand.
       if (c.cadence > 0) {
         const next = c.u + dt * c.cadence;
@@ -375,24 +382,17 @@ function useClimb(live) {
         c.s += dt * (c.cadence - 1);
       } else c.s += -dt;
     } else {
-      // Behind your place at all: climbing back. (An epsilon here once let a
-      // step land s just short of 0 — no longer "catching up", never "back"
-      // — and the fragment was never kept.)
+      // Behind your place at all: climbing back, until you're there.
       const catchingUp = c.s < 0;
       c.cadence = catchingUp ? (c.s < -12 ? CATCH_UP_FAR : CATCH_UP) : 1;
       c.u = (c.u + dt * c.cadence) % 2;
       c.s += dt * (c.cadence - 1);
       if (catchingUp && c.s >= -1e-4) {
-        // Back in your place: settle there, and if the stair really carried
-        // you away, that's the fragment.
         c.s = 0;
         c.cadence = 1;
-        if (c.deepest <= -FRAGMENT_STEPS) keep('stair');
-        c.deepest = 0;
       }
     }
     c.s = Math.max(c.s, S_FLOOR);
-    c.deepest = Math.min(c.deepest, c.s);
   });
 
   return climb;

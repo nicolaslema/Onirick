@@ -328,9 +328,9 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - 0.33: *You have been climbing for a long time.*
   - 0.66: *Every landing has the same window, and the same moon in it.*
   - 1: *If you stop, the stairs keep going.* Reemplaza a *"The handrail is warm, like someone just let go"*, que venía de la baranda descartada. Ahora anticipa la interacción (13.7).
-- **Fragmento `stair`:** *"You stopped. The stairs didn't."* Se gana cuando la figura, después de haber sido arrastrada **al menos 2 escalones**, vuelve a su lugar. Es decir: te detuviste, la escalera te llevó y volviste a subir.
+- **Fragmento `stair`:** *"You stopped. The stairs didn't."* Se gana al **mantenerte detenido 5 s** (mouse o dedo apretado). La escalera te sigue llevando y al soltar volvés a tu lugar, pero el fragmento ya no espera esa vuelta (decidido con el usuario en la fase 6: esperar a que volviera tardaba y era fácil perderlo).
 - **Pista:** `PROMPT · HOLD TO STOP`.
-- **DreamAction:** *Stop climbing*. Detiene a la figura 6.5 s, la suelta y el fragmento se gana cuando vuelve a su lugar. (Eran 4 s: terminar el paso en curso lleva hasta 2 s, y con 4 s la escalera no alcanzaba a arrastrarla los 2 escalones del fragmento.)
+- **DreamAction:** *Stop climbing*. Detiene a la figura 5.5 s y la suelta; el fragmento se gana a los 5 s.
 - **Cámara:** más alta que la original, casi a la altura de la figura (`[0, 2.6, 8]` mirando a `[0, 4.4, 0]`, antes `[0, -1.5, 6.5]` hacia `[0, 3.5, 0]`). Desde abajo, los escalones tapaban a quien estaba parado encima.
 - **Técnica:**
   - **El tornillo:** la escalera se repite cada escalón y sus ventanas cada 12 (`WINDOW_EVERY`). 12 escalones son media vuelta (π) y `12 × RISE` de altura. El grupo de la escalera gira `stepAngle` y baja `RISE` por cada paso de la figura, y vuelve al inicio cada 12 escalones, sin salto visible porque la geometría es idéntica. Los 120 escalones actuales sobran para cubrir el cuadro durante el desplazamiento. El sentido de giro es el que hace que el escalón bajo la figura se aleje hacia abajo y hacia atrás de su marcha.
@@ -411,7 +411,7 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - **La cocina no se alcanza nunca:** el pasillo se recicla y el `Kitchen` está fijo respecto de la cámara (ya es así).
   - **Click en la puerta de la cocina: el pasillo se estira.** La cocina retrocede unas 6 unidades en 0.8 s (`power2.out`) y vuelve despacio a su distancia en 6 s. *"The hallway is longer than it was"* pasa a ser algo que te ocurre: intentás llegar y se aleja. Mientras dura, un nuevo click en la cocina no hace nada.
 - **Copy:** el log actual (`at: 0`).
-- **Fragmento `house`:** *"You never saw their face."* Se gana cuando una sombra **que liberaste vos** se funde con la luz de la cocina. Las sombras espontáneas no cuentan.
+- **Fragmento `house`:** *"You never saw their face."* Se gana **5 s después de que sale alguien de una puerta que abriste vos** (decidido con el usuario en la fase 6: esperar a que llegara a la cocina llevaba ~20 s y se podía pasar al sueño siguiente sin ganarlo). Las sombras espontáneas no cuentan.
 - **Pista:** `PROMPT · OPEN A DOOR`.
 - **DreamAction:** *Open a door*. Abre la puerta más cercana al centro del cuadro y libera una sombra que va hacia la cocina.
 - **Técnica:**
@@ -761,7 +761,7 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 Registro de lo que se decidió con el usuario mientras se iteraba el plan. Si durante el desarrollo aparece una decisión nueva que cambia la narrativa, lo visual o la arquitectura, se pregunta (0.5) y se agrega acá.
 
 1. **House: ¿scrub de "caminar sin llegar"?** **No.** House queda libre; el click en la cocina estira el pasillo (6.3).
-2. **Condiciones de los fragmentos.** **Confirmadas** sueño por sueño (sección 6): detenerse y volver a tu lugar después de 2 escalones, saludar, una sombra liberada por vos que llega a la cocina, 6 s bajo el agua y 3 s quieto en la caída.
+2. **Condiciones de los fragmentos.** **Confirmadas** sueño por sueño (sección 6): mantenerse detenido 5 s en la escalera, saludar, 5 s después de que sale una sombra de una puerta que abriste, 6 s bajo el agua y 3 s quieto en la caída.
 3. **Copy nuevo** (frases por beat y progreso, etiquetas de fragmento, pistas, líneas de Wake). **Borrador aceptado**, concentrado en `night/dreams.js` y `Wake.jsx` para retocarlo con el resto de la narrativa sin tocar lógica.
 4. **¿La lucidez afecta algo más que el copy?** **No.** Solo cambia la línea de Wake y el HUD (los glitches del transcript, que también dependían de ella, se sacaron en la fase 2). Lo visual ya aparece por otro lado (las siluetas del cielo de Fall, 6.5), y cambiar niebla o melt contradiría que la noche se intensifica.
 5. **Estado al volver a un sueño.** **Como está:** el estado de juego depende de la dirección de entrada (3.3) y los fragmentos y eventos se conservan en la noche. Lo que es solo de la escena (dónde quedó la figura, qué puertas estaban abiertas) se pierde si la escena se desmonta.

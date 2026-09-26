@@ -832,3 +832,13 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
     figure "not catching up" and never "back" — a thousandth of a step short of its place forever,
     more likely the higher the frame rate. Now it catches up while `s < 0` and arrives within 1e-4.
     Verified 4/4 on the GPU, all seven checks each time. (Phase 3's single passing run was luck.)
+
+- **After review — two fragments come faster** (user request):
+  - *Staircase*: kept after **5 s stopped** (holding, or "Stop climbing", which now stops 5.5 s),
+    counted in real seconds — no longer when the figure climbs back to its place after being carried
+    2 steps. The stair still carries you and you still climb back; only the reward moved earlier.
+  - *House*: kept **5 s after someone steps out of a door you opened** (click, tap or "Open a
+    door") — no longer when your shadow reaches the kitchen's light (~20 s of walking, long enough to
+    move on to the next dream without it). Spontaneous shadows still never count.
+  - PLAN-2.md 6.1, 6.3 and 13.2 updated. Measured (GPU): a 2 s hold earns nothing; holding earns it
+    at 5.3 s; "Stop climbing" at 5.1 s; a clicked door at 5.4 s; no console errors or warnings.

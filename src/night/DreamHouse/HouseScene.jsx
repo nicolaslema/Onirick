@@ -45,6 +45,10 @@ const hingeZ = i => doorCenterZ(i) - OPENING / 2;
 // Timing (PLAN-2.md 6.3).
 const DOOR_OPEN_S = 6; // an opened door closes by itself after this long
 const STEP_OUT_DELAY = 0.4; // after the door swings, someone steps out
+// The fragment: this long after someone steps out of a door you opened
+// (user decision, Night 2 phase 6 — it used to wait for them to reach the
+// kitchen, ~20 s, long enough to walk on to the next dream without it).
+const KEEP_AFTER_S = 5;
 const EMERGE = 0.6; // from inside the room to the threshold
 const TURN = 0.4; // from the threshold into a lane
 const LANE_X = 0.35;
@@ -283,7 +287,9 @@ function useHouse(live) {
     stretch: 0,
     stretchT: -1,
     shadows: Array.from({ length: POOL }, freeShadow),
-    nextOnItsOwn: 4
+    nextOnItsOwn: 4,
+    keepAt: null // clock time the fragment is due, once you've opened a door
+
   });
   const rand = useMemo(() => seeded(19), []);
   const probe = useMemo(() => new Vector3(), []);
@@ -295,6 +301,7 @@ function useHouse(live) {
     (i, { owned, dir }) => {
       const h = house.current;
       h.openUntil[i] = h.clock + DOOR_OPEN_S;
+      if (owned && h.keepAt === null) h.keepAt = h.clock + STEP_OUT_DELAY + KEEP_AFTER_S;
       const s = h.shadows.find(sh => sh.phase === 'free');
       if (!s) return;
       const side = doorSide(i);
@@ -413,6 +420,12 @@ function useHouse(live) {
       }
     }
 
+    // Someone you let out has been walking their own way for a while now.
+    if (h.keepAt !== null && h.clock >= h.keepAt) {
+      keep('house');
+      h.keepAt = null;
+    }
+
     // Life goes on without you: a far door opens by itself now and then.
     if (h.clock >= h.nextOnItsOwn) {
       h.nextOnItsOwn = h.clock + SPONTANEOUS[0] + rand() * (SPONTANEOUS[1] - SPONTANEOUS[0]);
@@ -481,7 +494,6 @@ function useHouse(live) {
         s.lost = clamp01((kitchenZ + KITCHEN_FADE[0] - s.z) / KITCHEN_FADE[1]);
         s.opacity = 1 - s.lost;
         if (s.lost >= 1) {
-          if (s.owned) keep('house');
           Object.assign(s, freeShadow());
         }
       } else {
