@@ -13,7 +13,7 @@ export const LEVELS = {
   // the motor and hiss covered it). The hiss sits where the ear is most
   // sensitive, so it's cut hardest.
   motor: dbToGain(-62),
-  hiss: dbToGain(-62),
+  hiss: dbToGain(-72),
   standby: dbToGain(-70),
   clack: dbToGain(-20), // STOP / eject peaks ≈ −24
   key: dbToGain(-24), // a button: peak ≈ −28
@@ -38,12 +38,12 @@ export function createMachine(ctx, { global, ui }) {
   flutterDepth.connect(motor.detune);
   flutterDepth.connect(motorOctave.detune);
 
-  // Hiss: pink noise between 3 and 7 kHz (darker than tape hiss really is:
+  // Hiss: pink noise between 3 and 5 kHz (darker than tape hiss really is:
   // less piercing, under the music).
   const hissLevel = gain(ctx, 0);
   hissLevel.connect(global);
   const hiss = noise(ctx, 'pink');
-  hiss.connect(filter(ctx, { type: 'highpass', frequency: 3000 })).connect(filter(ctx, { type: 'lowpass', frequency: 7000 })).connect(hissLevel);
+  hiss.connect(filter(ctx, { type: 'highpass', frequency: 3000 })).connect(filter(ctx, { type: 'lowpass', frequency: 5000 })).connect(hissLevel);
 
   // Standby: a faint mains hum, while the DR-1 waits (hero, manual).
   const standbyLevel = gain(ctx, 0);

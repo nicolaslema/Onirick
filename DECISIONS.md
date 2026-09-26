@@ -1141,3 +1141,7 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   standby alone −72.7. PLAN-3.md 6 updated. One-offs (keys, clicks, STOP/eject) unchanged.
 - **And 3 dB more for the music** (user): trim −17.5 → −20.5 dB. Measured in the Staircase: music
   −45.8 dB RMS, motor + hiss −68.8 (23 dB under), master −42.4.
+- **The hiss, lower still** (user: the music is right now; the hiss isn't): hiss gain −62 → −72 dB and
+  its lowpass 7 → 5 kHz, motor unchanged. The motor + hiss layer barely moved (−68.8 → −69.0 dB RMS):
+  the low motor dominates its RMS, while the hiss — little energy, but at 3–5 kHz where the ear is
+  sharpest — is what was heard. Loudness and RMS part ways here; the ear decides.
