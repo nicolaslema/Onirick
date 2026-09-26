@@ -303,7 +303,9 @@ Hecha en `snd-phase-1-tape`: ver `DECISIONS · Sound — Phase 1`. Desvíos: la 
 4. El cambio de `activeTransition` en `ScrollSections` (3.4).
 - **Terminado cuando:** recorriendo la noche entera, la música arranca con BEGIN RECORDING, se frena como cinta al entrar al manual y retoma desde el mismo punto al volver, se dobla más fuerte en cada melt, se corta en el blanco antes de Wake, y Wake da STOP + eject; REPLAY la rebobina; el loop no se nota; ocultar la pestaña la pausa; niveles dentro de la tabla 6; sin clics en el panel; Lighthouse igual que `develop`.
 
-### Fase 2: Staircase + Whale (5.1, 5.2)
+### Fase 2: Staircase + Whale (5.1, 5.2) ✔ (a aprobar de oído)
+
+Hecha en `snd-phase-2-stair-whale`: ver `DECISIONS · Sound — Phase 2`. Niveles: pasos pico ≈ −42 dB, canto ≈ −43 (completo) / −46 (corto), bajo la música como el resto.
 
 ### Fase 3: House + Ocean (5.3, 5.5)
 

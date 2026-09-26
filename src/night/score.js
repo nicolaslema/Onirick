@@ -4,6 +4,7 @@
 // Loaded only when someone turns sound on (sound/bus.js).
 
 import { createEngine } from '../sound/engine';
+import { createDreamSounds } from './dreamSounds';
 import { createMachine } from '../sound/machine';
 import { createTape } from '../sound/tape';
 import { NIGHT } from './config';
@@ -24,6 +25,7 @@ export function createSound(ctx, env) {
   const { layers } = engine.nodes;
   const machine = createMachine(ctx, layers);
   const tape = createTape(ctx, layers.music, { elements: env.media, ...MUSIC });
+  const dreams = createDreamSounds(ctx, layers.scene);
 
   let loud = false;
   let prev = getStage();
@@ -102,8 +104,18 @@ export function createSound(ctx, env) {
   };
   document.addEventListener('click', onClick, true);
 
+  // A dream's one-offs only sound while that dream is on screen, or melting
+  // in or out: its scene can run as a neighbour too (PLAN-3.md 5).
+  const heard = id => {
+    const { currentId, transition } = getStage();
+    return currentId === id || transition?.fromId === id || transition?.toId === id;
+  };
+  const inDream = (id, play) => options => (options?.debug || heard(id)) && play(options);
+
   const CUES = {
     test: engine.testTone,
+    step: inDream('stair', dreams.step),
+    'whale-call': inDream('whale', dreams.whaleCall),
     'stop-clack': () => machine.stopClack(),
     eject: () => machine.eject(),
     key: () => machine.key(),

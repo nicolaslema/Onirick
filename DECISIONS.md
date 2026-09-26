@@ -1157,3 +1157,34 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   load + three wheel gestures, zero sound requests; the first ArrowDown fetches the score chunk and the
   MP3. First chunk 78.34 → 78.59 kB gzip. Lighthouse mobile 79 / 79 (as before; `develop` 80 / 80 the same
   day), Accessibility 100. PLAN-3.md 1, 2, 3.2 and 8 updated.
+
+## Sound — Phase 2
+
+- **Branch:** `snd-phase-2-stair-whale` off `develop` after phase 1's merge. (`develop` also carries the
+  user's `Docs/mp3/Lament.mp3`, the same file as `public/sound/night.mp3`.)
+
+- **The dreams' one-offs live in `night/dreamSounds.js`**, loaded with the score, into the scene layer (so
+  melts bend them). The score only lets a dream's sound through while that dream is on screen or in a
+  transition from/to it — a scene also runs as a neighbour (PLAN-2.md 3.2), and the stair's feet
+  shouldn't be heard from the whale. The dev panel's cue buttons pass `{ debug: true }` to bypass that.
+
+- **Steps (PLAN-3.md 5.1):** a foot lands each time the stride phase `u` crosses a whole number (the odd
+  foot at 1, the even at 2 → 0, per `footAt`), so `StairScene` cues `step` there, in the same frame —
+  walking, catching up, and the step under way finishing when you stop all fall out of that one check.
+  Each is a low thump (85 → 48 Hz) and a stone scuff (bandpass ~320 Hz), then the heel (~560 Hz), with a
+  synthetic stairwell echo; ±8% pitch and ±12% level per step, the two feet a little apart in pitch and
+  pan, lighter when catching up. Peak ≈ −42 dB.
+
+- **Whale call (PLAN-3.md 5.2):** in `wave()`, where each reaction starts: the first wave gets three
+  gliding phrases over the whole reaction (≈ 7 s, stretched by its reduced-motion slowdown), later waves
+  one short phrase. Triangle + a quiet upper partial, a slow vibrato growing into each phrase, a formant
+  (bandpass 420 Hz) and a lowpass, into a long open-air reverb. First cut at −40 dB peaked at −49 —
+  under the music's average — so raised 6 dB: ≈ −43 (full) / −46.5 (short).
+
+- **Verified** (Chrome headless, dev server, `?debug` meters on the scene layer): climbing, a step every
+  ~2 s; "Stop climbing" → the step under way, then silence for its 5 s; released → a step every ~1.1 s
+  (the 1.8 catch-up); in the whale, no steps; "Wave at the whale" → the whole call, then the short one on
+  a second wave. No console errors or warnings. One run counted one click during the first wave, where
+  the fragment's tape click also lands; a second run counted none — the same borderline transient as the
+  STOP clack (phase 1). `pnpm lint`, `pnpm build`, `pnpm test` (21) clean. **Not heard:** the user decides
+  by ear whether the steps add or are too much with the music (PLAN-3.md 11.3).

@@ -112,7 +112,7 @@ const SoundDebug = () => {
       </div>
       <div className="debug-row">
         {engine.cues.map(name => (
-          <button key={name} type="button" disabled={!on} onClick={() => cue(name)}>
+          <button key={name} type="button" disabled={!on} onClick={() => cue(name, { debug: true })}>
             {name}
           </button>
         ))}

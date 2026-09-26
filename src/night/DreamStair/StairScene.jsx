@@ -11,6 +11,7 @@ import { useCameraDrift } from '../../three/useCameraDrift';
 import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 import { useLive } from '../stage';
+import { cue } from '../../sound/bus';
 
 // Dream 01, The Staircase (PLAN-2.md 6.1). You climb without stopping and
 // stay where you are: the stair turns and sinks like a screw at exactly the
@@ -367,6 +368,7 @@ function useClimb(live) {
     const c = climb.current;
     const dt = (Math.min(delta, 0.1) * (reduced ? REDUCED_SPEED : 1)) / T_STEP;
     c.n += dt;
+    const stride = c.u;
 
     if (c.stopping) {
       // Stopped long enough, and the stairs kept going: that's the fragment.
@@ -393,6 +395,9 @@ function useClimb(live) {
       }
     }
     c.s = Math.max(c.s, S_FLOOR);
+    // A foot lands each time the stride crosses a whole step (footAt): the
+    // step's sound, in the same frame (PLAN-3.md 5.1).
+    if (Math.floor(c.u) !== Math.floor(stride)) cue('step', { foot: Math.floor(c.u), cadence: c.cadence });
   });
 
   return climb;

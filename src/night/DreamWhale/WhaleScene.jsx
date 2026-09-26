@@ -14,6 +14,7 @@ import { useCloudTexture } from '../../three/useCloudTexture';
 import { useCameraDrift } from '../../three/useCameraDrift';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 import { useLive } from '../stage';
+import { cue } from '../../sound/bus';
 
 // Dream 02, The Whale Above the City (PLAN-2.md 6.2). Nobody looks up. You
 // wave — and the whale comes down, turns one eye to you, blinks; the windows
@@ -412,6 +413,7 @@ function useReaction(live) {
       // The first wave: the whole answer, and the fragment.
       trigger('whale', 'wave');
       keep('whale');
+      cue('whale-call', { full: true, slow: r.slow }); // its song, over the whole reaction (PLAN-3.md 5.2)
       r.phase = 'leaving';
       r.t = 0;
       r.blinkSince = -1;
@@ -421,6 +423,7 @@ function useReaction(live) {
     if (r.phase === 'route' && r.glance <= 0) {
       r.glance = GLANCE;
       r.blinkSince = -0.5;
+      cue('whale-call', { full: false });
     }
   }, []);
 
