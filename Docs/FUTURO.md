@@ -92,15 +92,34 @@ Todo el QA del plan 2 se hizo en **Chrome** (headless con GPU, escritorio y 390p
 
 ## 3. Rendimiento y deploy
 
-- **Lighthouse mobile quedó en 79–80** (la regla del plan es ≥ 80; `DECISIONS · Night 2 — Phase 9`). Noche 1 midió lo mismo en la misma máquina y el mismo día, así que no es una regresión, pero el umbral no se cumple con margen. Pendiente:
-  - [ ] **Remedir con PageSpeed Insights sobre el sitio desplegado** (la medición local usa `vite preview`).
-  - [ ] **Primer frame de R3F**: compila juntos los shaders del hero y de la escalera (~200 ms sin throttling). Opciones: montar la vecina (escalera) un frame después, o precompilar con `gl.compile` en idle.
-  - [ ] **Prueba de WebGL2 antes del FCP** (`lib/webgl.js` pide un contexto real): moverla después del primer paint si se puede sin romper el loader.
-  - Apagar las sombras de la escalera **no** cambió nada medible: no es por ahí.
-  - LCP 4.0 s es el heading del hero, que pinta cuando se levanta el loader; se mantuvo a propósito (`PLAN.md §5.2`, `DECISIONS · Phase 6`).
-- **`og:image` sigue relativo** (`/posters/hero.webp` en `index.html`). Pasarlo a absoluto con el dominio de Vercel (el README dice dónde) — `DECISIONS · Phase 6/7`.
-- **Header `charset`**: la nota de Lighthouse viene de `vite preview`; confirmar que Vercel lo manda (`DECISIONS · Phase 6`, `Night 2 — Phase 9`).
-- **Consola:** los avisos de `THREE.Clock` se filtran en `three/console.js`. Cuando salga una versión de R3F que no use `THREE.Clock`, sacar el filtro (`DECISIONS · Phase 6`).
+### 3.1 Estado actual
+
+Medido por el usuario con Lighthouse sobre el sitio desplegado (`https://onirick.vercel.app/`), 2026-09-26:
+
+| | Performance | Accessibility | Best Practices | SEO |
+| --- | --- | --- | --- | --- |
+| Mobile | 83 | 100 | 100 | 100 |
+| Desktop | 99 | 100 | 100 | 100 |
+
+Cumple la regla del plan (mobile ≥ 80, Accessibility 100). Las mediciones de 79–80 de `DECISIONS · Night 2 — Phase 9` eran locales (`vite preview`) y quedan superadas. El `charset` que marcaba Lighthouse en local ya no aparece en el sitio desplegado (Best Practices 100).
+
+### 3.2 Pendiente
+
+- [ ] **`og:image` absoluto:** hoy es `/posters/hero.webp` en `index.html`. Pasarlo a `https://onirick.vercel.app/posters/hero.webp`, porque las vistas previas de links (WhatsApp, X, LinkedIn) pueden no resolver una URL relativa. El README dice dónde (`DECISIONS · Phase 6/7`).
+- [ ] **`og:url`:** no existe. Sumarlo con `https://onirick.vercel.app/`, junto al anterior.
+- Si el dominio cambia (por ejemplo, a uno propio), se actualizan los dos.
+
+### 3.3 Presupuesto para lo que viene
+
+Mantener **mobile ≥ 80 y 100 en Accessibility, Best Practices y SEO** al sumar cualquier feature de la sección 1 (sonido, manual interactivo, cursor). El margen en mobile es de 3 puntos: medir en el sitio desplegado después de cada una.
+
+### 3.4 Opcional: solo si mobile baja de 80
+
+Ideas que quedaron de la fase 9 para ganar puntos de Performance. Con 83 no hacen falta, y tocan partes delicadas (montaje de vecinas, loader):
+
+- **Primer frame de R3F:** compila juntos los shaders del hero y de la escalera (~200 ms sin throttling). Opciones: montar la vecina (escalera) un frame después, o precompilar con `gl.compile` en idle.
+- **Prueba de WebGL2 antes del primer paint** (`lib/webgl.js` pide un contexto real): moverla después, si se puede sin romper el loader.
+- Por dónde **no** ir: apagar las sombras de la escalera no cambió nada medible, y el LCP es el heading del hero, que pinta cuando se levanta el loader a propósito (`PLAN.md §5.2`, `DECISIONS · Phase 6`).
 
 ---
 
@@ -110,6 +129,7 @@ Todo el QA del plan 2 se hizo en **Chrome** (headless con GPU, escritorio y 390p
 - **`src/legacy/`** sigue en el repo (`Proof.jsx` y compañía, de antes de la noche 1; `DECISIONS · Phase 4`). Decidir si se borra.
 - **`activeTransition` sin `progress`** (`DECISIONS · Phase 1`): solo revisar si algo nuevo (sonido, 1.2, que podría querer seguir el melt) necesita el progreso cuadro a cuadro. Si hace falta, exponerlo como ref, no como estado de React.
 - **Póster de Wake** hornea la etiqueta de la fecha en que se generó (`DECISIONS · Night 2 — Phase 9`). Solo se ve sin WebGL2, donde la cuenta es 0/5; si molesta, generar ese póster con la etiqueta vacía.
+- **Filtro de avisos de `THREE.Clock`** en `three/console.js`: R3F 9 construye su reloj con `THREE.Clock`, que three r183+ marca como deprecado. Cuando salga una versión de R3F que no lo use, sacar el filtro (`DECISIONS · Phase 6`).
 - **Estado de escena que se pierde al desmontar** (dónde quedó la figura de la escalera, qué puertas estaban abiertas en House). Decidido aceptable (`PLAN-2 §3.3`, `§13.5`); sin acción.
 
 ---
@@ -136,7 +156,7 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 ## 6. Orden sugerido
 
 1. **Ajuste de números y verificaciones sueltas** (2.1, 2.2). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
-2. **Deploy y rendimiento** (3): `og:image` absoluto, PageSpeed sobre el sitio real, primer frame de R3F.
+2. **`og:image` absoluto y `og:url`** (3.2): dos líneas en `index.html`, el dominio ya se conoce.
 3. **Títulos en un solo lugar** (4, primer ítem), para que cualquier retoque de narrativa futuro (1.1) toque un solo archivo.
 4. **Sonido opt-in** (1.2): alto impacto, sin dependencias nuevas.
 5. **Manual interactivo** (1.3).
