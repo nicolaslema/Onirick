@@ -944,3 +944,42 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   fragment kept in the Fall with Wake cached shows as 4/5 on the tape mid-melt; screenshots of the
   printing, the finished screen and the saved image; no console errors or warnings. `pnpm lint`,
   `pnpm build`, `pnpm test` clean.
+
+## Night 2 — Phase 9
+
+- **Posters regenerated** (`pnpm posters`), every dream at its state 0 — the Stair's new camera, the
+  moon and the figure; the Fall looking down through its rings. The script walked the night one key per
+  section, which a gated dream now spends on its own stops: it keeps pressing (up to 30 times, 2 s
+  each) until the next section enters, having taken the poster on arrival. The Fall carries itself
+  into Wake. Wake's poster bakes the tape label of the day it was made; it's only seen without WebGL2,
+  where the count is 0/5 anyway.
+- **Overlay captures were running the chroma key on every section** (found profiling): the capture
+  clears the background of the clone's first child, which since the capture wrapper
+  (`.scroll-sections-capture`) is that wrapper, not the section — so every overlay came back opaque
+  and the full-canvas pass (~85 ms on a throttled phone) ran each time. `prepareOverlay` now clears
+  the first-child chain down to the section. Checked no section has another opaque background the key
+  used to remove (only buttons and the REC dot, which are content).
+- **Save the tape loads on its first click** (`import('./saveTape')`), out of the first chunk.
+- **README**: the night as a game (fragments, Wake, Save the tape), the gate's four methods and the
+  edge rule, the play models, how to add one, the transcript and `?debug`; the new modules in the tree.
+- **Lighthouse mobile (vite preview, Lighthouse 12, this machine): Performance 79–80, Accessibility
+  100**, FCP 1.5 s, LCP 4.0 s, TBT 320–350 ms, CLS 0.001. Night 1 (`develop`) measured the same day on
+  the same machine: 79–81, TBT 330–350 ms — the 82–83 in Phase 6 of Night 1 was a different
+  environment, not a regression. What's left: the first R3F frame (compiling the hero's and Stair's
+  shaders together, ~200 ms unthrottled) and the WebGL2 probe (before FCP). Turning the Stair's
+  shadows off changed nothing measurable. `charset`/`robots.txt` are still the deploy's (`vite
+  preview` sends no charset header). Worth re-measuring with PageSpeed Insights on the deployed site.
+- **QA** (PLAN-2.md 10), Chrome headless on the GPU, desktop and 390px, all passing: a wheel-only
+  night reaches Wake through every section in 47 gestures and keeps 1/5 (the Fall's — by design since
+  its Phase 7 review; the checklist now says so); the key that ends the Stair stays, the next melts;
+  back from the Whale the Stair is at its end (target 1, 4 lines); every fragment by keyboard
+  (DreamAction) → 5/5 and its tier line; HUD lucidity on in the five dreams and Wake, off in the hero
+  and the manual; Replay leaves every dream at 0 with no events; reduced motion, the whole night by
+  keys (36 s) and Wake printed at once; without WebGL2 one key per section and Wake's no-WebGL line.
+  The production build: a whole night and Save the tape on desktop and phone, no console errors or
+  warnings. Frame rate with each dream's costliest state (Stair holding, a House door open, Ocean
+  under, the Fall falling): the display's 144 fps everywhere, p95 7.1 ms; one 42 ms frame in the Whale
+  after a wave.
+- **Not done here — needs real devices:** Safari/Firefox desktop, Safari iOS, Chrome Android, and
+  tuning the numbers marked as starting points (hold times, beat durations, the Fall's window, fog and
+  light levels) by feel on a phone.

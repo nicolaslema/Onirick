@@ -69,17 +69,20 @@ for (let i = 0; i < ids.length; i++) {
     el.scrollTop = el.scrollHeight;
   });
   // ScrollSections deliberately drops a gesture whose melt textures aren't
-  // captured yet, so press again until the next section starts entering.
+  // captured yet, and a gated dream (PLAN-2.md 3) spends its gestures on its
+  // own stops and beats first — the Fall even carries itself into Wake — so
+  // press again until the next section starts entering. The poster above
+  // was taken on arrival: every dream at its state 0.
   const next = `.scroll-sections-host[data-section="${ids[i + 1]}"]`;
   for (let attempt = 0; ; attempt++) {
     await page.$eval('.scroll-sections', el =>
       el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
     );
     const moved = await page
-      .waitForFunction(sel => !document.querySelector(sel).dataset.offscreen, next, { timeout: 4000 })
+      .waitForFunction(sel => !document.querySelector(sel).dataset.offscreen, next, { timeout: 2000 })
       .then(() => true, () => false);
     if (moved) break;
-    if (attempt === 5) throw new Error(`stuck leaving ${id}`);
+    if (attempt === 30) throw new Error(`stuck leaving ${id}`);
   }
 }
 

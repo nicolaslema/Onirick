@@ -706,18 +706,20 @@ Cada fase termina con `pnpm lint` sin errores, `pnpm build` OK, los criterios cu
 
 ## 10. Checklist de QA (se suma al de `PLAN.md` 9)
 
-- [ ] Alguien que solo scrollea, sin tocar nada, ve una noche completa y coherente, y Wake le muestra la variante de 0 fragmentos.
-- [ ] En scrub y beats, el gesto que llega al final nunca dispara el melt. El siguiente, siempre.
-- [ ] Hacia atrás, cada sueño aparece en su estado final, sin salto al terminar el melt.
-- [ ] Ninguna captura muestra texto a medio tipear, un `DreamAction` visible ni un overlay viejo.
-- [ ] Los cinco fragmentos se pueden ganar con puntero, con touch y con teclado (`DreamAction`).
-- [ ] Hacer click o tap en botones y links nunca dispara una interacción de escena.
-- [ ] Mover el mouse normalmente en Whale no cuenta como saludo.
-- [ ] Reduced motion: sin tipeo, sin temblores, beats y stops instantáneos; todo sigue siendo alcanzable.
-- [ ] Sin WebGL2: un gesto, una sección; Wake muestra la línea de "sin WebGL".
-- [ ] `REPLAY THE NIGHT` resetea fragmentos, lucidez, pistas y estado de juego.
-- [ ] El HUD muestra la lucidez solo en sueños y en Wake; la barra de progreso se llena y parpadea al final.
-- [ ] 60 fps en cada sueño en una laptop moderna, con la interacción más cara activa (sombras de la luna en Stair, 10 sombras en House, burbujas).
+Verificado en la fase 9 con Chrome headless (GPU, escritorio y 390px). Falta repetirlo en Safari, Firefox y en teléfonos reales (ver fase 9).
+
+- [x] Alguien que solo scrollea, sin tocar nada, ve una noche completa y coherente. Wake le muestra la variante de **1 fragmento**: el de Fall se gana con solo pasar por su tramo (decisión de la revisión de la fase 7).
+- [x] En scrub y beats, el gesto que llega al final nunca dispara el melt. El siguiente, siempre.
+- [x] Hacia atrás, cada sueño aparece en su estado final, sin salto al terminar el melt.
+- [x] Ninguna captura muestra texto a medio tipear, un `DreamAction` visible ni un overlay viejo (verificado fase por fase).
+- [x] Los cinco fragmentos se pueden ganar con puntero, con touch y con teclado (`DreamAction`).
+- [x] Hacer click o tap en botones y links nunca dispara una interacción de escena (fases 3–7).
+- [x] Mover el mouse normalmente en Whale no cuenta como saludo (fase 4).
+- [x] Reduced motion: sin tipeo, sin temblores, beats y stops instantáneos; todo sigue siendo alcanzable.
+- [x] Sin WebGL2: un gesto, una sección (el manual, como siempre, se scrollea hasta abajo primero); Wake muestra la línea de "sin WebGL".
+- [x] `REPLAY THE NIGHT` resetea fragmentos, lucidez, pistas y estado de juego.
+- [x] El HUD muestra la lucidez solo en sueños y en Wake; la barra de progreso se llena y parpadea al final.
+- [x] 60 fps en cada sueño en una laptop moderna, con la interacción más cara activa (sombras de la luna en Stair, 10 sombras en House, burbujas).
 
 ---
 

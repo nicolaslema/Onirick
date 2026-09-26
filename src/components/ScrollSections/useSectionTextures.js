@@ -150,8 +150,14 @@ export function useSectionTextures(hostRefs) {
             // No background fill: the overlay needs true alpha around the text.
             // Text only: no scene canvas, and no poster still standing in for it.
             filter: node => node.nodeName !== 'CANVAS' && !node.classList?.contains('scene-poster') && !isUncaptured(node),
+            // The section root sits under the capture wrapper (host >
+            // .scroll-sections-capture > section): clear the whole chain of
+            // first children, or the root's background comes back opaque and
+            // the chroma key runs its full-canvas pass on every capture.
             onCloneNode: clone => {
-              clone.firstElementChild?.style.setProperty('background-color', 'transparent', 'important');
+              for (let node = clone.firstElementChild, depth = 0; node && depth < 2; node = node.firstElementChild, depth++) {
+                node.style.setProperty('background-color', 'transparent', 'important');
+              }
             }
           })
         )

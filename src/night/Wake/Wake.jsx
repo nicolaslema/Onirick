@@ -8,7 +8,6 @@ import { useReducedMotion } from '../../three/useReducedMotion';
 import { DREAMS, DREAM_IDS } from '../dreams';
 import { isKept, lucidity, reset, useRecording } from '../recording';
 import { onceSettledAt } from '../stage';
-import { saveTape } from './saveTape';
 import './Wake.css';
 
 // Loaded with the 3D chunk, after the page has painted.
@@ -129,6 +128,8 @@ const Wake = () => {
   };
   const save = async () => {
     setSaved('');
+    // Loaded on the first click: it's only ever needed here.
+    const { saveTape } = await import('./saveTape');
     const result = await saveTape(recording, segments[0].text);
     if (result !== 'cancelled') setSaved('Tape saved.');
   };
