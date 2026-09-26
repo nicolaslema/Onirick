@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { cue, getEngine, getParam, isOn, param, subscribe } from './bus.js';
+import { configureSound, cue, getEngine, getParam, isLive, isOn, param, subscribe } from './bus.js';
 import { dbToGain, gainToDb, noiseBuffer } from './synth.js';
 
 test('with sound off, cue and param do nothing', () => {
@@ -11,6 +11,19 @@ test('with sound off, cue and param do nothing', () => {
   param('ocean.under', 1);
   assert.equal(getParam('ocean.under'), 0);
   assert.equal(getParam('ocean.under', 0.5), 0.5);
+});
+
+test('on by default: the toggle reads ON, but nothing is loaded before a gesture', () => {
+  let loads = 0;
+  let notified = 0;
+  const unsubscribe = subscribe(() => notified++);
+  configureSound({ load: () => (loads++, Promise.resolve({})), defaultOn: true });
+  assert.equal(isOn(), true);
+  assert.equal(isLive(), false); // no context yet: nothing sounds
+  assert.equal(getEngine(), null);
+  assert.equal(loads, 0);
+  assert.equal(notified, 1);
+  unsubscribe();
 });
 
 test('subscribe returns an unsubscribe', () => {

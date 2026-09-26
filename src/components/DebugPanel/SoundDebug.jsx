@@ -69,7 +69,7 @@ const SoundDebug = () => {
   }, [engine]);
 
   if (!engine) {
-    return <p className="debug-title">Sound · {on ? 'loading…' : 'off (turn it on in the HUD)'}</p>;
+    return <p className="debug-title">Sound · {on ? 'on, starts on the first click, tap or key' : 'off (turn it on in the HUD)'}</p>;
   }
 
   const clicks = METERED.reduce((sum, name) => sum + (readings[name]?.clicks ?? 0), 0);

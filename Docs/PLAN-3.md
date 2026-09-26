@@ -32,7 +32,7 @@ La DR-1 es una grabadora: **ahora se la escucha grabar, y lo que suena es lo que
 2. **La máquina se escucha debajo:** el hiss de la cinta y el motor, casi inaudibles.
 3. **El melt dobla la música como una cinta estirada**, y se intensifica igual que la imagen a lo largo de la noche.
 4. **Los sueños responden con pocos sonidos puntuales** (el canto de la ballena, una puerta, el agua sobre tu cabeza, la alarma), no con ambientes propios.
-5. **Opt-in y bajo.** Apagado por defecto. Encendido, es un fondo: nunca tapa.
+5. **Encendido por defecto, y bajo.** Arranca con la primera interacción (ningún navegador reproduce sonido antes); se apaga con el botón del HUD. Es un fondo: nunca tapa.
 6. **Ninguna información depende del sonido.** Todo lo que suena ya se ve. Quien no activa el sonido no se pierde nada.
 
 ---
@@ -46,7 +46,7 @@ Vienen de `Docs/FUTURO.md` 1.2 y de la revisión de la fase 0 (usuario, 2026-09-
 | Fondo | **Música:** una pieza clásica tranquila con licencia libre, de fondo durante la grabación: Chopin, *Études* Op. 10 (Musopen, dominio público), elegida en la fase 1. **Reemplaza los ambientes sintetizados por sueño** del plan original. |
 | Capa de la DR-1 | **Sintetizada:** hiss, motor, wow del melt, STOP y eject, clic de fragmento, botones, rebobinado. |
 | Sonidos de los sueños | **Solo puntuales** y ligados a una interacción (5). |
-| Toggle | Botón `SOUND OFF` / `SOUND ON` en el HUD, siempre visible, **apagado por defecto** (hecho en la fase 0). |
+| Toggle | Botón `SOUND OFF` / `SOUND ON` en el HUD, siempre visible (hecho en la fase 0). **Encendido por defecto** (usuario, después de la fase 1): se lee ON desde el inicio y suena desde el primer click, toque o tecla; la rueda no cuenta como gesto para los navegadores. |
 | Volumen | **Sin control propio.** La mezcla baja ~8 dB respecto del plan original (6); el volumen del sistema hace el resto. |
 | Preferencia | **No se guarda.** Cada visita arranca sin sonido. |
 | Clic por carácter en los logs | **No.** Cansa rápido. La impresión de Wake es la única excepción. |
@@ -119,7 +119,7 @@ param(name, value)           // un valor continuo: 'ocean.under', 'house.stretch
 - **La música también necesita el gesto** en Safari iOS: en ese mismo click, **desbloquear los elementos `<audio>`** (`play()` seguido de `pause()` en silencio) aunque la música todavía no deba sonar (en el hero no suena). Verificarlo en Safari cuando haya dispositivo.
 - **Apagar:** fade-out de 0.3 s, `ctx.suspend()` y **pausa de la música** (conserva su posición). Volver a encender retoma.
 - **Pestaña oculta:** lo mismo que apagar (la música se pausa: si no, seguiría avanzando en silencio); al volver, retoma con fade de 0.3 s si estaba encendido.
-- **Sin persistencia:** recargar arranca apagado.
+- **Encendido por defecto, sin persistencia:** cada visita arranca en ON, esperando el primer gesto (click, toque o tecla en cualquier parte; `sound/bus.js` escucha hasta que el contexto realmente corre). Nada se descarga antes. Si alguien lo apaga, recargar vuelve a ON.
 
 ### 3.3 El grafo
 
@@ -326,7 +326,7 @@ Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de ca
 - [ ] Con el sonido apagado, la noche es idéntica a la de `develop` (navegación, capturas, rendimiento) y la música no se descarga.
 - [ ] Encender no suena de golpe (fade-in); apagar y encender no dejan clics.
 - [ ] Ocultar la pestaña silencia y pausa la música; volver retoma, solo si estaba encendido.
-- [ ] Recargar arranca apagado.
+- [ ] Recargar arranca en ON, esperando el primer gesto; nada de sonido se descarga antes.
 - [ ] La música suena solo mientras la DR-1 graba, se frena como cinta y retoma donde quedó.
 - [ ] El loop de la música no se nota.
 - [ ] Cada melt dobla la música y más fuerte a medida que avanza la noche; los crossfades, no.

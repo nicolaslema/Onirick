@@ -13,10 +13,10 @@ import { HAS_WEBGL2 } from './lib/webgl'
 import { configureSound } from './sound/bus'
 import { MUSIC } from './night/music'
 
-// The night's sound, loaded on the first SOUND ON (PLAN-3.md 3.1): two
-// <audio> elements for the tape, unlocked in that click (they take turns at
-// the loop, PLAN-3.md 2.3).
-configureSound({ load: () => import('./night/score'), media: [MUSIC.url, MUSIC.url] })
+// The night's sound (PLAN-3.md 3.1), on by default: loaded on the first
+// gesture — no browser plays sound before one — with two <audio> elements for
+// the tape, unlocked in that gesture (they take turns at the loop, 2.3).
+configureSound({ load: () => import('./night/score'), media: [MUSIC.url, MUSIC.url], defaultOn: true })
 
 // Dreams keep their own scrub/beats (PLAN-2.md 3.2). Without WebGL2 there's
 // no scene to play with: every gesture changes section, as before.

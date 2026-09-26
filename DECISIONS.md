@@ -1145,3 +1145,15 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   its lowpass 7 → 5 kHz, motor unchanged. The motor + hiss layer barely moved (−68.8 → −69.0 dB RMS):
   the low motor dominates its RMS, while the hiss — little energy, but at 3–5 kHz where the ear is
   sharpest — is what was heard. Loudness and RMS part ways here; the ear decides.
+
+- **Sound on by default** (user, after several passes). No browser lets audio start before the visitor
+  interacts, so "on" means: the toggle reads SOUND ON from the first paint (still flat, still bars), and
+  `bus.js` listens on `window` (capture) for the first `keydown`, `pointerup`, `touchend` or `click`,
+  starts there — context, unlock, load — and keeps listening until the context actually runs (a touch
+  that scrolled, or iOS's pointerup, may not count). The wheel never counts as a gesture: someone who only
+  scrolls with a wheel or trackpad hears nothing until a click or a key — BEGIN RECORDING and the arrow
+  keys both start it. Clicking the toggle before any gesture turns it off (it reads ON). The bars move only
+  once the context runs (`isLive`). Nothing loads before that gesture — verified on the production build:
+  load + three wheel gestures, zero sound requests; the first ArrowDown fetches the score chunk and the
+  MP3. First chunk 78.34 → 78.59 kB gzip. Lighthouse mobile 79 / 79 (as before; `develop` 80 / 80 the same
+  day), Accessibility 100. PLAN-3.md 1, 2, 3.2 and 8 updated.
