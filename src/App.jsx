@@ -10,6 +10,13 @@ import { createNightGate } from './night/gate'
 import { DREAMS } from './night/dreams'
 import { setStage } from './night/stage'
 import { HAS_WEBGL2 } from './lib/webgl'
+import { configureSound } from './sound/bus'
+import { MUSIC } from './night/music'
+
+// The night's sound (PLAN-3.md 3.1), on by default: loaded on the first
+// gesture — no browser plays sound before one — with two <audio> elements for
+// the tape, unlocked in that gesture (they take turns at the loop, 2.3).
+configureSound({ load: () => import('./night/score'), media: [MUSIC.url, MUSIC.url], defaultOn: true })
 
 // Dreams keep their own scrub/beats (PLAN-2.md 3.2). Without WebGL2 there's
 // no scene to play with: every gesture changes section, as before.
@@ -32,8 +39,13 @@ function App() {
   const [nightState, setNightState] = useState({ currentIndex: 0, activeTransition: null })
   const handleStateChange = useCallback(state => {
     setNightState(state)
-    // The scenes read this directly (see night/stage.js for why not a prop).
-    setStage({ currentId: NIGHT[state.currentIndex]?.id ?? null, settled: !state.activeTransition })
+    // The scenes and the sound read this directly (see night/stage.js for why not a prop).
+    const t = state.activeTransition
+    setStage({
+      currentId: NIGHT[state.currentIndex]?.id ?? null,
+      settled: !t,
+      transition: t && { ...t, fromId: NIGHT[t.from]?.id, toId: NIGHT[t.to]?.id }
+    })
   }, [])
   const [ready, setReady] = useState(false)
   const handleReady = useCallback(() => setReady(true), [])

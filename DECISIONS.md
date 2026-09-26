@@ -1061,3 +1061,99 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   −22 dBFS and the test hum sits at −30 dB gain, on the new scale. Also clarified: in phase 0 nothing
   plays from the HUD toggle on its own — it only turns the engine on; the only sounds are the panel's
   test tone and hum, as planned.
+
+## Sound — Phase 1
+
+- **The music is the user's pick, not a violin:** of four candidates auditioned on a local page
+  (Bach's BWV 1001 Adagio, CC0; Tartini's *Devil's Trill*, Ray Chen, CC BY 3.0; Vivaldi's Op. 3 No. 11
+  Largo, CC BY-SA 2.0; and the user's own `Lament.mp3`), the user chose `Lament.mp3` — calmer, with a
+  serene opening; the violins felt "too high" for a dream. It's piano: Chopin, from the *Études* Op. 10,
+  from Musopen; the recording's page shows the Creative Commons public domain mark (checked by the user;
+  Musopen's page blocks automated reads), and the same Chopin collection is CC0 on the Internet Archive.
+  `CREDITS.md` records it. PLAN-3.md's "violin" is superseded; everything else about the tape stands.
+
+- **One MP3, unedited, 4.1 MB** (PLAN-3.md 2.2 asked ≤ 3 MB, Ogg + M4A). There's no ffmpeg on this
+  machine and no encoder dependency allowed; MP3 plays everywhere, so no second format is needed. It's
+  streamed by `<audio>` and only requested after SOUND ON (verified on the production build: zero sound
+  requests with sound off). Re-encoding to ~128 kbps (≈ 2.7 MB) is a one-line ffmpeg job if it's ever
+  installed. `/sound/*` gets the posters' one-day cache on Vercel.
+
+- **Measured, not guessed** (decoded in Chrome): 172.5 s, −25.6 dB RMS, −3.1 dB peak; sound from 0.5 s,
+  fading to nothing by ~166 s; two crests near 60 s and 95 s (≈ −20 dB RMS) against −37…−40 at both ends.
+  So the loop crosses between its two quietest moments: `loopStart` 0.5, `loopEnd` 166, a 3 s crossfade
+  between two `<audio>` decks.
+
+- **Level and compression, rendered offline:** the whole file through the chain in an
+  `OfflineAudioContext`, RMS per 0.5 s. First cut (gain −11 → compressor, threshold −40, ratio 3) came
+  out at −29.7 dB overall — **Web Audio's DynamicsCompressor applies automatic makeup gain**, which
+  undid the gain. Now: compressor (threshold −34, ratio 2.5, knee 6, attack 0.3, release 1) then a
+  −11.5 dB trim: ≈ −36 dB RMS overall, quiet passages −41, crests −32 (a 17 dB swing down to ~9).
+  Measured live across a whole night: −34 to −38 dB RMS on the music layer. Piano attacks still peak at
+  ≈ −13 dBFS (the slow attack lets them through; the master limiter never acted, reduction 0.0 dB).
+
+- **`activeTransition` carries `kind`, `duration`, `intensity`, `burn`** (PLAN-3.md 3.4), set where
+  ScrollSections already resolves them; App maps the indices to ids into `night/stage.js`, which now
+  also holds the transition and exports `subscribeStage`/`getStage` for the sound. `night/tapeRules.js`
+  decides what the tape does from two stage snapshots, as a pure function (9 tests).
+
+- **The tape's rules:** it runs while the DR-1 records — a transition heading into a `rec` section
+  starts it (0.6 → 1× speed, pitch rising, with the motor), one heading out stops it (1 → 0.25×, 0.8 s);
+  both at the transition's start, so the change happens under the melt or crossfade. The burn into
+  Wake stops it in 0.4 s timed to be silent at the white (the melt's middle). Arriving at Wake: STOP,
+  then eject 0.4 s later. Wake → hero rewinds it — REPLAY THE NIGHT, and also Home from Wake, which is
+  the same move. Sound turned on mid-night: the tape spins up if the DR-1 is recording, or stays
+  stopped (silently) where it is.
+
+- **Unlocking the tape in the click** (PLAN-3.md 3.2): `bus.toggle()` creates both `<audio>` elements
+  and plays them muted inside the click (Safari iOS needs a gesture per element), `configureSound()`
+  (App.jsx) tells the bus what to load and unlock, so `sound/` stays unaware of the night. The tape
+  pauses them as it takes them over, in case that play() hadn't settled yet. Not verifiable without an
+  iPhone.
+
+- **The engine's quiet/loud hooks:** the tape's `<audio>` would keep advancing in silence while the
+  context is suspended (sound off, tab hidden), so the engine announces both and the tape holds/releases.
+  Verified: hidden → `playing (held)`, back → carries on from the same second.
+
+- **The detector counts the STOP clack at Wake** — traced with the meter reporting each click's time and
+  samples: a 0.0201 step (floor 0.02) where the clack's noise burst lands on the slowed, low music. It's
+  the clack itself, borderline by the burst's random offset; not an artifact. Every other sound checked
+  one by one (tape start/stop/burn stop, key, tape click, rewind, eject) counted none; neither did a
+  whole night, the loop crossing, hiding the tab, or sound off/on. The dev panel's "→ near loop" seek is
+  a jump, so it counts, as it should.
+
+- **Verified** (Chrome headless, dev server, `?debug`): the whole night by keyboard — hero standby only
+  (−56.7 dB); the tape starts under the first melt (wow 1.50 ms of swing at its middle, intensity 0.45,
+  back to 0 after); stops entering the manual at 15.0 s and resumes in the Ocean from there; the loop
+  crosses from 157 s to the start; hidden tab holds; a fragment kept clicks (ui peak −27); the Fall
+  burns into Wake with the tape stopped; Replay rewinds to 0.5 s; sound off/on in the hero keeps it
+  stopped. No console errors or warnings. Production build: no sound requests with sound off; first
+  chunk 78.00 → 78.34 kB gzip; the score chunk 4.4 kB gzip. Lighthouse mobile (vite preview, 2 runs each,
+  same machine and day): `develop` 80 / 80, this branch 79 / 79 — within the noise seen in phase 0
+  (80/79 on both), Accessibility and SEO 100 on both. `pnpm lint`, `pnpm build`, `pnpm test` (20) clean.
+  **Not heard:** the user approves the phase by ear.
+
+- **After review — quieter music, and the machine barely there** (user, after listening to phase 1):
+  the music should accompany, not lead; the motor and hiss covered it. They measured 13 dB under the
+  music (−49.6 vs −37 dB RMS), but RMS isn't loudness: the hiss sits at 3–9 kHz, where the ear is most
+  sensitive, and the motor's saw is all harmonics. Now: music trim −11.5 → −17.5 dB; motor and hiss
+  gains −43/−40 → −62 dB each, the hiss darkened (lowpass 9 → 7 kHz); standby −54 → −70. Measured in
+  the Staircase, 10 s average: music −42.9, motor + hiss −68.8 (≈ 26 dB under the music), master −39.4;
+  standby alone −72.7. PLAN-3.md 6 updated. One-offs (keys, clicks, STOP/eject) unchanged.
+- **And 3 dB more for the music** (user): trim −17.5 → −20.5 dB. Measured in the Staircase: music
+  −45.8 dB RMS, motor + hiss −68.8 (23 dB under), master −42.4.
+- **The hiss, lower still** (user: the music is right now; the hiss isn't): hiss gain −62 → −72 dB and
+  its lowpass 7 → 5 kHz, motor unchanged. The motor + hiss layer barely moved (−68.8 → −69.0 dB RMS):
+  the low motor dominates its RMS, while the hiss — little energy, but at 3–5 kHz where the ear is
+  sharpest — is what was heard. Loudness and RMS part ways here; the ear decides.
+
+- **Sound on by default** (user, after several passes). No browser lets audio start before the visitor
+  interacts, so "on" means: the toggle reads SOUND ON from the first paint (still flat, still bars), and
+  `bus.js` listens on `window` (capture) for the first `keydown`, `pointerup`, `touchend` or `click`,
+  starts there — context, unlock, load — and keeps listening until the context actually runs (a touch
+  that scrolled, or iOS's pointerup, may not count). The wheel never counts as a gesture: someone who only
+  scrolls with a wheel or trackpad hears nothing until a click or a key — BEGIN RECORDING and the arrow
+  keys both start it. Clicking the toggle before any gesture turns it off (it reads ON). The bars move only
+  once the context runs (`isLive`). Nothing loads before that gesture — verified on the production build:
+  load + three wheel gestures, zero sound requests; the first ArrowDown fetches the score chunk and the
+  MP3. First chunk 78.34 → 78.59 kB gzip. Lighthouse mobile 79 / 79 (as before; `develop` 80 / 80 the same
+  day), Accessibility 100. PLAN-3.md 1, 2, 3.2 and 8 updated.

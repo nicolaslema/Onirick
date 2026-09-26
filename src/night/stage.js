@@ -12,21 +12,26 @@ import { useSyncExternalStore } from 'react';
 //
 // App.jsx writes it from ScrollSections' onStateChange.
 
-let state = { currentId: null, settled: true };
+// `transition`: the one in flight, as ScrollSections resolved it — { fromId,
+// toId, kind: 'melt' | 'plain', duration, intensity, burn } — or null. The
+// sound follows it (PLAN-3.md 3.4); the scenes only need `settled`.
+let state = { currentId: null, settled: true, transition: null };
 const listeners = new Set();
 
 export function setStage(next) {
-  if (next.currentId === state.currentId && next.settled === state.settled) return;
+  if (next.currentId === state.currentId && next.settled === state.settled && next.transition === state.transition) return;
   state = next;
   listeners.forEach(listener => listener());
 }
 
-function subscribe(listener) {
+export function subscribeStage(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
+const subscribe = subscribeStage;
 
-const getSnapshot = () => state;
+export const getStage = () => state;
+const getSnapshot = getStage;
 
 // A scene asking to move on by itself (the Fall, carrying you into Wake).
 // Only a section component can navigate (goTo lives on ScrollSections'

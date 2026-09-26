@@ -30,11 +30,11 @@ Revisado con el usuario el 2026-09-26: quedan estas cuatro. Lo que se sacó est�
 - El copy del plan 2 quedó como borrador aceptado (`PLAN-2 §13.3`): frases por beat y progreso, etiquetas de fragmento, pistas y líneas de lucidez de Wake. Está concentrado en `src/night/dreams.js` y `src/night/Wake/Wake.jsx`, así que retocarlo no toca lógica.
 - Para cuando se revise: el log de la escalera dice *"Every landing has the same window, and the same moon in it."*, pero las ventanas ahora son marcos vacíos y la única luna es la que orbita (`DECISIONS · Night 2 — Phase 3, after review`). Se puede leer como "la misma luna vista a través de ellas".
 
-### 1.2 Sonido opt-in
+### 1.2 Sonido
 
 **En desarrollo: ver `Docs/PLAN-3.md`**, que es la fuente de verdad (decisiones, arquitectura y fases). `PLAN-2 §2` (Después) y `§12`. Resumen de lo decidido con el usuario el 2026-09-26:
 
-- Toggle `SOUND OFF` / `SOUND ON` en el HUD, apagado por defecto, sin guardar la preferencia (fase 0 hecha en `snd-phase-0-engine`).
+- Toggle `SOUND OFF` / `SOUND ON` en el HUD, **encendido por defecto** (arranca con el primer click, toque o tecla), sin guardar la preferencia.
 - **Música de fondo:** una pieza de violín (clásica, oscura) con licencia libre verificable, que suena mientras la DR-1 graba y se frena como una cinta. Reemplaza los ambientes sintetizados por sueño que proponía el análisis original.
 - La capa de la DR-1 (hiss, motor, wow del melt, STOP y eject) y pocos sonidos puntuales por sueño, sintetizados.
 - Sin control de volumen: la mezcla baja ~8 dB respecto del primer plan.
@@ -156,6 +156,6 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 1. **Ajuste de números y verificaciones sueltas** (2.1, 2.2). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
 2. **`og:image` absoluto y `og:url`** (3.2): dos líneas en `index.html`, el dominio ya se conoce.
 3. **Títulos en un solo lugar** (4, primer ítem), para que cualquier retoque de narrativa futuro (1.1) toque un solo archivo.
-4. **Sonido opt-in** (1.2): en desarrollo según `PLAN-3.md`.
+4. **Sonido** (1.2): en desarrollo según `PLAN-3.md`.
 5. **Manual interactivo** (1.3).
 6. **Cursor propio** (1.4), si se confirma.

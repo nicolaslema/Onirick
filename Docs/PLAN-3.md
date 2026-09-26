@@ -2,7 +2,8 @@
 
 > Tercer plan de desarrollo para un agente de IA. Continúa `Docs/PLAN.md` (noche 1) y `Docs/PLAN-2.md` (noche 2, cerrados). Repositorio: `nicolaslema/Onirick`, base: rama `develop`. Sale de la sección 1.2 de `Docs/FUTURO.md`, donde están las decisiones tomadas con el usuario.
 > Idioma de este documento: español. **Todo el texto visible de la web va en inglés.** El contenido sonoro de este plan es **borrador**: se ajusta de oído, fase por fase, con el usuario.
-> **Revisado el 2026-09-26, después de escuchar la fase 0:** la noche lleva **música** (una pieza de violín con licencia libre) en lugar de ambientes sintetizados por sueño, y la mezcla baja ~8 dB. Ver sección 2.
+> **Revisado el 2026-09-26, después de escuchar la fase 0:** la noche lleva **música** en lugar de ambientes sintetizados por sueño, y la mezcla baja ~8 dB. Ver sección 2.
+> **Fase 1:** el usuario eligió un estudio de Chopin para piano (Musopen, dominio público) en vez de un violín: más tranquilo para un sueño. Ver `DECISIONS · Sound — Phase 1` y `CREDITS.md`.
 
 ---
 
@@ -27,11 +28,11 @@
 
 La DR-1 es una grabadora: **ahora se la escucha grabar, y lo que suena es lo que hay en la cinta.**
 
-1. **La música es la cinta.** Una pieza de violín, oscura y clásica, suena **solo mientras la DR-1 graba** (`hud.state === 'rec'`): arranca con el motor al dormirte, se frena como una cinta cuando el motor para (el manual, el STOP de Wake) y retoma desde donde quedó. `REPLAY THE NIGHT` la rebobina.
+1. **La música es la cinta.** Una pieza tranquila (un estudio de Chopin para piano, elegido en la fase 1), suena **solo mientras la DR-1 graba** (`hud.state === 'rec'`): arranca con el motor al dormirte, se frena como una cinta cuando el motor para (el manual, el STOP de Wake) y retoma desde donde quedó. `REPLAY THE NIGHT` la rebobina.
 2. **La máquina se escucha debajo:** el hiss de la cinta y el motor, casi inaudibles.
 3. **El melt dobla la música como una cinta estirada**, y se intensifica igual que la imagen a lo largo de la noche.
 4. **Los sueños responden con pocos sonidos puntuales** (el canto de la ballena, una puerta, el agua sobre tu cabeza, la alarma), no con ambientes propios.
-5. **Opt-in y bajo.** Apagado por defecto. Encendido, es un fondo: nunca tapa.
+5. **Encendido por defecto, y bajo.** Arranca con la primera interacción (ningún navegador reproduce sonido antes); se apaga con el botón del HUD. Es un fondo: nunca tapa.
 6. **Ninguna información depende del sonido.** Todo lo que suena ya se ve. Quien no activa el sonido no se pierde nada.
 
 ---
@@ -42,10 +43,10 @@ Vienen de `Docs/FUTURO.md` 1.2 y de la revisión de la fase 0 (usuario, 2026-09-
 
 | Tema | Decisión |
 | --- | --- |
-| Fondo | **Música:** una pieza de violín (clásica, oscura) con licencia libre, de fondo durante la grabación. **Reemplaza los ambientes sintetizados por sueño** del plan original. |
+| Fondo | **Música:** una pieza clásica tranquila con licencia libre, de fondo durante la grabación: Chopin, *Études* Op. 10 (Musopen, dominio público), elegida en la fase 1. **Reemplaza los ambientes sintetizados por sueño** del plan original. |
 | Capa de la DR-1 | **Sintetizada:** hiss, motor, wow del melt, STOP y eject, clic de fragmento, botones, rebobinado. |
 | Sonidos de los sueños | **Solo puntuales** y ligados a una interacción (5). |
-| Toggle | Botón `SOUND OFF` / `SOUND ON` en el HUD, siempre visible, **apagado por defecto** (hecho en la fase 0). |
+| Toggle | Botón `SOUND OFF` / `SOUND ON` en el HUD, siempre visible (hecho en la fase 0). **Encendido por defecto** (usuario, después de la fase 1): se lee ON desde el inicio y suena desde el primer click, toque o tecla; la rueda no cuenta como gesto para los navegadores. |
 | Volumen | **Sin control propio.** La mezcla baja ~8 dB respecto del plan original (6); el volumen del sistema hace el resto. |
 | Preferencia | **No se guarda.** Cada visita arranca sin sonido. |
 | Clic por carácter en los logs | **No.** Cansa rápido. La impresión de Wake es la única excepción. |
@@ -118,7 +119,7 @@ param(name, value)           // un valor continuo: 'ocean.under', 'house.stretch
 - **La música también necesita el gesto** en Safari iOS: en ese mismo click, **desbloquear los elementos `<audio>`** (`play()` seguido de `pause()` en silencio) aunque la música todavía no deba sonar (en el hero no suena). Verificarlo en Safari cuando haya dispositivo.
 - **Apagar:** fade-out de 0.3 s, `ctx.suspend()` y **pausa de la música** (conserva su posición). Volver a encender retoma.
 - **Pestaña oculta:** lo mismo que apagar (la música se pausa: si no, seguiría avanzando en silencio); al volver, retoma con fade de 0.3 s si estaba encendido.
-- **Sin persistencia:** recargar arranca apagado.
+- **Encendido por defecto, sin persistencia:** cada visita arranca en ON, esperando el primer gesto (click, toque o tecla en cualquier parte; `sound/bus.js` escucha hasta que el contexto realmente corre). Nada se descarga antes. Si alguien lo apaga, recargar vuelve a ON.
 
 ### 3.3 El grafo
 
@@ -268,14 +269,13 @@ Con la música de fondo, cada sueño suma **pocos sonidos, solo ligados a lo que
 
 ## 6. Mezcla: niveles de partida
 
-~8 dB más bajos que el plan original, después de escuchar la fase 0 (el zumbido de prueba a −28 dB RMS en el master sonaba alto). Puntos de partida, a ajustar de oído y anotar en `DECISIONS.md`. Medidos con el panel (3.8), en dBFS.
+Ajustados dos veces de oído por el usuario: ~8 dB más bajos que el plan original después de la fase 0, y otra vez en la fase 1 (la música −6 dB y después −3 más, de fondo; motor e hiss ~−20 dB, porque tapaban la música aun medidos 13 dB por debajo). Antes: después de escuchar la fase 0 (el zumbido de prueba a −28 dB RMS en el master sonaba alto). Puntos de partida, a ajustar de oído y anotar en `DECISIONS.md`. Medidos con el panel (3.8), en dBFS.
 
 | Capa | RMS objetivo | Pico máximo |
 | --- | --- | --- |
-| Master | −32 a −28 | −14 |
-| Música | −38 a −34 | −20 |
-| Hiss de cinta | −56 | — |
-| Motor | −50 | — |
+| Master | −44 a −40 | −14 |
+| Música | −48 a −44 (medido −45.8) | −20 |
+| Hiss + motor (juntos) | ≈ −69, apenas perceptible, ~25 dB bajo la música | — |
 | Puntuales de escena (pasos, puertas, ballena, agua) | — | −22 |
 | Puntuales de interfaz (botones, fragmento) | — | −28 |
 | Alarma de Fall en su punto más alto | — | −20 |
@@ -293,7 +293,9 @@ Cada fase termina con `pnpm lint`, `pnpm build` y `pnpm test` limpios, sin error
 
 Hecha en `snd-phase-0-engine`: bus, motor, primitivas, toggle, ciclo de vida y panel con medidores. Ver `DECISIONS · Sound — Phase 0`. Pendiente de esa fase por la revisión: bajar el tono y el zumbido de prueba a los niveles nuevos (6) — hecho — y renombrar la capa `ambience` a `music` (en la fase 1, cuando la música exista).
 
-### Fase 1: La cinta (música + máquina)
+### Fase 1: La cinta (música + máquina) ✔ (a aprobar de oído)
+
+Hecha en `snd-phase-1-tape`: ver `DECISIONS · Sound — Phase 1`. Desvíos: la pieza es para piano; un solo MP3 de 4.1 MB sin reencodear (sin ffmpeg; MP3 suena en todos los navegadores).
 
 1. **Elegir la música** (2.2): 3 candidatos con licencia verificable; el usuario elige. Recortarla, normalizarla, `CREDITS.md`.
 2. `sound/tape.js`: los dos `<audio>` alternados y el loop (2.3), el desbloqueo en el click (3.2), arranque, stop de cinta y rebobinado (4.1).
@@ -324,7 +326,7 @@ Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de ca
 - [ ] Con el sonido apagado, la noche es idéntica a la de `develop` (navegación, capturas, rendimiento) y la música no se descarga.
 - [ ] Encender no suena de golpe (fade-in); apagar y encender no dejan clics.
 - [ ] Ocultar la pestaña silencia y pausa la música; volver retoma, solo si estaba encendido.
-- [ ] Recargar arranca apagado.
+- [ ] Recargar arranca en ON, esperando el primer gesto; nada de sonido se descarga antes.
 - [ ] La música suena solo mientras la DR-1 graba, se frena como cinta y retoma donde quedó.
 - [ ] El loop de la música no se nota.
 - [ ] Cada melt dobla la música y más fuerte a medida que avanza la noche; los crossfades, no.
@@ -372,7 +374,7 @@ Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de ca
 
 Se preguntan al usuario cuando llegue su fase:
 
-1. **La pieza de música** (fase 1): entre 3 candidatos con licencia.
+1. ~~**La pieza de música** (fase 1)~~ — resuelta: Chopin, *Études* Op. 10 (Musopen), elegida por el usuario.
 2. **Manual** (fase 5): la propuesta es silencio con la cinta frenada (5.4).
 3. **Pasos en la escalera** (fase 2): si suman o sobran con la música.
 4. **Cada puntual candidato a archivo** (pasos, agua): después de escuchar la versión sintetizada.

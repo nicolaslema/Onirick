@@ -128,7 +128,7 @@ export default function ScrollSections({
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [plainTransition, setPlainTransition] = useState(null); // { from, to } | null
-  const [activeTransition, setActiveTransition] = useState(null); // { from, to } | null — morph or plain
+  const [activeTransition, setActiveTransition] = useState(null); // { from, to, kind: "melt" | "plain", duration, intensity, burn } | null
   // Bumped when every cached capture is thrown away (resize), so the
   // pre-capture effect below runs again for the current section's neighbours.
   const [captureEpoch, setCaptureEpoch] = useState(0);
@@ -278,8 +278,8 @@ export default function ScrollSections({
   const runPlainTransition = useCallback(
     (fromIndex, toIndex, dir, destIndex) => {
       dirRef.current = dir;
-      setActiveTransition({ from: fromIndex, to: toIndex });
       const plainMs = (sections[destIndex]?.plainDuration ?? basePropsRef.current.plainDuration) * 1000;
+      setActiveTransition({ from: fromIndex, to: toIndex, kind: 'plain', duration: plainMs / 1000, intensity: 0, burn: 0 });
       if (stageRef.current) {
         stageRef.current.style.setProperty('--scroll-sections-plain-duration', `${plainMs / 1000}s`);
       }
@@ -571,7 +571,10 @@ export default function ScrollSections({
       engine.syncOptions();
 
       dirRef.current = dir;
-      setActiveTransition({ from: currentIndexRef.current, to: targetIndex });
+      // The resolved melt, for anything that follows transitions (the sound,
+      // PLAN-3.md 3.4) without repeating how it's resolved.
+      const { duration, intensity, burn = 0 } = optsRef.current;
+      setActiveTransition({ from: currentIndexRef.current, to: targetIndex, kind: 'melt', duration, intensity, burn });
       engine.prepareTransition(currentDesc, nextDesc, dir);
       // Refresh first: showing the canvas draws a frame immediately, and it
       // must already hold both scenes' live pose, not their cached one.
