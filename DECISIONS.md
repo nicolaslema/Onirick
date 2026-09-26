@@ -1294,3 +1294,13 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   once per line with its duration and rate. The paper feed after each row stays. ≈ −44 dB peak. One
   click was counted on arriving at Wake: a 0.033 step on a signal of ~0.017 — the level of the alarm's
   tail, whose square wave has sharp edges by nature, over near-silence; the printer is far quieter.
+
+- **After review — the alarm's shape** (user): silent at the Fall's first stop; starting once you've
+  scrolled down at all (progress ≥ 0.02), from quiet (10%) to full; sparse at first and hurrying — a
+  burst on every 3rd REC blink below 0.35, every 2nd below 0.6, every one after (so still in phase with
+  the dot), the bursts shortening as before; and once the fall has carried you to the bottom (the scene
+  locked the scroll, `getPlay('fall').locked`, progress ≥ 0.995 — not when you enter the Fall from Wake),
+  the bursts stop and one long beep holds (`dreamSounds.alarmHold`), faded out exponentially over what's
+  left of the melt into Wake. Measured: 0 bursts at the top; gaps ~1.5 s at 0.5; the long beep steady at
+  ≈ −33 dB, then falling smoothly from the melt's start (−39, −46, −52 … −98 dB) to nothing as Wake
+  settles. No clicks.
