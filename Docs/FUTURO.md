@@ -15,30 +15,24 @@
 - **Sección 5**: lo que **no** hay que reabrir (descartado o decidido con el usuario), para no volver a proponerlo.
 - **Sección 6**: un orden sugerido.
 
-Las decisiones de `PLAN-2 §13` siguen valiendo. Si alguno de estos ítems las contradice (por ejemplo, lucidez con efecto en las escenas, 13.4), hay que preguntar antes.
+Las decisiones de `PLAN-2 §13` siguen valiendo. Si alguno de estos ítems las contradice, hay que preguntar antes.
 
 ---
 
 ## 1. Features postergadas
 
-### 1.1 Narrativa definitiva (prerrequisito de casi todo lo demás)
+Revisado con el usuario el 2026-09-26: quedan estas cuatro. Lo que se sacó está en la sección 5.
 
-- **El copy del plan 2 es borrador aceptado** (`PLAN-2 §13.3`): frases por beat y progreso, etiquetas de fragmento, pistas, líneas de lucidez de Wake. Está concentrado en `src/night/dreams.js` y `src/night/Wake/Wake.jsx` para retocarlo sin tocar lógica.
-- **Una frase ya quedó desfasada:** el log de la escalera dice *"Every landing has the same window, and the same moon in it."*, pero las ventanas ahora son marcos vacíos y la única luna es la que orbita (`DECISIONS · Night 2 — Phase 3, after review`). La frase se puede leer como "la misma luna vista a través de ellas", pero conviene revisarla en la pasada de narrativa.
-- La **segunda noche** (1.2) depende de que esta narrativa esté fija.
+### 1.1 Narrativa
 
-### 1.2 Segunda noche distinta
+**Por ahora está bien como está.** Si hay cambios, vienen más adelante; no es un pendiente activo.
 
-`PLAN-2 §2` (Después) y `§12`.
+- El copy del plan 2 quedó como borrador aceptado (`PLAN-2 §13.3`): frases por beat y progreso, etiquetas de fragmento, pistas y líneas de lucidez de Wake. Está concentrado en `src/night/dreams.js` y `src/night/Wake/Wake.jsx`, así que retocarlo no toca lógica.
+- Para cuando se revise: el log de la escalera dice *"Every landing has the same window, and the same moon in it."*, pero las ventanas ahora son marcos vacíos y la única luna es la que orbita (`DECISIONS · Night 2 — Phase 3, after review`). Se puede leer como "la misma luna vista a través de ellas".
 
-- `recording.js` guarda cuántas noches grabaste, en `localStorage` (hoy la grabación vive **solo en memoria** y recargar empieza de cero, `PLAN-2 §3.5`; la segunda noche necesita persistir **solo el contador de noches**, no los fragmentos, para no romper lo que se decidió en la fase 4 de que cada reacción se pueda volver a ver).
-- Los sueños cambian de forma fiel al original. Ejemplos del plan: la ballena no está (*"Neither was the whale"*), la casa tiene una puerta nueva, el HUD dice `NIGHT 02`.
-- Hoy `REPLAY THE NIGHT` hace `recording.reset()`: cada noche es una grabación nueva sin memoria de la anterior (`PLAN-2 §3.5`). Hay que decidir si Replay cuenta como "segunda noche" o solo una visita nueva.
-- Posible punto de encuentro con 1.7 (lucidez con efecto).
+### 1.2 Sonido opt-in
 
-### 1.3 Sonido opt-in
-
-`PLAN-2 §2` (Después) y `§12`.
+**Feature futura.** `PLAN-2 §2` (Después) y `§12`.
 
 - Toggle en el HUD, **apagado por defecto**.
 - Fuentes propuestas:
@@ -48,30 +42,18 @@ Las decisiones de `PLAN-2 §13` siguen valiendo. Si alguno de estos ítems las c
 - Todo archivo usado va a un `CREDITS.md` con su licencia (hoy no existe porque todo el 3D es procedural, `DECISIONS · Phase 7`).
 - Ojo con la regla `PLAN-2 §0.7` "nada de dependencias nuevas": Web Audio es nativo, así que entra sin romperla.
 
-### 1.4 Manual interactivo
+### 1.3 Manual interactivo
 
-`PLAN-2 §2` (Después) y `§12`.
+**Feature futura.** `PLAN-2 §2` (Después) y `§12`.
 
 - Hover en la `SpecTable` resalta la pieza correspondiente en una **vista explotada del DR-1**.
 - Botones `PLAY TAPE 0N` que saltan a cada sueño.
 - Tener en cuenta que el manual hoy es un **desvío** (`detour: true`, `DECISIONS · After release`): saltar desde ahí a un sueño tiene que convivir con esa regla (¿un `PLAY TAPE` termina el desvío como Home/End?).
 - Requiere un equivalente en tap para mobile (`PLAN-2 §5.6`: nada depende del hover).
 
-### 1.5 Cursor propio
+### 1.4 Cursor propio
 
-`PLAN-2 §2` (Después) y `§12`. Uno solo para toda la noche. A definir: si cambia por sueño o por estado (por ejemplo, en la escalera al mantener apretado), y cómo convive con el `pointer.js` window-wide y con reduced motion.
-
-### 1.6 Distorsión del texto bajo el agua (Ocean)
-
-`PLAN-2 §6.4` y `§12`. Un filtro SVG sobre el DOM del título y el log cuando la cámara está bajo la superficie. **Riesgo alto:** `modern-screenshot` puede no capturarlo igual, y el melt de salida mostraría el texto sin distorsión (o distinto). Probar la captura antes de construir nada.
-
-### 1.7 Giroscopio para dirigir la caída en mobile
-
-`PLAN-2 §12`. Nota: desde la revisión de la fase 7, **Fall ya no se dirige con el puntero** (se decidió que la caída se maneja sola porque scrollear y apuntar a la vez era incómodo, `DECISIONS · Night 2 — Phase 7`). Si vuelve el giroscopio, tiene que ser un matiz sobre el recorrido automático, no volver a pedir control. Requiere permiso en iOS (`DeviceOrientationEvent.requestPermission`) y un toggle.
-
-### 1.8 Lucidez con efecto en las escenas o en el melt
-
-`PLAN-2 §12`. **Hoy decidido que no** (`PLAN-2 §13.4`): cambiar niebla o melt contradiría que la noche se intensifica. Solo reabrir junto con la segunda noche, y preguntando.
+**Sin decidir; queda por ahora.** `PLAN-2 §2` (Después) y `§12`. Uno solo para toda la noche. A definir: si cambia por sueño o por estado (por ejemplo, en la escalera al mantener apretado), y cómo convive con el `pointer.js` window-wide y con reduced motion.
 
 ---
 
@@ -136,11 +118,11 @@ Todo el QA del plan 2 se hizo en **Chrome** (headless con GPU, escritorio y 390p
 
 ## 4. Deuda técnica menor
 
-- **Títulos repetidos en tres lugares**: `src/night/config.js` (`tape`/`title`, para el anuncio del HUD), `src/night/dreams.js` (para el log de Wake y *Save the tape*) y cada `DreamX.jsx`. Unificarlos en `dreams.js` y que `config.js` los reexporte, cuidando el ciclo de imports `config.js` → secciones → escenas → `play.js` (`DECISIONS · Phase 1`, `Night 2 — Phase 0`, `Night 2 — Phase 8`). Conviene hacerlo **antes** de la pasada de narrativa (1.1), así un título se cambia en un solo lugar.
+- **Títulos repetidos en tres lugares**: `src/night/config.js` (`tape`/`title`, para el anuncio del HUD), `src/night/dreams.js` (para el log de Wake y *Save the tape*) y cada `DreamX.jsx`. Unificarlos en `dreams.js` y que `config.js` los reexporte, cuidando el ciclo de imports `config.js` → secciones → escenas → `play.js` (`DECISIONS · Phase 1`, `Night 2 — Phase 0`, `Night 2 — Phase 8`). Conviene hacerlo **antes** de cualquier retoque de narrativa (1.1), así un título se cambia en un solo lugar.
 - **`src/legacy/`** sigue en el repo (`Proof.jsx` y compañía, de antes de la noche 1; `DECISIONS · Phase 4`). Decidir si se borra.
-- **`activeTransition` sin `progress`** (`DECISIONS · Phase 1`): solo revisar si algo nuevo (sonido, 1.3, que podría querer seguir el melt) necesita el progreso cuadro a cuadro. Si hace falta, exponerlo como ref, no como estado de React.
+- **`activeTransition` sin `progress`** (`DECISIONS · Phase 1`): solo revisar si algo nuevo (sonido, 1.2, que podría querer seguir el melt) necesita el progreso cuadro a cuadro. Si hace falta, exponerlo como ref, no como estado de React.
 - **Póster de Wake** hornea la etiqueta de la fecha en que se generó (`DECISIONS · Night 2 — Phase 9`). Solo se ve sin WebGL2, donde la cuenta es 0/5; si molesta, generar ese póster con la etiqueta vacía.
-- **Estado de escena que se pierde al desmontar** (dónde quedó la figura de la escalera, qué puertas estaban abiertas en House). Decidido aceptable (`PLAN-2 §3.3`, `§13.5`); anotado por si la segunda noche lo necesita.
+- **Estado de escena que se pierde al desmontar** (dónde quedó la figura de la escalera, qué puertas estaban abiertas en House). Decidido aceptable (`PLAN-2 §3.3`, `§13.5`); sin acción.
 
 ---
 
@@ -156,6 +138,10 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 - **Fall dirigida con el puntero / "quedarse quieto 3 s"** — reemplazado por la caída automática y el tramo de soltarse (`DECISIONS · Night 2 — Phase 7`).
 - **Ventanas con luna pintada en la escalera** — sacadas: la única luna es la que orbita (`DECISIONS · Night 2 — Phase 3`).
 - **Un cuarto botón en Wake para el portfolio** — no: el nombre del autor es el link (`DECISIONS · Wake`).
+- **Segunda noche distinta** — no va a haber (usuario, 2026-09-26). Era `PLAN-2 §12`: contador de noches en `localStorage`, sueños que cambian, `NIGHT 02` en el HUD.
+- **Distorsión del texto bajo el agua en Ocean** — no va a estar (usuario, 2026-09-26). Era `PLAN-2 §6.4` y `§12`.
+- **Giroscopio para dirigir la caída en mobile** — no va a estar (usuario, 2026-09-26). Era `PLAN-2 §12`; además, Fall ya se maneja sola desde la fase 7.
+- **Lucidez con efecto en las escenas o en el melt** — no va a estar (`PLAN-2 §13.4`, confirmado por el usuario el 2026-09-26). La lucidez solo cambia el HUD y la línea de Wake.
 
 ---
 
@@ -163,8 +149,7 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 
 1. **QA en dispositivos reales + ajuste de números** (2.1, 2.2, 2.3). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
 2. **Deploy y rendimiento** (3): `og:image` absoluto, PageSpeed sobre el sitio real, primer frame de R3F.
-3. **Títulos en un solo lugar** (4, primer ítem), y después **narrativa definitiva** (1.1).
-4. **Sonido opt-in** (1.3): independiente de la narrativa, alto impacto, sin dependencias nuevas.
-5. **Manual interactivo** (1.4) y **cursor propio** (1.5).
-6. **Segunda noche** (1.2), con la narrativa ya fija; ahí evaluar 1.8.
-7. Experimentales, con prueba de captura primero: **distorsión bajo el agua** (1.6) y **giroscopio** (1.7).
+3. **Títulos en un solo lugar** (4, primer ítem), para que cualquier retoque de narrativa futuro (1.1) toque un solo archivo.
+4. **Sonido opt-in** (1.2): alto impacto, sin dependencias nuevas.
+5. **Manual interactivo** (1.3).
+6. **Cursor propio** (1.4), si se confirma.
