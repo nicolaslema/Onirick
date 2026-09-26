@@ -10,7 +10,6 @@ import { createTape } from '../sound/tape';
 import { NIGHT } from './config';
 import { MUSIC } from './music';
 import { getPlay } from './play';
-import { recPeriodAt } from './recPace';
 import { lucidity, subscribeRecording } from './recording';
 import { getStage, subscribeStage } from './stage';
 import { tapeCue } from './tapeRules';
@@ -20,7 +19,6 @@ const TAPE_STOP_SECONDS = 0.8;
 const EJECT_AFTER = 0.4;
 
 const stateOf = id => NIGHT.find(section => section.id === id)?.hud?.state;
-const FALL_REC_TO = NIGHT.find(section => section.id === 'fall')?.hud?.recTo;
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function createSound(ctx, env) {
@@ -109,92 +107,39 @@ export function createSound(ctx, env) {
     return value * (t.fromId === id ? 1 - eased : eased);
   }
 
-  // The Fall's alarm (PLAN-3.md 5.6, reshaped with the user in phase 4):
-  // - silent at the top: it starts once you've scrolled down at all;
-  // - from quiet (10%) to full at the bottom, fading in with the melt into
-  //   the Fall (through());
-  // - sparse at first, hurrying as you fall: a burst on every 3rd blink of
-  //   the HUD's REC dot, then every 2nd, then every one (and the bursts
-  //   themselves shorten, dreamSounds.alarm);
-  // - once the fall has carried you to the bottom (the scene locked the
-  //   scroll), the bursts stop and one long beep holds — faded out over the
-  //   whole melt into Wake.
+  // The Fall's alarm (PLAN-3.md 5.6, settled with the user in phase 4): a
+  // "bip bip" at one steady pace from the first scroll down to the end —
+  // only its volume grows, from quiet (10%) to full at the bottom. Silent at
+  // the top; fading in with the melt into the Fall (through()), and out
+  // across the whole melt into Wake.
   const ALARM_FROM = 0.02; // progress: the first scroll down
+  const ALARM_EVERY = 2.9; // s — the pace it had at the Fall's second stop
   function alarmLevel() {
     if (!heard('fall')) return 0;
     const p = getPlay('fall').target;
     if (p < ALARM_FROM) return 0;
     const level = 0.1 + 0.9 * ((p - ALARM_FROM) / (1 - ALARM_FROM)) ** 1.3;
     const t = getStage().transition;
-    if (t?.fromId === 'fall' && t.burn > 0) return level * Math.max(0, 1 - transitionProgress(t) / 0.45);
+    if (t?.fromId === 'fall' && t.toId === 'wake') return level * (1 - transitionProgress(t));
     return through('fall', level);
   }
-  const everyNth = p => (p < 0.35 ? 3 : p < 0.6 ? 2 : 1);
 
-  // Bursts come on the HUD's REC dot lighting (the start of its blink cycle,
-  // steps(2)): read off the dot's own CSS animation, so they're in phase by
-  // construction. Under reduced motion the dot doesn't blink: the same pace
-  // on its own clock (recPace.js).
-  let lastPhase = 1;
-  let ownClock = 0;
+  // Its own clock: the first "bip bip" as soon as it starts, then every
+  // ALARM_EVERY seconds.
   let lastFrameAt = performance.now();
-  let lastCycleAt = 0;
-  let cycles = 0;
-  let hold = null; // the long beep, once the fall has taken over
+  let alarmClock = ALARM_EVERY;
   function alarmStep(now) {
     const dt = (now - lastFrameAt) / 1000;
     lastFrameAt = now;
-    const { transition } = getStage();
-    const fall = getPlay('fall');
-
-    // The long beep: the fall took over and reached the bottom.
-    if (hold) {
-      if (!heard('fall')) {
-        // Wake has settled (the fade is already done), or the night moved on.
-        hold.voice.stop();
-        hold = null;
-      } else if (transition?.fromId === 'fall' && transition.toId === 'wake' && !hold.fading) {
-        // The melt into Wake: fade out over what's left of it.
-        hold.fading = true;
-        hold.voice.fade(transition.duration * (1 - transitionProgress(transition)));
-      }
-      return;
-    }
-    if (fall.locked && fall.target >= 0.995 && heard('fall') && !transition) {
-      hold = { voice: dreams.alarmHold({ level: alarmLevel() }), fading: false };
-      return;
-    }
-
     const level = alarmLevel();
     if (level <= 0.001) {
-      lastPhase = 1;
-      ownClock = 0;
-      cycles = 0;
+      alarmClock = ALARM_EVERY;
       return;
     }
-    const nth = everyNth(fall.target);
-    const beat = period => {
-      cycles += 1;
-      if (cycles % nth === 0) dreams.alarm({ level, period });
-    };
-    const blink = document.querySelector('.onk-hud .onk-rec')?.getAnimations?.()[0];
-    if (blink && blink.playState === 'running') {
-      const duration = blink.effect.getComputedTiming().duration;
-      const phase = ((blink.currentTime ?? 0) % duration) / duration;
-      // While the pace changes fast the phase can jump back more than once a
-      // cycle: a new cycle counts only 60% of a period after the last one.
-      if (phase < lastPhase && now - lastCycleAt > duration * 0.6) {
-        lastCycleAt = now;
-        beat(duration / 1000);
-      }
-      lastPhase = phase;
-    } else {
-      ownClock += dt;
-      const period = recPeriodAt(fall.target, FALL_REC_TO);
-      if (ownClock >= period) {
-        ownClock -= period;
-        beat(period);
-      }
+    alarmClock += dt;
+    if (alarmClock >= ALARM_EVERY) {
+      alarmClock = 0;
+      dreams.alarm({ level });
     }
   }
 
@@ -254,7 +199,7 @@ export function createSound(ctx, env) {
       nextRing = now + 0.15;
       dreams.ring({ level: options?.debug ? 1 : alarmLevel() });
     }),
-    alarm: inDream('fall', () => dreams.alarm({ level: 1, period: 1.2 })),
+    alarm: inDream('fall', () => dreams.alarm({ level: 1 })),
     'print-line': inDream('wake', dreams.printLine),
     'print-feed': inDream('wake', dreams.printFeed),
     water: inDream('ocean', dreams.water),

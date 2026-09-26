@@ -1304,3 +1304,11 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   left of the melt into Wake. Measured: 0 bursts at the top; gaps ~1.5 s at 0.5; the long beep steady at
   ≈ −33 dB, then falling smoothly from the melt's start (−39, −46, −52 … −98 dB) to nothing as Wake
   settles. No clicks.
+
+- **After review — settled: a steady "bip bip"** (user: they didn't like the alarm; keep the "bip bip"
+  of the Fall's second stop, at the same pace to the end, only the volume growing). The alarm is now
+  two 60 ms beeps of the same softened 2 kHz square, every 2.9 s (its pace at the second stop) on its
+  own clock — no longer in phase with the HUD's REC dot, which still speeds up; the bursts that
+  hurried and the long final beep are gone. Silent at the top; from the first scroll down, from 10% to
+  full (≈ −45 dB peak at 0.25, −39 at 0.5, −34 at the bottom); faded out across the whole melt into
+  Wake. `night/recPace.js` stays, for the HUD. The rings' rush of air is unchanged.

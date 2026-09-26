@@ -251,62 +251,29 @@ export function createDreamSounds(ctx, { scene, ui }) {
     osc.onended = () => panner.disconnect();
   }
 
-  // The Fall's alarm (PLAN-3.md 5.6): an alarm clock — the 1980s clock
-  // radio's beep-beep-beep-beep, a ~2 kHz square wave, a little softened.
-  // One burst per REC blink; the faster the blink, the shorter the burst
-  // (4 beeps, then 3, then 2), so it's heard hurrying. `level` 0–1: it grows
-  // as you fall. (First cut, a single sine beep, didn't read as an alarm
-  // clock: user, phase 4.)
-  function alarm({ level = 1, period = 1.2 } = {}) {
+  // The Fall's alarm (PLAN-3.md 5.6): a "bip bip" — two short beeps of a
+  // ~2 kHz square wave, a little softened, as at the Fall's second stop in
+  // the phase 4 versions, which the user kept (the bursts that hurried and
+  // the long final beep were dropped). `level` 0–1: it grows as you fall.
+  const ALARM_BEEP = 0.06; // s on, then as long off
+  function alarm({ level = 1 } = {}) {
     const at = ctx.currentTime + 0.005;
     const peak = LEVELS.alarm * level;
-    const beeps = period >= 0.9 ? 4 : period >= 0.55 ? 3 : 2;
-    const on = Math.min(0.06, (period * 0.8) / (beeps * 2));
     const tone = oscillator(ctx, { type: 'square', frequency: 2048 });
     const soft = filter(ctx, { type: 'lowpass', frequency: 4200, Q: 0.6 });
     const gate = gain(ctx, 0);
     tone.connect(soft).connect(gate).connect(scene);
-    for (let i = 0; i < beeps; i++) {
-      const t = at + i * on * 2;
+    for (let i = 0; i < 2; i++) {
+      const t = at + i * ALARM_BEEP * 2;
       gate.gain.setValueAtTime(0, t);
       gate.gain.linearRampToValueAtTime(peak, t + 0.003);
-      gate.gain.setValueAtTime(peak, t + on - 0.003);
-      gate.gain.linearRampToValueAtTime(0, t + on);
+      gate.gain.setValueAtTime(peak, t + ALARM_BEEP - 0.003);
+      gate.gain.linearRampToValueAtTime(0, t + ALARM_BEEP);
     }
-    const end = at + beeps * on * 2;
+    const end = at + 4 * ALARM_BEEP;
     tone.start(at);
     tone.stop(end + 0.02);
     tone.onended = () => gate.disconnect();
-  }
-
-  // The alarm's last note: one long beep, held, the same tone — from the
-  // moment the fall has carried you to the bottom until the melt into Wake
-  // has faded it out (user, phase 4). Returns a handle: fade(seconds) takes
-  // it to silence over that long; stop() cuts it (quickly, without a click).
-  function alarmHold({ level = 1 } = {}) {
-    const at = ctx.currentTime + 0.005;
-    const peak = LEVELS.alarm * level;
-    const tone = oscillator(ctx, { type: 'square', frequency: 2048 });
-    const soft = filter(ctx, { type: 'lowpass', frequency: 4200, Q: 0.6 });
-    const hold = gain(ctx, 0);
-    tone.connect(soft).connect(hold).connect(scene);
-    hold.gain.setValueAtTime(0, at);
-    hold.gain.linearRampToValueAtTime(peak, at + 0.01);
-    tone.start(at);
-    tone.onended = () => hold.disconnect();
-    let ended = false;
-    const end = seconds => {
-      if (ended) return;
-      ended = true;
-      const t = ctx.currentTime;
-      const g = hold.gain;
-      const current = g.value;
-      g.cancelScheduledValues(t);
-      g.setValueAtTime(Math.max(current, 1e-5), t);
-      g.exponentialRampToValueAtTime(1e-5, t + seconds);
-      tone.stop(t + seconds + 0.05);
-    };
-    return { fade: seconds => end(seconds), stop: () => end(0.05) };
   }
 
   // Falling through one of the alarm's rings: air rushing past, a quick
@@ -357,5 +324,5 @@ export function createDreamSounds(ctx, { scene, ui }) {
     voice(whirr, filter(ctx, { type: 'lowpass', frequency: 1200 }), { at, peak: LEVELS.feed, attack: 0.015, decay: 0.12, sustain: 0.5, release: 0.05 });
   }
 
-  return { step, whaleCall, door, water, bubble, alarm, alarmHold, ring, printLine, printFeed };
+  return { step, whaleCall, door, water, bubble, alarm, ring, printLine, printFeed };
 }
