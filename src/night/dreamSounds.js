@@ -18,7 +18,11 @@ export const LEVELS = {
   door: dbToGain(-26), // a door you open, near (≈ −38 dB peak); far ones fall off with distance
   hallEcho: 0.3,
   water: dbToGain(-32), // a beat's surge
-  bubble: dbToGain(-46)
+  bubble: dbToGain(-46),
+  alarm: dbToGain(-34), // a beep at the Fall's bottom; it starts far quieter (alarm())
+  ring: dbToGain(-40), // falling through a ring
+  print: dbToGain(-44), // Wake's printer, one character
+  feed: dbToGain(-42) // and its paper advancing a row
 };
 
 const vary = amount => 1 + (Math.random() * 2 - 1) * amount;
@@ -247,5 +251,50 @@ export function createDreamSounds(ctx, { scene, ui }) {
     osc.onended = () => panner.disconnect();
   }
 
-  return { step, whaleCall, door, water, bubble };
+  // The Fall's alarm (PLAN-3.md 5.6): one short beep — a sine and its
+  // octave, clear but not piercing. `level` 0–1: it grows as you fall.
+  function alarm({ level = 1 } = {}) {
+    const at = ctx.currentTime + 0.005;
+    const peak = LEVELS.alarm * level;
+    const tone = oscillator(ctx, { frequency: 1400 });
+    const octave = oscillator(ctx, { frequency: 2800 });
+    const octaveLevel = gain(ctx, 0.2);
+    const mix = gain(ctx, 1);
+    tone.connect(mix);
+    octave.connect(octaveLevel).connect(mix);
+    const end = voice(mix, gain(ctx, 1), { at, peak, attack: 0.006, decay: 0.07, sustain: 0.7, release: 0.05 });
+    [tone, octave].forEach(osc => {
+      osc.start(at);
+      osc.stop(end);
+    });
+  }
+
+  // Falling through one of the alarm's rings: air rushing past, a quick
+  // sweep up and back down. `level` 0–1, with the alarm's growth.
+  function ring({ level = 1 } = {}) {
+    const at = ctx.currentTime + 0.005;
+    const sweep = filter(ctx, { type: 'bandpass', frequency: 400, Q: 1.4 });
+    sweep.frequency.setValueAtTime(400, at);
+    sweep.frequency.exponentialRampToValueAtTime(1600, at + 0.16);
+    sweep.frequency.exponentialRampToValueAtTime(500, at + 0.4);
+    voice(noise(ctx, 'pink'), sweep, { at, peak: LEVELS.ring * level * vary(0.15), attack: 0.12, decay: 0.12, release: 0.2, pan: (Math.random() * 2 - 1) * 0.3 });
+  }
+
+  // Wake's printer (PLAN-3.md 5.7): one dry tick per character — a little
+  // higher on a tape's head line — and the paper advancing after each row.
+  function printTick({ head = false } = {}) {
+    const at = ctx.currentTime + 0.003;
+    const tick = filter(ctx, { type: 'bandpass', frequency: (head ? 3200 : 2500) * vary(0.06), Q: 3 });
+    voice(noise(ctx, 'white'), tick, { at, peak: LEVELS.print * vary(0.2), attack: 0.001, decay: 0.006, release: 0.008 });
+  }
+
+  function printFeed() {
+    const at = ctx.currentTime + 0.005;
+    const whirr = oscillator(ctx, { type: 'sawtooth', frequency: 170 });
+    whirr.frequency.setValueAtTime(150, at);
+    whirr.frequency.linearRampToValueAtTime(190, at + 0.12);
+    voice(whirr, filter(ctx, { type: 'lowpass', frequency: 1200 }), { at, peak: LEVELS.feed, attack: 0.015, decay: 0.12, sustain: 0.5, release: 0.05 });
+  }
+
+  return { step, whaleCall, door, water, bubble, alarm, ring, printTick, printFeed };
 }

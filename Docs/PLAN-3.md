@@ -311,7 +311,9 @@ Hecha en `snd-phase-2-stair-whale`: ver `DECISIONS · Sound — Phase 2`. Nivele
 
 Hecha en `snd-phase-3-house-ocean`: ver `DECISIONS · Sound — Phase 3`. Sin el golpe de agua 'sordo' separado: la ola de cada beat ya lo es. Las burbujas van por la capa ui para que el filtro de bajo el agua no las entierre.
 
-### Fase 4: Fall + Wake (5.6, 5.7)
+### Fase 4: Fall + Wake (5.6, 5.7) ✔ (a aprobar de oído)
+
+Hecha en `snd-phase-4-fall-wake`: ver `DECISIONS · Sound — Phase 4`. La alarma lee la animación del punto REC del HUD para ir en fase; el ritmo vive en `night/recPace.js`, compartido con el HUD.
 
 Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de cada sección, los niveles están dentro de la tabla 6 en el peor caso, y el usuario aprobó el sonido. Si un puntual pasa a archivo (2.4), se resuelve dentro de su fase.
 

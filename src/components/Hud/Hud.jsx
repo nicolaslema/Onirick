@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DREAMS } from '../../night/dreams';
 import { getPlay } from '../../night/play';
 import { isKept, lucidity, useRecording } from '../../night/recording';
+import { recPeriodAt } from '../../night/recPace';
 import { useReducedMotion } from '../../three/useReducedMotion';
 import SoundToggle from '../SoundToggle/SoundToggle';
 import ScrambleCounter from './ScrambleCounter';
@@ -67,11 +68,10 @@ function useScrubbedHud(dream, hud, play) {
 }
 
 // The alarm in the HUD (PLAN-2.md 6.5): with `hud.recTo`, the REC dot's blink
-// period runs from 1.2 s down to recTo with the dream's scrub. Written as a
-// CSS variable on the HUD alone (TapeLabel's REC dots, inside the sections,
-// keep their pace), in 0.05 s steps so the animation isn't re-timed every
-// frame.
-const REC_PERIOD = 1.2;
+// period runs from 1.2 s down to recTo with the dream's scrub (recPace.js,
+// shared with the Fall's alarm beeps). Written as a CSS variable on the HUD
+// alone (TapeLabel's REC dots, inside the sections, keep their pace), in
+// 0.05 s steps so the animation isn't re-timed every frame.
 function useRecPace(root, dream, hud, play) {
   useEffect(() => {
     const el = root.current;
@@ -79,7 +79,7 @@ function useRecPace(root, dream, hud, play) {
     let raf = 0;
     let shown = '';
     const frame = () => {
-      const period = REC_PERIOD + (hud.recTo - REC_PERIOD) * Math.min(Math.max(fractionOf(dream, play), 0), 1);
+      const period = recPeriodAt(fractionOf(dream, play), hud.recTo);
       const value = `${(Math.round(period * 20) / 20).toFixed(2)}s`;
       if (value !== shown) {
         shown = value;

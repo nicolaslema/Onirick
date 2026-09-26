@@ -8,6 +8,7 @@ import { useReducedMotion } from '../../three/useReducedMotion';
 import { DREAMS, DREAM_IDS } from '../dreams';
 import { isKept, lucidity, reset, useRecording } from '../recording';
 import { onceSettledAt } from '../stage';
+import { cue } from '../../sound/bus';
 import './Wake.css';
 
 // Loaded with the 3D chunk, after the page has painted.
@@ -85,6 +86,8 @@ function usePrinter(segments, printing, reduced) {
       const s = segments[seg];
       if (char < s.text.length) {
         char += 1;
+        // The printer's tick, one per character (not the spaces) — PLAN-3.md 5.7.
+        if (s.text[char - 1] !== ' ') cue('print', { head: s.key.endsWith('-head') });
         const [at, n] = [seg, char];
         setCounts(prev => prev.map((c, i) => (i === at ? n : c)));
         timer = setTimeout(tick, 1000 / s.cps);
@@ -92,6 +95,8 @@ function usePrinter(segments, printing, reduced) {
       }
       seg += 1;
       char = 0;
+      // A row finished (a fragment, or the tier line): the paper advances.
+      if (!s.key.endsWith('-head')) cue('print-feed');
       timer = setTimeout(tick, s.pause);
     };
     timer = setTimeout(tick, START_MS);

@@ -11,6 +11,7 @@ import { useCloudTexture } from '../../three/useCloudTexture';
 import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
 import { requestNavigate, useLive } from '../stage';
+import { cue } from '../../sound/bus';
 
 // Dream 05, The Fall (PLAN-2.md 6.5). The scroll is depth, and the only thing
 // you do: the fall speeds up, an alarm grows — red rings rising from below,
@@ -465,7 +466,10 @@ function useFall(progress, live, colors) {
     }
     f.rings.forEach(ring => {
       if (!ring.alive) return;
+      const below = ring.y < 2;
       ring.y += RING_RISE * pace * dt;
+      // Falling through it, at your eyes: its rush of air (PLAN-3.md 5.6).
+      if (below && ring.y >= 2) cue('ring');
       // Gone once you've fallen through it (the camera's eyes are at y 2).
       if (ring.y > 2 + RING_PAST) ring.alive = false;
     });

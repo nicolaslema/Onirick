@@ -9,6 +9,8 @@ import { createMachine } from '../sound/machine';
 import { createTape } from '../sound/tape';
 import { NIGHT } from './config';
 import { MUSIC } from './music';
+import { getPlay } from './play';
+import { recPeriodAt } from './recPace';
 import { lucidity, subscribeRecording } from './recording';
 import { getStage, subscribeStage } from './stage';
 import { tapeCue } from './tapeRules';
@@ -18,6 +20,7 @@ const TAPE_STOP_SECONDS = 0.8;
 const EJECT_AFTER = 0.4;
 
 const stateOf = id => NIGHT.find(section => section.id === id)?.hud?.state;
+const FALL_REC_TO = NIGHT.find(section => section.id === 'fall')?.hud?.recTo;
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function createSound(ctx, env) {
@@ -31,6 +34,8 @@ export function createSound(ctx, env) {
   let prev = getStage();
   let burnTimer = 0;
   let nextBubble = 0;
+  let nextRing = 0;
+  let transitionAt = 0; // when the transition in flight started (onStage)
 
   function runTape(action, seconds) {
     if (action === 'start') {
@@ -94,20 +99,71 @@ export function createSound(ctx, env) {
   // with the transition itself, so the sound surfaces as the Ocean melts
   // into the Fall instead of snapping open when the Fall settles.
   let frame = 0;
-  let transitionAt = 0;
   const applied = { under: 0, far: 0 };
+  const transitionProgress = t => Math.min(Math.max((performance.now() - transitionAt) / (t.duration * 1000), 0), 1);
   function through(id, value) {
     const t = getStage().transition;
     if (!t || t.fromId === t.toId || (t.fromId !== id && t.toId !== id)) return value;
-    const p = Math.min(Math.max((performance.now() - transitionAt) / (t.duration * 1000), 0), 1);
+    const p = transitionProgress(t);
     const eased = p * p * (3 - 2 * p);
     return value * (t.fromId === id ? 1 - eased : eased);
+  }
+
+  // The Fall's alarm (PLAN-3.md 5.6): it grows as you fall — from a whisper
+  // at the top to full at the bottom — fades in with the melt into the Fall,
+  // and is gone before the white of the burn into Wake (the tape stops there).
+  function alarmLevel() {
+    if (!heard('fall')) return 0;
+    const level = 0.15 + 0.85 * getPlay('fall').target ** 1.5;
+    const t = getStage().transition;
+    if (t?.fromId === 'fall' && t.burn > 0) return level * Math.max(0, 1 - transitionProgress(t) / 0.45);
+    return through('fall', level);
+  }
+
+  // A beep each time the HUD's REC dot lights (the start of its blink cycle,
+  // steps(2)): read off the dot's own CSS animation, so they're in phase by
+  // construction. Under reduced motion the dot doesn't blink: the beeps keep
+  // the same pace on their own clock (recPace.js).
+  let lastPhase = 1;
+  let ownClock = 0;
+  let lastFrameAt = performance.now();
+  let lastBeepAt = 0;
+  function alarmStep(now) {
+    const dt = (now - lastFrameAt) / 1000;
+    lastFrameAt = now;
+    const level = alarmLevel();
+    if (level <= 0.001) {
+      lastPhase = 1;
+      ownClock = 0;
+      return;
+    }
+    const blink = document.querySelector('.onk-hud .onk-rec')?.getAnimations?.()[0];
+    if (blink && blink.playState === 'running') {
+      const duration = blink.effect.getComputedTiming().duration;
+      const phase = ((blink.currentTime ?? 0) % duration) / duration;
+      // While the pace changes fast (the fall taking over), the phase can
+      // jump backwards more than once a cycle: never two beeps closer than
+      // 60% of the current period.
+      if (phase < lastPhase && now - lastBeepAt > duration * 0.6) {
+        dreams.alarm({ level });
+        lastBeepAt = now;
+      }
+      lastPhase = phase;
+    } else {
+      ownClock += dt;
+      const period = recPeriodAt(getPlay('fall').target, FALL_REC_TO);
+      if (ownClock >= period) {
+        ownClock -= period;
+        dreams.alarm({ level });
+      }
+    }
   }
   function follow() {
     const under = heard('ocean') ? through('ocean', env.getParam('ocean.under', 0)) : 0;
     const far = heard('house') ? through('house', env.getParam('house.far', 0)) : 0;
     if (Math.abs(under - applied.under) > 0.001) engine.setUnder((applied.under = under));
     if (Math.abs(far - applied.far) > 0.001) tape.setDistance((applied.far = far));
+    alarmStep(performance.now());
     frame = requestAnimationFrame(follow);
   }
 
@@ -151,6 +207,16 @@ export function createSound(ctx, env) {
       tape.duck(options?.full === false ? -4 : -6, { attack: 0.6, hold: Math.max(seconds - 1.2, 0), release: 1.8 });
     }),
     door: inDream('house', dreams.door),
+    // Falling through a ring (the scene: its height crossing your eyes).
+    ring: inDream('fall', options => {
+      const now = ctx.currentTime;
+      if (!options?.debug && now < nextRing) return;
+      nextRing = now + 0.15;
+      dreams.ring({ level: options?.debug ? 1 : alarmLevel() });
+    }),
+    alarm: inDream('fall', () => dreams.alarm({ level: 1 })),
+    print: inDream('wake', dreams.printTick),
+    'print-feed': inDream('wake', dreams.printFeed),
     water: inDream('ocean', dreams.water),
     // The scene lets out ~18 bubbles a second: one sound for some of them.
     bubble: inDream('ocean', options => {

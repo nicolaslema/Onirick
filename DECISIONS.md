@@ -1253,3 +1253,32 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   over its `duration`), and one into it fades it in: `through()` in score.js, for `ocean.under` and
   `house.far`. Traced every 60 ms: Ocean → Fall opens 500 → 18 900 Hz across the 1.7 s melt, already open
   when the Fall settles; Fall → Ocean closes 19 900 → 514 Hz and arrives under. No clicks.
+
+## Sound — Phase 4
+
+- **The alarm is in phase with the HUD's REC dot by construction:** the score reads the dot's own CSS
+  animation (`getAnimations()`, its `currentTime` and computed duration) every frame and beeps when its
+  blink cycle restarts — the dot lighting, `steps(2)`'s first half. The pace formula moved to
+  `night/recPace.js`, shared by the HUD and the alarm's fallback clock (tested). While the fall takes
+  over (0.75 → 1 in 4 s) the pace changes every frame and the phase can jump back more than once a
+  cycle — measured 49 "cycles" in 9 s — so beeps are at least 60% of the current period apart. Under
+  reduced motion the dot doesn't blink: the beeps keep the pace on their own clock (measured exactly
+  1.2 s apart at the top).
+
+- **The alarm grows:** 15% at the Fall's top to 100% at the bottom (`0.15 + 0.85·p^1.5`), ≈ −53 → −34 dB
+  peak; it fades in with the melt from the Ocean (`through()`), and in the burn into Wake it's gone by
+  45% of the melt — traced: fading from the melt's start, silent from the white until Wake settles.
+  A beep: a 1.4 kHz sine and its octave (0.2), 70 ms. Falling through a ring (its height crossing your
+  eyes, y 2, in `FallScene`): a bandpassed pink rush sweeping 400 → 1600 → 500 Hz, at the alarm's level,
+  at most one every 0.15 s.
+
+- **Wake's printer:** `Wake.jsx`'s print loop cues a tick per character (not spaces) — a 6 ms bandpassed
+  noise, 3.2 kHz on a tape's head line, 2.5 kHz on the rest, ≈ −44 dB peak — and a paper feed after each
+  row (a short lowpassed saw, 150 → 190 Hz). Under reduced motion the log appears whole: no ticks
+  (verified).
+
+- **Verified** (Chrome headless, dev server, `?debug`): at the Fall's top 6 beeps for 6 REC cycles,
+  quiet; at 0.25 and 0.5 gaps of ~1 s and ~0.75 s, louder; losing control carries into Wake with the
+  alarm fading out and silence at the white; Wake prints with its ticks; the same with reduced motion
+  on the fallback clock, without ticks. No clicks, no console errors or warnings. `pnpm lint`,
+  `pnpm build`, `pnpm test` (23) clean. **Not heard:** the user approves by ear.
