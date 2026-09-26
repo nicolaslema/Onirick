@@ -15,7 +15,7 @@ export const LEVELS = {
   stepEcho: 0.35, // send into the stairwell
   whale: dbToGain(-28),
   whaleSpace: 0.55, // send into the open night
-  door: dbToGain(-18), // a door you open, near (≈ −40 dB peak: the creak's narrow resonance loses a lot); far ones fall off with distance
+  door: dbToGain(-30), // a door you open, near; far ones fall off with distance
   hallEcho: 0.3,
   water: dbToGain(-32), // a beat's surge
   bubble: dbToGain(-46)
@@ -158,8 +158,10 @@ export function createDreamSounds(ctx, { scene, ui }) {
     return phrase(at + 4.8 * slow, [126, 168, 202, 140], 2.0 * slow, peak * 0.75) - ctx.currentTime;
   }
 
-  // A door swinging open (PLAN-3.md 5.3): the latch, then the hinge's creak
-  // — a resonant squeal stick-slipping at a rate that slows as it opens.
+  // A door opening (PLAN-3.md 5.3), plainly: the handle turning and the
+  // latch letting go — two short dry clicks and a little knock of wood —
+  // then the air the leaf moves, barely there. (A synthesized hinge creak
+  // read as an effect, not a door: user, phase 3.)
   // `z`: how far down the hallway (negative); `side`: -1 left, 1 right.
   function door({ z = -4, side = 1, owned = true } = {}) {
     const at = ctx.currentTime + 0.01;
@@ -175,36 +177,37 @@ export function createDreamSounds(ctx, { scene, ui }) {
     panner.connect(scene);
     panner.connect(hallway);
 
-    // The latch.
-    const latch = noise(ctx, 'white');
-    const latchLevel = gain(ctx, 0);
-    latch.connect(filter(ctx, { type: 'bandpass', frequency: 2200, Q: 3 })).connect(latchLevel).connect(out);
-    envelope(latchLevel.gain, { attack: 0.002, decay: 0.012, release: 0.012, peak: level * 0.6 }, at);
-    latch.start(at, Math.random() * 3);
-    latch.stop(at + 0.06);
+    const click = (t, frequency, peak) => {
+      const source = noise(ctx, 'white');
+      const level = gain(ctx, 0);
+      source.connect(filter(ctx, { type: 'bandpass', frequency, Q: 2.2 })).connect(level).connect(out);
+      envelope(level.gain, { attack: 0.001, decay: 0.012, release: 0.015, peak }, t);
+      source.start(t, Math.random() * 3);
+      source.stop(t + 0.06);
+    };
+    // The handle turns, then the latch lets go, with a knock of wood.
+    const latchAt = at + 0.09 * vary(0.25);
+    click(at, 1700 * vary(0.1), level * 0.55);
+    click(latchAt, 1150 * vary(0.1), level * 0.8);
+    const knock = oscillator(ctx, { frequency: 150 * vary(0.1) });
+    const knockLevel = gain(ctx, 0);
+    knock.connect(knockLevel).connect(out);
+    knock.frequency.setValueAtTime(knock.frequency.value, latchAt);
+    knock.frequency.exponentialRampToValueAtTime(95, latchAt + 0.06);
+    envelope(knockLevel.gain, { attack: 0.002, decay: 0.05, release: 0.05, peak: level * 0.5 }, latchAt);
+    knock.start(latchAt);
+    knock.stop(latchAt + 0.2);
 
-    // The creak: noise through a narrow resonance gliding down, its level
-    // chopped by a square wave (the stick-slip) slowing from ~28 to ~15 Hz.
-    const seconds = 0.75 * vary(0.2);
-    const t0 = at + 0.05;
-    const creak = noise(ctx, 'white');
-    const resonance = filter(ctx, { type: 'bandpass', frequency: 980 * vary(0.1), Q: 8 });
-    resonance.frequency.setValueAtTime(resonance.frequency.value, t0);
-    resonance.frequency.exponentialRampToValueAtTime(resonance.frequency.value * 0.7, t0 + seconds);
-    const chop = gain(ctx, 0.35);
-    const slip = oscillator(ctx, { type: 'square', frequency: 28 });
-    slip.frequency.setValueAtTime(28 * vary(0.1), t0);
-    slip.frequency.linearRampToValueAtTime(15, t0 + seconds);
-    const slipDepth = gain(ctx, 0.3);
-    slip.connect(slipDepth).connect(chop.gain);
-    const creakLevel = gain(ctx, 0);
-    creak.connect(resonance).connect(chop).connect(creakLevel).connect(out);
-    const end = envelope(creakLevel.gain, { attack: 0.06, decay: seconds, sustain: 0.6, release: 0.25, peak: level * 1.6 }, t0);
-    [creak, slip].forEach(source => {
-      source.start(t0);
-      source.stop(end);
-    });
-    creak.onended = () => panner.disconnect();
+    // The leaf swinging: a soft swell of low air.
+    const air = noise(ctx, 'pink');
+    const airTone = filter(ctx, { type: 'lowpass', frequency: 500 });
+    const airLevel = gain(ctx, 0);
+    air.connect(airTone).connect(airLevel).connect(out);
+    const swingAt = latchAt + 0.05;
+    const end = envelope(airLevel.gain, { attack: 0.25, decay: 0.35, release: 0.3, peak: level * 0.25 }, swingAt);
+    air.start(swingAt, Math.random() * 3);
+    air.stop(end);
+    air.onended = () => panner.disconnect();
   }
 
   // The water rising one level (PLAN-3.md 5.5): a low surge and a glug.
