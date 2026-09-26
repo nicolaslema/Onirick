@@ -32,7 +32,7 @@ Revisado con el usuario el 2026-09-26: quedan estas cuatro. Lo que se sacó est�
 
 ### 1.2 Sonido opt-in
 
-**Feature futura.** `PLAN-2 §2` (Después) y `§12`. Analizada con el usuario el 2026-09-26.
+**En desarrollo: ver `Docs/PLAN-3.md`**, que la divide en fases por sección. `PLAN-2 §2` (Después) y `§12`. Analizada con el usuario el 2026-09-26.
 
 #### Decidido
 
