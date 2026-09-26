@@ -1050,3 +1050,14 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   12, two runs each, same machine, same day): `develop` 80 / 79, this branch 80 / 79; Accessibility 100,
   SEO 100, Best Practices 96 on both (`vite preview` sends no charset header; 100 deployed). `pnpm lint`,
   `pnpm build`, `pnpm test` clean. **Not heard:** the user approves the phase by ear (PLAN-3.md 0.5).
+
+- **After review — music instead of per-dream ambiences, and a quieter mix** (user, after listening to
+  phase 0). The test hum at −28 dB RMS on the master sounded loud, and the user asked for a dark
+  classical violin piece, free to use, rather than synthesized beds. Decided with the user: one violin
+  recording with a verifiable free licence plays **while the DR-1 records** — it starts with the motor,
+  tape-stops with it (the manual, Wake's STOP) and resumes where it left off; the synthesized DR-1 layer
+  (hiss, motor, melt wow, STOP/eject) and a few per-dream one-shots stay. No volume control: every level
+  in the plan drops ~8 dB. PLAN-3.md rewritten accordingly (sections 1–11); the test tone now peaks at
+  −22 dBFS and the test hum sits at −30 dB gain, on the new scale. Also clarified: in phase 0 nothing
+  plays from the HUD toggle on its own — it only turns the engine on; the only sounds are the panel's
+  test tone and hum, as planned.

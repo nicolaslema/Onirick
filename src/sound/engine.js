@@ -76,7 +76,7 @@ export function createEngine(ctx, bus) {
     const highLevel = gain(ctx, 0.25);
     low.connect(voice);
     high.connect(highLevel).connect(voice);
-    const end = envelope(voice.gain, { attack: 0.02, decay: 0.4, sustain: 0.35, hold: 0.3, release: 0.8, peak: dbToGain(-18) }, t);
+    const end = envelope(voice.gain, { attack: 0.02, decay: 0.4, sustain: 0.35, hold: 0.3, release: 0.8, peak: dbToGain(-22) }, t);
     [low, high].forEach(osc => {
       osc.start(t);
       osc.stop(end);
@@ -96,7 +96,7 @@ export function createEngine(ctx, bus) {
       tone.connect(toneLevel).connect(level);
       hiss.start();
       tone.start();
-      rampTo(level.gain, dbToGain(-24), 0.5, ctx);
+      rampTo(level.gain, dbToGain(-30), 0.5, ctx);
       hum = { level, sources: [hiss, tone] };
     } else if (!enabled && hum) {
       const { level, sources } = hum;

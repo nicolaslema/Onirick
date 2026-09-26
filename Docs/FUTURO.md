@@ -32,56 +32,13 @@ Revisado con el usuario el 2026-09-26: quedan estas cuatro. Lo que se sacó est�
 
 ### 1.2 Sonido opt-in
 
-**En desarrollo: ver `Docs/PLAN-3.md`**, que la divide en fases por sección. `PLAN-2 §2` (Después) y `§12`. Analizada con el usuario el 2026-09-26.
+**En desarrollo: ver `Docs/PLAN-3.md`**, que es la fuente de verdad (decisiones, arquitectura y fases). `PLAN-2 §2` (Después) y `§12`. Resumen de lo decidido con el usuario el 2026-09-26:
 
-#### Decidido
-
-| Tema | Decisión |
-| --- | --- |
-| Alcance | **Capa global + un ambiente por sueño.** Se puede construir por fases: la global primero, después sueño por sueño. |
-| Toggle | Botón **`SOUND OFF` / `SOUND ON`** en el HUD, siempre visible. **Apagado por defecto.** |
-| Origen | **Sintetizado con Web Audio primero** (0 KB, reacciona al estado en tiempo real, sin licencias, coherente con el 3D procedural). **Archivos CC0 solo** para los sonidos que no salgan convincentes sintetizados (probablemente pasos, agua, pájaros); cada uno en un `CREDITS.md` con su licencia. |
-| Recordar la preferencia | **No.** El botón está a la vista; cada visita arranca sin sonido. |
-| Manual | **A definir.** Silencio o casi (el momento despierto) es una opción, sin decidir. |
-
-#### Contenido propuesto (borrador, se ajusta al construir)
-
-- **Capa global — la DR-1 está grabando:**
-  - hiss de cinta y zumbido de motor muy bajos durante toda la noche;
-  - **el melt suena como cinta estirada**: *wow/flutter* (el pitch se dobla) durante cada transición, más fuerte a medida que avanza la noche, como los melts (`PLAN.md §5.1`);
-  - un "clic" de cinta al guardar un fragmento (`recording.keep`);
-  - en Wake: *clack* de STOP y del eject, después silencio.
-- **Por sueño:**
-  - **Hero:** zumbido de standby; clic de tecla en los botones.
-  - **Stair:** pasos lentos cada `T_STEP` (2 s), sincronizados con la figura; al detenerte los pasos paran y la escalera sigue sonando.
-  - **Whale:** viento y rumor lejano de ciudad; al saludar, un canto grave de ballena (oscilador con glissando).
-  - **House:** el zumbido de una heladera lejana (la cocina inalcanzable); crujido al abrir una puerta.
-  - **Manual:** a definir.
-  - **Ocean:** agua que golpea bajo y sube con cada beat; bajo el agua, todo tras un pasa-bajos fuerte; con el fragmento, el zumbido de la lámpara.
-  - **Fall:** viento que crece con la velocidad; la alarma, pitidos al mismo ritmo que el REC (`hud.recTo`); silencio en el quemado a blanco.
-  - **Wake:** el tic de la impresora mientras imprime la grabación; quizá pájaros del amanecer, muy suaves.
-- **Descartado de entrada:** un clic por carácter en el tipeo de los logs (cansa rápido). La impresión de Wake es la única excepción.
-
-#### Cómo encaja en el código
-
-- Un módulo `night/sound.js` que **se suscribe a las señales que ya existen**, sin tocar las escenas:
-  - `night/stage.js` (`currentId`, `settled`): qué ambiente suena;
-  - `onStateChange` de ScrollSections (`activeTransition {from, to}`): crossfade entre ambientes y el *wow/flutter* del melt, con la duración de cada melt de `config.js` (no hay `progress` por frame, `DECISIONS · Phase 1`);
-  - `night/play.js` (`subscribeTarget`, `trigger`, `act`): progreso del scrub, beats, `wave`, `let-go`;
-  - `night/recording.js` (`keep`): el clic de fragmento.
-- **Dos escenas tienen que exponer algo:** Ocean, el nivel real del agua (para el pasa-bajos al cruzar la superficie), y Stair, el ritmo de los pasos (vive en la escena, no en `play.js`).
-- **Carga:** import dinámico al activar el toggle (como *Save the tape*), fuera del primer chunk. Lighthouse no se entera hasta que alguien lo activa (presupuesto de 3.3).
-- **Autoplay:** el `AudioContext` se crea en el click del toggle, que ya es el gesto que exige el navegador.
-- **Pestaña oculta:** suspender el `AudioContext`.
-- **Dependencias:** ninguna; Web Audio es nativo (`PLAN-2 §0.7`).
-
-#### Accesibilidad y casos borde
-
-- El toggle es un `<button>` real con `aria-pressed`, enfocable, con el foco visible de los botones. **No puede ir dentro del `div` del HUD**, que es `aria-hidden`: va como hermano, igual que sus regiones `aria-live`.
-- Opt-in y con control visible: cumple WCAG 1.4.2 (control del audio).
-- **Reduced motion** no dice nada del audio: el sonido no cambia, salvo el *wow/flutter* del melt, que pasa a ser un crossfade simple (como la imagen).
-- **Sin WebGL2:** los ambientes funcionan igual, con crossfades entre pósters.
-- **iOS:** Web Audio respeta el interruptor de silencio del iPhone (con el switch en silencio no suena). No verificable hasta la verificación en dispositivos reales, que quedó para más adelante.
+- Toggle `SOUND OFF` / `SOUND ON` en el HUD, apagado por defecto, sin guardar la preferencia (fase 0 hecha en `snd-phase-0-engine`).
+- **Música de fondo:** una pieza de violín (clásica, oscura) con licencia libre verificable, que suena mientras la DR-1 graba y se frena como una cinta. Reemplaza los ambientes sintetizados por sueño que proponía el análisis original.
+- La capa de la DR-1 (hiss, motor, wow del melt, STOP y eject) y pocos sonidos puntuales por sueño, sintetizados.
+- Sin control de volumen: la mezcla baja ~8 dB respecto del primer plan.
+- Manual: propuesta de silencio con la cinta frenada, a confirmar.
 
 ### 1.3 Manual interactivo
 
@@ -199,6 +156,6 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 1. **Ajuste de números y verificaciones sueltas** (2.1, 2.2). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
 2. **`og:image` absoluto y `og:url`** (3.2): dos líneas en `index.html`, el dominio ya se conoce.
 3. **Títulos en un solo lugar** (4, primer ítem), para que cualquier retoque de narrativa futuro (1.1) toque un solo archivo.
-4. **Sonido opt-in** (1.2): primero la capa global, después un ambiente por sueño. Alto impacto, sin dependencias nuevas.
+4. **Sonido opt-in** (1.2): en desarrollo según `PLAN-3.md`.
 5. **Manual interactivo** (1.3).
 6. **Cursor propio** (1.4), si se confirma.
