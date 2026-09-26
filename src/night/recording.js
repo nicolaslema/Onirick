@@ -53,6 +53,13 @@ export function forget(id) {
 
 export const isKept = (id, s = state) => !!s.kept[id];
 
+// 'Sep 25' — the night's date for the tape label and Save the tape (parsed
+// as a local date, so it never slips a day across time zones).
+export function nightLabel(s = state) {
+  const [y, m, d] = s.nightOf.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(y, m - 1, d));
+}
+
 export const lucidity = (s = state) => DREAM_IDS.filter(id => s.kept[id]).length;
 
 // REPLAY THE NIGHT: a new, blank recording (with today's date) and every

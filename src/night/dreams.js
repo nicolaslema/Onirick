@@ -5,11 +5,14 @@
 // `at` (free dreams: 0; beats: the beat index; scrub: the progress 0-1), by
 // `on` (a scene event, e.g. the whale's 'wave'), or by whichever of the two
 // comes first. Lines are revealed in order.
+// `title`: the dream's title (also in config.js and its section — Wake's
+// recording lists it, and can't import config.js without a cycle).
 // `fragment`: what the DR-1 keeps if you do the dream's one intentional thing.
 // `action`: the keyboard-reachable DreamAction's label. `hint`: the Hud prompt
 // shown when the interaction isn't obvious (null: no prompt).
 export const DREAMS = {
   stair: {
+    title: 'The Staircase',
     lines: [
       { at: 0, text: 'You are climbing.' },
       { at: 0.33, text: 'You have been climbing for a long time.' },
@@ -21,6 +24,7 @@ export const DREAMS = {
     hint: 'Hold to stop'
   },
   whale: {
+    title: 'The Whale Above the City',
     lines: [
       { at: 0, text: 'It swims slowly between the rooftops.' },
       { at: 0, text: 'Nobody looks up.' },
@@ -32,6 +36,7 @@ export const DREAMS = {
     hint: 'Wave ↔'
   },
   house: {
+    title: 'The House You Grew Up In',
     lines: [
       { at: 0, text: 'The hallway is longer than it was.' },
       { at: 0, text: 'Every door opens onto the same kitchen, and someone is always just leaving it.' },
@@ -43,6 +48,7 @@ export const DREAMS = {
     hint: 'Open a door'
   },
   ocean: {
+    title: 'The Ocean Indoors',
     lines: [
       { at: 0, text: 'The water comes in under the door without a sound.' },
       { at: 1, text: "It's warm, and it keeps rising." },
@@ -54,6 +60,7 @@ export const DREAMS = {
     hint: null
   },
   fall: {
+    title: 'The Fall',
     lines: [
       { at: 0, text: "There's no ground yet." },
       { at: 0.25, text: 'The clouds go past in the wrong direction.' },

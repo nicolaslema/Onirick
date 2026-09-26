@@ -117,17 +117,24 @@ function useTapeLabel(text, colors) {
 
   useEffect(() => {
     let alive = true;
-    const font = '500 56px "JetBrains Mono"';
     fontsLoaded().then(() => {
       if (!alive) return;
       const ctx = texture.image.getContext('2d');
       ctx.fillStyle = colors.bone;
       ctx.fillRect(0, 0, 512, 128);
-      ctx.font = font;
+      // The largest size (56px down to 18px) that fits the label's width —
+      // Wake's "NIGHT OF SEP 25 · 3/5 KEPT" is far longer than "TAPE 05".
+      const label = text.toUpperCase();
       ctx.letterSpacing = '0.12em';
+      let size = 56;
+      ctx.font = `500 ${size}px "JetBrains Mono"`;
+      while (size > 18 && ctx.measureText(label).width > 512 - 72) {
+        size -= 2;
+        ctx.font = `500 ${size}px "JetBrains Mono"`;
+      }
       ctx.fillStyle = colors.surface;
       ctx.textBaseline = 'middle';
-      ctx.fillText(text.toUpperCase(), 36, 68);
+      ctx.fillText(label, 36, 68);
       texture.needsUpdate = true;
       invalidate();
     });
