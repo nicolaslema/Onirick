@@ -145,7 +145,7 @@ export function createSound(ctx, env) {
       // jump backwards more than once a cycle: never two beeps closer than
       // 60% of the current period.
       if (phase < lastPhase && now - lastBeepAt > duration * 0.6) {
-        dreams.alarm({ level });
+        dreams.alarm({ level, period: duration / 1000 });
         lastBeepAt = now;
       }
       lastPhase = phase;
@@ -154,7 +154,7 @@ export function createSound(ctx, env) {
       const period = recPeriodAt(getPlay('fall').target, FALL_REC_TO);
       if (ownClock >= period) {
         ownClock -= period;
-        dreams.alarm({ level });
+        dreams.alarm({ level, period });
       }
     }
   }
@@ -214,8 +214,8 @@ export function createSound(ctx, env) {
       nextRing = now + 0.15;
       dreams.ring({ level: options?.debug ? 1 : alarmLevel() });
     }),
-    alarm: inDream('fall', () => dreams.alarm({ level: 1 })),
-    print: inDream('wake', dreams.printTick),
+    alarm: inDream('fall', () => dreams.alarm({ level: 1, period: 1.2 })),
+    'print-line': inDream('wake', dreams.printLine),
     'print-feed': inDream('wake', dreams.printFeed),
     water: inDream('ocean', dreams.water),
     // The scene lets out ~18 bubbles a second: one sound for some of them.

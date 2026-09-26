@@ -21,7 +21,7 @@ export const LEVELS = {
   bubble: dbToGain(-46),
   alarm: dbToGain(-34), // a beep at the Fall's bottom; it starts far quieter (alarm())
   ring: dbToGain(-40), // falling through a ring
-  print: dbToGain(-44), // Wake's printer, one character
+  print: dbToGain(-46), // Wake's printer, a line printing
   feed: dbToGain(-42) // and its paper advancing a row
 };
 
@@ -251,22 +251,32 @@ export function createDreamSounds(ctx, { scene, ui }) {
     osc.onended = () => panner.disconnect();
   }
 
-  // The Fall's alarm (PLAN-3.md 5.6): one short beep — a sine and its
-  // octave, clear but not piercing. `level` 0–1: it grows as you fall.
-  function alarm({ level = 1 } = {}) {
+  // The Fall's alarm (PLAN-3.md 5.6): an alarm clock — the 1980s clock
+  // radio's beep-beep-beep-beep, a ~2 kHz square wave, a little softened.
+  // One burst per REC blink; the faster the blink, the shorter the burst
+  // (4 beeps, then 3, then 2), so it's heard hurrying. `level` 0–1: it grows
+  // as you fall. (First cut, a single sine beep, didn't read as an alarm
+  // clock: user, phase 4.)
+  function alarm({ level = 1, period = 1.2 } = {}) {
     const at = ctx.currentTime + 0.005;
     const peak = LEVELS.alarm * level;
-    const tone = oscillator(ctx, { frequency: 1400 });
-    const octave = oscillator(ctx, { frequency: 2800 });
-    const octaveLevel = gain(ctx, 0.2);
-    const mix = gain(ctx, 1);
-    tone.connect(mix);
-    octave.connect(octaveLevel).connect(mix);
-    const end = voice(mix, gain(ctx, 1), { at, peak, attack: 0.006, decay: 0.07, sustain: 0.7, release: 0.05 });
-    [tone, octave].forEach(osc => {
-      osc.start(at);
-      osc.stop(end);
-    });
+    const beeps = period >= 0.9 ? 4 : period >= 0.55 ? 3 : 2;
+    const on = Math.min(0.06, (period * 0.8) / (beeps * 2));
+    const tone = oscillator(ctx, { type: 'square', frequency: 2048 });
+    const soft = filter(ctx, { type: 'lowpass', frequency: 4200, Q: 0.6 });
+    const gate = gain(ctx, 0);
+    tone.connect(soft).connect(gate).connect(scene);
+    for (let i = 0; i < beeps; i++) {
+      const t = at + i * on * 2;
+      gate.gain.setValueAtTime(0, t);
+      gate.gain.linearRampToValueAtTime(peak, t + 0.003);
+      gate.gain.setValueAtTime(peak, t + on - 0.003);
+      gate.gain.linearRampToValueAtTime(0, t + on);
+    }
+    const end = at + beeps * on * 2;
+    tone.start(at);
+    tone.stop(end + 0.02);
+    tone.onended = () => gate.disconnect();
   }
 
   // Falling through one of the alarm's rings: air rushing past, a quick
@@ -280,12 +290,33 @@ export function createDreamSounds(ctx, { scene, ui }) {
     voice(noise(ctx, 'pink'), sweep, { at, peak: LEVELS.ring * level * vary(0.15), attack: 0.12, decay: 0.12, release: 0.2, pan: (Math.random() * 2 - 1) * 0.3 });
   }
 
-  // Wake's printer (PLAN-3.md 5.7): one dry tick per character — a little
-  // higher on a tape's head line — and the paper advancing after each row.
-  function printTick({ head = false } = {}) {
-    const at = ctx.currentTime + 0.003;
-    const tick = filter(ctx, { type: 'bandpass', frequency: (head ? 3200 : 2500) * vary(0.06), Q: 3 });
-    voice(noise(ctx, 'white'), tick, { at, peak: LEVELS.print * vary(0.2), attack: 0.001, decay: 0.006, release: 0.008 });
+  // Wake's printer (PLAN-3.md 5.7): a dot-matrix head crossing the line as
+  // it prints — a soft, muffled rasp for as long as the line takes, its
+  // characters a flutter inside it (the rasp chopped at the line's typing
+  // rate), a little brighter on a tape's head line. (First cut, a dry tick
+  // per character, was disliked: user, phase 4.)
+  function printLine({ seconds = 1, cps = 45, head = false } = {}) {
+    const at = ctx.currentTime + 0.005;
+    const rasp = noise(ctx, 'white');
+    const buzz = oscillator(ctx, { type: 'sawtooth', frequency: head ? 260 : 220 });
+    const buzzLevel = gain(ctx, 0.35);
+    const mix = gain(ctx, 1);
+    rasp.connect(filter(ctx, { type: 'bandpass', frequency: head ? 2100 : 1700, Q: 0.9 })).connect(mix);
+    buzz.connect(buzzLevel).connect(mix);
+    // The characters: the rasp chopped at the typing rate.
+    const chop = gain(ctx, 0.6);
+    const pins = oscillator(ctx, { type: 'triangle', frequency: cps });
+    const pinsDepth = gain(ctx, 0.4);
+    pins.connect(pinsDepth).connect(chop.gain);
+    const muffle = filter(ctx, { type: 'lowpass', frequency: 2600 });
+    chop.connect(muffle);
+    const end = voice(mix, [chop, muffle], { at, peak: LEVELS.print, attack: 0.04, decay: seconds, sustain: 1, release: 0.08 });
+    pins.start(at);
+    pins.stop(end);
+    [rasp, buzz].forEach(source => {
+      source.start(at);
+      source.stop(end);
+    });
   }
 
   function printFeed() {
@@ -296,5 +327,5 @@ export function createDreamSounds(ctx, { scene, ui }) {
     voice(whirr, filter(ctx, { type: 'lowpass', frequency: 1200 }), { at, peak: LEVELS.feed, attack: 0.015, decay: 0.12, sustain: 0.5, release: 0.05 });
   }
 
-  return { step, whaleCall, door, water, bubble, alarm, ring, printTick, printFeed };
+  return { step, whaleCall, door, water, bubble, alarm, ring, printLine, printFeed };
 }

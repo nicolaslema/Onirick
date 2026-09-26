@@ -1282,3 +1282,15 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   alarm fading out and silence at the white; Wake prints with its ticks; the same with reduced motion
   on the fallback clock, without ticks. No clicks, no console errors or warnings. `pnpm lint`,
   `pnpm build`, `pnpm test` (23) clean. **Not heard:** the user approves by ear.
+
+- **After review — an alarm clock, and a printer that prints lines** (user: the alarm didn't sound like
+  an alarm clock; the printer's dry tick wasn't liked). The alarm is now the 1980s clock radio's
+  beep-beep-beep-beep: a 2048 Hz square wave, lowpassed at 4.2 kHz, in bursts — one per REC blink,
+  still in phase — of 4 beeps while the blink is slow, 3 from a 0.9 s period, 2 from 0.55 s, so it's
+  heard hurrying as you fall. Measured ≈ −49 dB peak at the top, ≈ −33 at the bottom, gone by the
+  white. Wake's printer: instead of a tick per character, each line is a dot-matrix head crossing it —
+  a soft, muffled rasp (bandpassed noise and a quiet saw, lowpassed at 2.6 kHz) lasting as long as the
+  line prints, chopped at the line's typing rate so the characters flutter inside it; `Wake.jsx` cues it
+  once per line with its duration and rate. The paper feed after each row stays. ≈ −44 dB peak. One
+  click was counted on arriving at Wake: a 0.033 step on a signal of ~0.017 — the level of the alarm's
+  tail, whose square wave has sharp edges by nature, over near-silence; the printer is far quieter.

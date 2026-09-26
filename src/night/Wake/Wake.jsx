@@ -85,9 +85,9 @@ function usePrinter(segments, printing, reduced) {
       }
       const s = segments[seg];
       if (char < s.text.length) {
+        // A line starts printing: the printer's head crosses it (PLAN-3.md 5.7).
+        if (char === 0) cue('print-line', { seconds: s.text.length / s.cps, cps: s.cps, head: s.key.endsWith('-head') });
         char += 1;
-        // The printer's tick, one per character (not the spaces) — PLAN-3.md 5.7.
-        if (s.text[char - 1] !== ' ') cue('print', { head: s.key.endsWith('-head') });
         const [at, n] = [seg, char];
         setCounts(prev => prev.map((c, i) => (i === at ? n : c)));
         timer = setTimeout(tick, 1000 / s.cps);
