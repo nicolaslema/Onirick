@@ -893,3 +893,20 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   turns up and keeps it; one quick wheel gesture 0 → 0.78 keeps it; the keyboard keeps it; two
   screenshots 1.5 s apart without input show the view moved and banked; no console errors or
   warnings.
+
+- **After review — through the rings, and the last stretch on its own** (user request):
+  - *Through the rings*: the rings rose centred under the light while the camera wove elsewhere, so
+    they went past to one side. Each ring is now centred on where the camera will be when it reaches
+    its height (the path at `distance + speed · (eye − y) / rise`), keeps rising past the camera (gone
+    3 units above it) and fades as it goes, and the camera looks nearly straight down its own column —
+    so every ring comes up in the middle of the view and sweeps out past the edges as you fall through
+    it. The camera and the rings share one speed and one weave amplitude, computed once per frame.
+  - *Losing control*: crossing 0.75 going down, the scene takes the scroll (`play.setLocked`; the gate
+    swallows wheel, touch and keys while it's set), drives the progress to 1 accelerating (k², 4 s),
+    and 0.3 s later asks to move on — `night/stage.js requestNavigate('wake')`, which the DreamFall
+    section (the one with ScrollSections' `goTo`) carries out: the white-burn melt into Wake. Not
+    triggered when you arrive already past 0.75 (from Wake), which would bounce you straight back.
+    Verified (GPU): from Wake, 7 s at the bottom and still in the Fall; from the top, three ArrowDowns
+    to 0.75 → in Wake 6.0 s later with an ArrowUp mid-way ignored; screenshots of the rings concentric
+    in the middle of the view during the descent; no console errors or warnings.
+  - PLAN-2.md 6.5 updated.

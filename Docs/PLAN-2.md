@@ -472,13 +472,14 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
 - **Qué pasa:** el scroll es **profundidad**. Con el progreso:
   - La velocidad de caída crece (`SPEED × (1 + 1.5p)`) y aparecen más líneas de velocidad (opacidad `0.35 → 0.6`).
   - **La alarma crece, sin sonido, en dos lugares:**
-    - **En la escena:** anillos finos en `--rec` suben desde abajo, como ondas. Su frecuencia va de 1 cada 3 s a 3 por segundo, y a partir de `p > 0.6` pulsan también en la niebla.
+    - **En la escena:** anillos finos en `--rec` suben desde abajo, como ondas, y **la cámara cae a través de ellos por el medio**: cada anillo se centra donde va a estar la cámara cuando llegue a su altura y sigue de largo hasta pasarla. Su frecuencia va de 1 cada 3 s a 3 por segundo, y a partir de `p > 0.6` pulsan también en la niebla.
     - **En el HUD:** el punto REC parpadea cada vez más rápido. El período baja de 1.2 s a 0.3 s con el progreso: el `Hud` escribe `--rec-period` desde el store de juego y `.onk-rec` lo usa como `animation-duration`. Con reduced motion el REC sigue fijo, como hoy.
   - **La luz de abajo**: un disco sin niebla, en `--dream-fall` (el blanco cálido), crece desde el fondo del pozo, y el melt a Wake se quema a blanco (`burn: 1`) desde ahí. **No llena el cuadro** (fase 7): tiene un tope y se corre a la derecha, y en pantallas verticales es más chico y sube; si no, el título y el log quedaban blanco sobre blanco. Los anillos de la alarma salen de ella.
   - **El reloj del HUD** avanza de `06:41 AM` a `07:01 AM` (4.4, `hud.clockTo`), un minuto antes de despertar. El melt a Wake lo lleva a `07:02 AM`, la hora que ya muestra Wake.
 - **Interacción: solo scroll o flechas** (decidido con el usuario en la fase 7: scrollear y mover el puntero a la vez era incómodo).
   - **La caída se maneja sola:** la cámara sigue un recorrido que serpentea entre los anillos (dos ondas lentas por eje, en función de la distancia caída, así que cuanto más rápido caés, más rápido serpentea), mira hacia donde va y se inclina en las curvas. El puntero ya no la dirige.
   - **Soltarse es un tramo del scroll:** entre 0.4 y 0.72 la cámara gira sola hacia arriba (del todo entre 0.5 y 0.62) y la caída se calma. La parada 0.5 de las flechas cae adentro; una ruedita que pasa de largo también gira al pasar.
+  - **Perdés el control al final** (decidido con el usuario en la fase 7): al cruzar 0.75 bajando, la escena toma el scroll (la compuerta ignora rueda, dedo y teclado), lleva el progreso a 1 acelerando durante 4 s y, un instante después, hace ella misma el melt a Wake. No se dispara si entrás a Fall ya pasado ese punto (volviendo desde Wake).
 - **Lo que ves arriba: la noche entera.** Lejos, en la niebla y a distintas alturas, flotan siluetas de los cuatro sueños anteriores:
   - la **escalera caracol** (una hélice corta con su columna);
   - la **ballena** (el mismo `WhaleBody`, a escala);

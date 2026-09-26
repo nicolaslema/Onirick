@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { AdditiveBlending, BufferGeometry, Color, Float32BufferAttribute, Vector3 } from 'three';
 
-import { markTouched, setTarget, subscribeAction, trigger } from '../../night/play';
+import { getPlay, markTouched, setLocked, setTarget, subscribeAction, trigger } from '../../night/play';
 import { isKept, keep, useRecording } from '../../night/recording';
 import { readTint, readToken } from '../../three/materials';
 import Atmosphere from '../../three/Atmosphere';
@@ -10,7 +10,7 @@ import { seeded } from '../../three/random';
 import { useCloudTexture } from '../../three/useCloudTexture';
 import { usePlayProgress } from '../../three/usePlayProgress';
 import { REDUCED_SPEED, useReducedMotion } from '../../three/useReducedMotion';
-import { useLive } from '../stage';
+import { requestNavigate, useLive } from '../stage';
 
 // Dream 05, The Fall (PLAN-2.md 6.5). The scroll is depth, and the only thing
 // you do: the fall speeds up, an alarm grows — red rings rising from below,
@@ -52,6 +52,8 @@ const RINGS = 12;
 const RING_EVERY = [3, 1 / 3];
 const RING_RISE = 14; // units/s
 const RING_FROM = -38;
+const RING_PAST = 3; // units above your eyes where a ring you've fallen through is gone
+const RING_SIZE = [2.2, 0.035]; // radius at the bottom, growth per unit risen (≈3.6 at your eyes)
 const PULSE_FROM = 0.6;
 
 // The light below: a disc that grows until it nearly fills the frame.
@@ -75,6 +77,13 @@ const NIGHT_PORTRAIT_Z = 5;
 const UP_IN = [0.4, 0.5];
 const UP_OUT = [0.62, 0.72];
 const LET_GO_AT = 0.55; // "Let go" from the keyboard scrolls here
+
+// Losing control (user decision, Night 2 phase 7): past the last stop the
+// fall carries you to the bottom by itself — accelerating over AUTO_S — and,
+// a beat later, into Wake.
+const AUTO_FROM = 0.75;
+const AUTO_S = 4;
+const AUTO_HOLD_S = 0.3;
 const smoothstep = (a, b, x) => {
   const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
   return t * t * (3 - 2 * t);
@@ -153,22 +162,26 @@ const CloudColumn = ({ texture, color }) => {
   ));
 };
 
-// The alarm's rings, rising from below and widening as they come — out of the
-// light below, wherever it sits on screen.
-const Rings = ({ fall, color }) => {
+// The alarm's rings, rising from below — each centred on where the camera
+// will be when it reaches its height, so you fall straight through the middle
+// of every one, and it sweeps past the edges of the view as you do.
+const Rings = ({ fall, position, color }) => {
   const meshes = useRef([]);
-  const portrait = useThree(state => state.viewport.aspect < 1);
-  const [cx, cz] = portrait ? [LIGHT_PORTRAIT.x, LIGHT_PORTRAIT.z] : [LIGHT_X, -2];
   useFrame(() => {
-    fall.current.rings.forEach((ring, i) => {
+    const { distance, speed, amp, rings } = fall.current;
+    rings.forEach((ring, i) => {
       const m = meshes.current[i];
       if (!m) return;
       m.visible = ring.alive;
       if (!ring.alive) return;
-      m.position.set(cx, ring.y, cz);
-      const s = 3 + (ring.y - RING_FROM) * 0.08;
+      // Where you'll have fallen to when this ring reaches your eyes.
+      const arrive = distance + (speed * (position[1] - ring.y)) / RING_RISE;
+      m.position.set(position[0] + wave(WANDER, arrive) * amp, ring.y, position[2] + wave(WANDER_Z, arrive) * amp);
+      const s = RING_SIZE[0] + (ring.y - RING_FROM) * RING_SIZE[1];
       m.scale.set(s, s, 1);
-      m.material.opacity = 0.7 * Math.min(1, (-ring.y - 2) / 8);
+      const fadeIn = Math.min(1, (ring.y - RING_FROM) / 6);
+      const fadeOut = 1 - Math.min(1, Math.max(0, (ring.y - (position[1] - 1)) / 4));
+      m.material.opacity = 0.7 * fadeIn * fadeOut;
     });
   });
   return Array.from({ length: RINGS }, (_, i) => (
@@ -339,9 +352,8 @@ const FallCamera = ({ position, fall }) => {
   const s = useRef({ down: new Vector3(), upDir: new Vector3(0, 1, -0.35).normalize(), look: new Vector3(), roll: 0 });
   useFrame((state, delta) => {
     const k = s.current;
-    const { up, distance: d } = fall.current;
+    const { up, distance: d, amp } = fall.current;
     const calm = 1 - up;
-    const amp = (reduced ? 0.3 : 1) * calm;
     const x = wave(WANDER, d) * amp;
     const z = wave(WANDER_Z, d) * amp;
     const aheadX = wave(WANDER, d + LOOK_AHEAD) * amp;
@@ -350,7 +362,9 @@ const FallCamera = ({ position, fall }) => {
     const shake = reduced ? 0 : SHAKE * calm;
     const cam = state.camera;
     cam.position.set(position[0] + x + Math.sin(t * 47.3) * shake, position[1] + Math.sin(t * 53.1 + 1.3) * shake, position[2] + z);
-    k.down.set(aheadX * 0.6, -12, aheadZ * 0.6 - 2).sub(cam.position).normalize();
+    // Nearly straight down your own column (leaning toward where the path
+    // goes), so the rings below you sit in the middle of the view.
+    k.down.set(position[0] + aheadX, position[1] - 14, position[2] + aheadZ - 1.5).sub(cam.position).normalize();
     k.look.copy(k.down).lerp(k.upDir, up).normalize().add(cam.position);
     cam.lookAt(k.look);
     // Bank into the curve: roll with the path's sideways drift ahead.
@@ -372,6 +386,10 @@ function useFall(progress, live, colors) {
     sinceRing: 0,
     pulse: 0,
     up: 0,
+    speed: SPEED, // units/s the fall is going now (the rings need it)
+    amp: 1, // how wide the path weaves now (the camera and the rings share it)
+    last: null, // the fall's target last frame, to see it cross AUTO_FROM
+    auto: null // { t, from, sent } while the fall carries you in by itself
   });
   const fogBase = useMemo(() => new Color(colors.tint), [colors.tint]);
   const fogAlarm = useMemo(() => new Color(colors.rec), [colors.rec]);
@@ -401,8 +419,38 @@ function useFall(progress, live, colors) {
       keep('fall');
     }
 
-    // The fall itself: faster the deeper, calmer while you look up.
-    f.distance += dt * pace * SPEED * (1 + SPEED_GAIN * p) * (1 - 0.6 * f.up);
+    // The fall itself: faster the deeper, calmer while you look up; the path
+    // weaves less while you look up, and far less under reduced motion.
+    f.speed = pace * SPEED * (1 + SPEED_GAIN * p) * (1 - 0.6 * f.up);
+    f.distance += dt * f.speed;
+    f.amp = (reduced ? 0.3 : 1) * (1 - f.up);
+
+    // The last stretch: cross AUTO_FROM going down and you lose control —
+    // the fall takes the scroll, speeds you to the bottom and on into Wake.
+    // (Not when you arrive already past it, coming back from Wake.)
+    const entry = getPlay('fall');
+    if (!live) {
+      f.last = null;
+      f.auto = null;
+      if (entry.locked) setLocked('fall', false);
+    } else {
+      if (!f.auto && f.last !== null && f.last < AUTO_FROM - 1e-3 && entry.target >= AUTO_FROM - 1e-3) {
+        f.auto = { t: 0, from: entry.target, sent: false };
+        setLocked('fall', true);
+      }
+      f.last = entry.target;
+      if (f.auto) {
+        const a = f.auto;
+        a.t += dt;
+        const k = Math.min(1, a.t / AUTO_S);
+        setTarget('fall', a.from + (1 - a.from) * k * k);
+        f.last = entry.target;
+        if (k >= 1 && !a.sent && a.t >= AUTO_S + AUTO_HOLD_S) {
+          a.sent = true;
+          requestNavigate('wake');
+        }
+      }
+    }
 
     // The alarm.
     const every = (RING_EVERY[0] + (RING_EVERY[1] - RING_EVERY[0]) * p) * (reduced ? 4 : 1);
@@ -418,7 +466,8 @@ function useFall(progress, live, colors) {
     f.rings.forEach(ring => {
       if (!ring.alive) return;
       ring.y += RING_RISE * pace * dt;
-      if (ring.y > -2) ring.alive = false;
+      // Gone once you've fallen through it (the camera's eyes are at y 2).
+      if (ring.y > 2 + RING_PAST) ring.alive = false;
     });
     f.pulse = Math.max(0, f.pulse - dt * 2.5);
     if (scene.fog) {
@@ -459,7 +508,7 @@ const FallScene = ({ camera }) => {
       <Atmosphere tint={colors.tint} density={0.05} />
       <FallCamera position={camera.position} fall={fall} />
       <LightBelow progress={progress} color={colors.tint} />
-      <Rings fall={fall} color={colors.rec} />
+      <Rings fall={fall} position={camera.position} color={colors.rec} />
       <Tiled fall={fall} rate={1}>
         <points geometry={points}>
           {/* soft round dots — bare points render as squares, very visibly up close */}

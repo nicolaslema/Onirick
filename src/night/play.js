@@ -32,7 +32,7 @@ const EPS = 1e-6;
 const entries = Object.fromEntries(
   DREAM_IDS.map(id => [
     id,
-    { target: 0, beat: 0, reveal: 0, events: new Set(), settledAt: 0, snaps: 0, typed: 0, hinted: false, touched: false }
+    { target: 0, beat: 0, reveal: 0, events: new Set(), settledAt: 0, snaps: 0, typed: 0, hinted: false, touched: false, locked: false }
   ])
 );
 
@@ -103,6 +103,12 @@ export function subscribeAction(listener) {
   return () => actionListeners.delete(listener);
 }
 
+// The scene has taken over its own scroll (the Fall's last stretch, where you
+// lose control): the gate swallows the visitor's gestures while it's set.
+export function setLocked(id, locked) {
+  if (entries[id]) entries[id].locked = locked;
+}
+
 // The visitor tried the dream's interaction (held, waved, opened a door...):
 // its Hud prompt is no longer needed. Scenes call it; no re-render.
 export function markTouched(id) {
@@ -124,6 +130,7 @@ export function resetNight() {
     entry.typed = 0;
     entry.hinted = false;
     entry.touched = false;
+    entry.locked = false;
     update(id);
   }
 }

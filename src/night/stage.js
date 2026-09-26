@@ -28,6 +28,18 @@ function subscribe(listener) {
 
 const getSnapshot = () => state;
 
+// A scene asking to move on by itself (the Fall, carrying you into Wake).
+// Only a section component can navigate (goTo lives on ScrollSections'
+// context, outside the scene's canvas), so it subscribes and does it.
+const navigateListeners = new Set();
+export function requestNavigate(id) {
+  navigateListeners.forEach(listener => listener(id));
+}
+export function subscribeNavigate(listener) {
+  navigateListeners.add(listener);
+  return () => navigateListeners.delete(listener);
+}
+
 // True while `id` is the section on screen and nothing is moving.
 export function useLive(id) {
   const { currentId, settled } = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

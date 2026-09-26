@@ -64,6 +64,8 @@ export function createNightGate(sections) {
     canLeave(index, dir) {
       const g = gated(index);
       if (!g) return true;
+      // The scene has the wheel (play.js setLocked): nothing leaves by hand.
+      if (getPlay(g.id).locked) return false;
       if (locked(g.id) || tweens.has(g.id)) return false;
       const { target } = getPlay(g.id);
       return dir > 0 ? target >= last(g.play) - EPS : target <= EPS;
@@ -77,7 +79,9 @@ export function createNightGate(sections) {
       const g = gated(index);
       if (!g) return false;
       const { id, play } = g;
-      const { target } = getPlay(id);
+      const { target, locked: sceneHasIt } = getPlay(id);
+      // Lost control: the gesture is swallowed.
+      if (sceneHasIt) return true;
 
       if (play.model === 'beats') {
         if (!step || locked(id)) return true;
