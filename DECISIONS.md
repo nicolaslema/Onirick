@@ -983,3 +983,10 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
 - **Not done here — needs real devices:** Safari/Firefox desktop, Safari iOS, Chrome Android, and
   tuning the numbers marked as starting points (hold times, beat durations, the Fall's window, fog and
   light levels) by feel on a phone.
+
+## Wake — a link to the portfolio
+
+- The author's name in Wake's body links to the portfolio (https://nldev.vercel.app/, new tab) rather
+  than a fourth button: on a phone the buttons already take two rows just above the DR-1, and a third
+  would run into it again. `--ink` with a dotted underline that turns solid on hover; the buttons'
+  focus ring. Verified at 1440 and 390 px: same layout as before, no console errors.

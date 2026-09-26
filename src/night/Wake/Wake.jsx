@@ -148,7 +148,11 @@ const Wake = () => {
         </p>
         <p className="night-wake-body">
           The DR-1 isn&rsquo;t real. Neither was the whale. Onirick is a design experiment in
-          scroll-driven motion by Nicolás Lema.
+          scroll-driven motion by{' '}
+          <a className="night-wake-author" href="https://nldev.vercel.app/" target="_blank" rel="noreferrer">
+            Nicolás Lema
+          </a>
+          .
         </p>
         <ol className="night-wake-tapes" aria-label="Your recording">
           {DREAM_IDS.map((id, i) => {
