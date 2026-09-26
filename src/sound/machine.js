@@ -15,10 +15,13 @@ export const LEVELS = {
   motor: dbToGain(-62),
   hiss: dbToGain(-72),
   standby: dbToGain(-70),
-  clack: dbToGain(-20), // STOP / eject peaks ≈ −24
-  key: dbToGain(-24), // a button: peak ≈ −28
-  tapeClick: dbToGain(-22),
-  rewind: dbToGain(-30)
+  // The one-offs, 6 dB down from where they were set against the first mix:
+  // the music has come down 10 dB since, and these had become the loudest
+  // things in the night (the tape click at −27 dB against the dreams' −35).
+  clack: dbToGain(-26), // STOP / eject peaks ≈ −30
+  key: dbToGain(-30), // a button: peak ≈ −34
+  tapeClick: dbToGain(-28), // peak ≈ −33
+  rewind: dbToGain(-36)
 };
 
 export function createMachine(ctx, { global, ui }) {

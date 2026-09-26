@@ -115,7 +115,11 @@ export function createSound(ctx, env) {
   const CUES = {
     test: engine.testTone,
     step: inDream('stair', dreams.step),
-    'whale-call': inDream('whale', dreams.whaleCall),
+    // The music makes room while the whale sings (the call shares its register).
+    'whale-call': inDream('whale', options => {
+      const seconds = dreams.whaleCall(options);
+      tape.duck(options?.full === false ? -4 : -6, { attack: 0.6, hold: Math.max(seconds - 1.2, 0), release: 1.8 });
+    }),
     'stop-clack': () => machine.stopClack(),
     eject: () => machine.eject(),
     key: () => machine.key(),

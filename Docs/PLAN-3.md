@@ -276,8 +276,8 @@ Ajustados dos veces de oído por el usuario: ~8 dB más bajos que el plan origin
 | Master | −44 a −40 | −14 |
 | Música | −48 a −44 (medido −45.8) | −20 |
 | Hiss + motor (juntos) | ≈ −69, apenas perceptible, ~25 dB bajo la música | — |
-| Puntuales de escena (pasos, puertas, ballena, agua) | — | −22 |
-| Puntuales de interfaz (botones, fragmento) | — | −28 |
+| Puntuales de escena (pasos, puertas, ballena, agua) | — | ≈ −35 (medido fase 2); con presencia en medios, y la música se corre bajo los momentos largos (`tape.duck`) |
+| Puntuales de interfaz y máquina (botones, fragmento, STOP, eject) | — | ≈ −30 a −34 |
 | Alarma de Fall en su punto más alto | — | −20 |
 
 - **El limitador no debería actuar** en uso normal.

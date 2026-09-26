@@ -3,14 +3,17 @@
 // the whale's call. Everything goes into the scene layer, so a melt bends it
 // with the tape (PLAN-3.md 4.3).
 //
-// Levels sit under the music (≈ −46 dB RMS): these accompany it too.
+// The music (≈ −46 dB RMS) masked the first cut of these (user, phase 2):
+// they share its low register, and a laptop's or phone's speakers barely
+// play below ~120 Hz. So each carries its weight in the mids too, and the
+// whale's call ducks the music (score.js).
 
 import { dbToGain, envelope, filter, gain, noise, oscillator, reverb } from '../sound/synth';
 
 export const LEVELS = {
-  step: dbToGain(-40), // a step's peak, before its echo
+  step: dbToGain(-32), // a step's peak, before its echo
   stepEcho: 0.35, // send into the stairwell
-  whale: dbToGain(-34), // raised 6 dB: at −40 its peak sat under the music's average
+  whale: dbToGain(-28),
   whaleSpace: 0.55 // send into the open night
 };
 
@@ -65,7 +68,7 @@ export function createDreamSounds(ctx, scene) {
 
     voice(noise(ctx, 'white'), filter(ctx, { type: 'bandpass', frequency: 320 * tone, Q: 1.3 }), {
       at: at + 0.008,
-      peak: level * 0.7,
+      peak: level,
       attack: 0.003,
       decay: 0.06,
       release: 0.05,
@@ -74,10 +77,20 @@ export function createDreamSounds(ctx, scene) {
     });
     voice(noise(ctx, 'white'), filter(ctx, { type: 'bandpass', frequency: 560 * tone, Q: 1.8 }), {
       at: at + 0.07 * vary(0.2),
-      peak: level * 0.3,
+      peak: level * 0.5,
       attack: 0.004,
       decay: 0.05,
       release: 0.04,
+      pan,
+      space: stairwell
+    });
+    // The sole's tap: what reaches any speaker.
+    voice(noise(ctx, 'white'), filter(ctx, { type: 'bandpass', frequency: 1100 * tone, Q: 2 }), {
+      at: at + 0.004,
+      peak: level * 0.35,
+      attack: 0.002,
+      decay: 0.03,
+      release: 0.03,
       pan,
       space: stairwell
     });
@@ -88,7 +101,7 @@ export function createDreamSounds(ctx, scene) {
   function phrase(at, path, seconds, peak) {
     const tone = oscillator(ctx, { type: 'triangle', frequency: path[0] });
     const upper = oscillator(ctx, { frequency: path[0] * 2.5 });
-    const upperLevel = gain(ctx, 0.12);
+    const upperLevel = gain(ctx, 0.3); // the partial small speakers do play
     const mix = gain(ctx, 1);
     tone.connect(mix);
     upper.connect(upperLevel).connect(mix);
@@ -111,8 +124,8 @@ export function createDreamSounds(ctx, scene) {
     vibratoDepth.gain.linearRampToValueAtTime(18, at + seconds * 0.7); // cents
 
     // A formant (the body's resonance), then a lowpass to keep it soft.
-    const formant = filter(ctx, { type: 'bandpass', frequency: 420, Q: 1.6 });
-    const body = filter(ctx, { type: 'lowpass', frequency: 1100 });
+    const formant = filter(ctx, { type: 'bandpass', frequency: 520, Q: 1.4 });
+    const body = filter(ctx, { type: 'lowpass', frequency: 1600 });
     formant.connect(body);
     const attack = Math.min(0.5, seconds * 0.3);
     const end = voice(mix, [formant, body], { at, peak, attack, decay: seconds - attack, sustain: 0.8, release: 0.7, space: sky });
@@ -125,17 +138,15 @@ export function createDreamSounds(ctx, scene) {
 
   // The whale's call (PLAN-3.md 5.2): the first wave gets the whole song —
   // three phrases over its whole reaction — later waves one short phrase.
-  // `slow`: the reaction's own slowdown under reduced motion.
+  // `slow`: the reaction's own slowdown under reduced motion. Returns how
+  // long it sounds, in seconds, so the music can make room for it.
   function whaleCall({ full = true, slow = 1 } = {}) {
     const at = ctx.currentTime + 0.02;
     const peak = LEVELS.whale;
-    if (!full) {
-      phrase(at, [150, 175, 118], 1.4 * slow, peak * 0.7);
-      return;
-    }
+    if (!full) return phrase(at, [150, 175, 118], 1.4 * slow, peak * 0.7) - ctx.currentTime;
     phrase(at, [88, 120, 176], 1.7 * slow, peak);
     phrase(at + 2.0 * slow, [214, 190, 132, 108], 2.4 * slow, peak * 0.9);
-    phrase(at + 4.8 * slow, [126, 168, 202, 140], 2.0 * slow, peak * 0.75);
+    return phrase(at + 4.8 * slow, [126, 168, 202, 140], 2.0 * slow, peak * 0.75) - ctx.currentTime;
   }
 
   return { step, whaleCall };

@@ -1188,3 +1188,18 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   the fragment's tape click also lands; a second run counted none — the same borderline transient as the
   STOP clack (phase 1). `pnpm lint`, `pnpm build`, `pnpm test` (21) clean. **Not heard:** the user decides
   by ear whether the steps add or are too much with the music (PLAN-3.md 11.3).
+
+- **After review — the music masked the steps and the call** (user). Rather than lower the music again
+  (the user had settled it), the masking was taken at its causes. They share the piano's low register,
+  and laptop and phone speakers barely play below ~120 Hz, where the steps' thump (85 Hz) and the call's
+  fundamental (88–214 Hz) live. Now: steps −40 → −32 dB, with the scuff and heel up and a sole tap at
+  ~1.1 kHz; the call −34 → −28 dB, its upper partial 0.12 → 0.3 and the formant/lowpass up (520 Hz /
+  1.6 kHz); and **the music ducks under the call** — `tape.duck()`, a gain after the trim: −6 dB for the
+  whole call (−4 for the short one), 0.6 s down, held for the call, 1.8 s back. Not on the steps: one
+  every 2 s would keep the music breathing. Measured: steps peak −34.4, the call −34.7 (was −43.4), the
+  music averaging −46.7 dB RMS over the call against −42.5 around it. The base music and hiss levels are
+  unchanged (the user: if the music moves, the hiss moves with it).
+- **The machine's one-offs, 6 dB down** (clack −30, key −34, tape click −33 dB peak): set against the
+  first mix, they had become the loudest things once the music came down 10 dB. It showed as three
+  "clicks" at the first wave — the fragment's tape click, now alone over the ducked music, 3 steps in
+  1 ms up to 0.067. Lowered, the same run counts none.

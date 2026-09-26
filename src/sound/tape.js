@@ -41,7 +41,9 @@ export function createTape(ctx, destination, { elements, loopStart = 0, loopEnd,
     level.connect(comp);
     out = comp;
   }
-  out.connect(gain(ctx, dbToGain(trimDb))).connect(destination);
+  // `ducker`: the music makes room for a dream's moment (duck(), below).
+  const ducker = gain(ctx, 1);
+  out.connect(gain(ctx, dbToGain(trimDb))).connect(ducker).connect(destination);
 
   const decks = elements.map(el => {
     tapeLike(el);
@@ -185,6 +187,19 @@ export function createTape(ctx, destination, { elements, loopStart = 0, loopEnd,
 
   deck().el.currentTime = loopStart;
 
+  // Make room: the music dips by `db` over `attack` s, stays down `hold` s,
+  // and comes back over `release` s — like a film's score under a line.
+  function duck(db, { attack = 0.6, hold = 0, release = 1.5 } = {}) {
+    const t = ctx.currentTime;
+    const g = ducker.gain;
+    const current = g.value;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(current, t);
+    g.linearRampToValueAtTime(Math.min(current, dbToGain(db)), t + attack);
+    g.setValueAtTime(Math.min(current, dbToGain(db)), t + attack + hold);
+    g.linearRampToValueAtTime(1, t + attack + hold + release);
+  }
+
   // For the dev panel: jump the running deck (e.g. just before the loop).
   function seek(seconds) {
     cancelCrossing();
@@ -193,6 +208,7 @@ export function createTape(ctx, destination, { elements, loopStart = 0, loopEnd,
   }
 
   return {
+    duck,
     seek,
     get loopEnd() {
       return end();
