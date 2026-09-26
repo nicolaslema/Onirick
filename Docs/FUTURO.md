@@ -9,7 +9,7 @@
 ## 0. Cómo leer este documento
 
 - **Sección 1**: ideas nuevas que el plan 2 decidió postergar explícitamente (tabla de decisiones §2 y "Fuera de alcance" §12). Son features.
-- **Sección 2**: lo que se construyó pero **no se pudo verificar** (dispositivos reales, navegadores, ajuste fino). Son deudas de QA del plan 2, no features nuevas.
+- **Sección 2**: ajuste fino de números y verificaciones sueltas que quedaron abiertas. Son deudas de QA del plan 2, no features nuevas.
 - **Sección 3**: rendimiento y deploy.
 - **Sección 4**: deuda técnica menor anotada en `DECISIONS.md`.
 - **Sección 5**: lo que **no** hay que reabrir (descartado o decidido con el usuario), para no volver a proponerlo.
@@ -59,21 +59,9 @@ Revisado con el usuario el 2026-09-26: quedan estas cuatro. Lo que se sacó est�
 
 ## 2. Verificación pendiente (deuda de QA del plan 2)
 
-Todo el QA del plan 2 se hizo en **Chrome** (headless con GPU, escritorio y 390px). La fase 9 pedía el checklist de `PLAN-2 §10` también en Safari, Firefox, Safari iOS y Chrome Android, y quedó sin hacer por falta de dispositivos (`DECISIONS · Night 2 — Phase 9`, `Phase 7`).
+Todo el QA del plan 2 se hizo en **Chrome** (headless con GPU, escritorio y 390px). La verificación en otros navegadores y en dispositivos reales (Safari, Firefox, iOS, Android) se sacó de este documento (usuario, 2026-09-26): vendrá más adelante, cuando haya tiempo y recursos.
 
-### 2.1 Navegadores y dispositivos reales
-
-- [ ] Checklist de `PLAN-2 §10` en **Safari desktop**, **Firefox desktop**, **Safari iOS** y **Chrome Android**.
-- [ ] Checklist de `PLAN.md §9` (noche 1) en los mismos.
-- Lo más probable que falle, según lo anotado:
-  - `backdrop-filter` en las bandas de `GradualBlur` en Safari (`PLAN.md`, tabla de riesgos).
-  - Scroll nativo + bordes del swipe dentro del manual en iOS (`DECISIONS · Phase 4`).
-  - Disponibilidad y rendimiento de WebGL2 en teléfonos de gama media.
-  - Mantener apretado vs. swipe del scrub en la escalera con un dedo real (solo probado con eventos touch sintéticos, `DECISIONS · Night 2 — Phase 3`).
-  - El saludo con el dedo en la ballena en hardware táctil real (`DECISIONS · Night 2 — Phase 4`).
-  - La hoja de compartir de *Save the tape* en un teléfono real (`PLAN-2 §7.1`: en desktop se verificó la descarga).
-
-### 2.2 Ajuste fino en dispositivo
+### 2.1 Ajuste fino en dispositivo
 
 `PLAN-2 §0.6`: los números del plan son **puntos de partida**. La fase 9 pedía ajustarlos en un teléfono y anotarlos; quedó pendiente (`DECISIONS · Night 2 — Phase 9`).
 
@@ -93,7 +81,7 @@ Todo el QA del plan 2 se hizo en **Chrome** (headless con GPU, escritorio y 390p
 | Niebla y luces (luna, lámpara, onda de luz de la ciudad, luz de abajo en Fall) | ver cada fase | Phases 3–7 |
 | Riesgo de que la compuerta se sienta "trabada" | — | PLAN-2 §11: si pesa, bajar `length` antes de sumar indicadores |
 
-### 2.3 Otras verificaciones sueltas
+### 2.2 Otras verificaciones sueltas
 
 - [ ] **Sombras de la escalera en una laptop con iGPU y en un teléfono.** Solo se midió en una RTX 5080 (144 fps). El respaldo (apagar sombras en pantallas chicas) es "una línea" y no se activó (`DECISIONS · Night 2 — Phase 3`).
 - [ ] **Un click en un botón nunca abre una puerta** en House: garantizado por construcción (`onTap` ignora destinos interactivos), pero no observable desde el test sin exponer estado (`DECISIONS · Night 2 — Phase 5`).
@@ -147,7 +135,7 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 
 ## 6. Orden sugerido
 
-1. **QA en dispositivos reales + ajuste de números** (2.1, 2.2, 2.3). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
+1. **Ajuste de números y verificaciones sueltas** (2.1, 2.2). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
 2. **Deploy y rendimiento** (3): `og:image` absoluto, PageSpeed sobre el sitio real, primer frame de R3F.
 3. **Títulos en un solo lugar** (4, primer ítem), para que cualquier retoque de narrativa futuro (1.1) toque un solo archivo.
 4. **Sonido opt-in** (1.2): alto impacto, sin dependencias nuevas.
