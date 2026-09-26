@@ -474,7 +474,7 @@ Formato de cada sueño: **modelo**, **qué pasa**, **interacción**, **copy** (b
   - **La alarma crece, sin sonido, en dos lugares:**
     - **En la escena:** anillos finos en `--rec` suben desde abajo, como ondas. Su frecuencia va de 1 cada 3 s a 3 por segundo, y a partir de `p > 0.6` pulsan también en la niebla.
     - **En el HUD:** el punto REC parpadea cada vez más rápido. El período baja de 1.2 s a 0.3 s con el progreso: el `Hud` escribe `--rec-period` desde el store de juego y `.onk-rec` lo usa como `animation-duration`. Con reduced motion el REC sigue fijo, como hoy.
-  - **La luz de abajo**: un disco sin niebla, en `--dream-fall` (el blanco cálido), crece desde el fondo del pozo. A `p = 1` casi llena el cuadro, y el melt a Wake se quema a blanco (`burn: 1`) desde ahí, sin corte.
+  - **La luz de abajo**: un disco sin niebla, en `--dream-fall` (el blanco cálido), crece desde el fondo del pozo, y el melt a Wake se quema a blanco (`burn: 1`) desde ahí. **No llena el cuadro** (fase 7): tiene un tope y se corre a la derecha, y en pantallas verticales es más chico y sube; si no, el título y el log quedaban blanco sobre blanco. Los anillos de la alarma salen de ella.
   - **El reloj del HUD** avanza de `06:41 AM` a `07:01 AM` (4.4, `hud.clockTo`), un minuto antes de despertar. El melt a Wake lo lleva a `07:02 AM`, la hora que ya muestra Wake.
 - **Interacción:**
   - **Dirigir** la caída con el puntero (ya existe).

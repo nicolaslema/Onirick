@@ -842,3 +842,40 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
     move on to the next dream without it). Spontaneous shadows still never count.
   - PLAN-2.md 6.1, 6.3 and 13.2 updated. Measured (GPU): a 2 s hold earns nothing; holding earns it
     at 5.3 s; "Stop climbing" at 5.1 s; a clicked door at 5.4 s; no console errors or warnings.
+
+## Night 2 — Phase 7
+
+- **The scroll is depth**: fall speed × (1 + 1.5·progress) (and × 0.4 while you look up), speed lines
+  0.35 → 0.6 opacity, the HUD clock 06:41 → 07:01 and counter to 00:58:31 (phase 2's `clockTo` /
+  `counterTo`).
+
+- **The alarm**: a pool of 12 thin `--rec` rings rising from below out of the light, one every 3 s at
+  the top down to three a second at the bottom (¼ as often under reduced motion); past 0.6 each ring
+  also pulses the fog toward `--rec`. In the HUD, a new `hud.recTo` (0.3 for the Fall) runs the REC
+  dot's blink from 1.2 s down to it with the scrub — a CSS variable set on the HUD only, in 0.05 s
+  steps, so TapeLabel's REC dots inside the sections keep their pace.
+
+- **The light below doesn't fill the frame** (PLAN-2.md 6.5 said it nearly would). Screenshots at the
+  bottom showed it covering the title and the log — bone on bone, unreadable — and on a phone, where
+  they span the whole width, covering the title outright. It's capped (scale 34, set 2.5 right) on a
+  wide screen, and smaller (15) and pushed up the frame on a portrait one; the rings rise from under
+  it. The white burn into Wake still starts from it. PLAN-2.md 6.5 updated.
+
+- **Letting go**: pointer still 3 s (not pressed), progress under 0.9, the Fall current → the camera
+  turns up (eased, 1.8 s), the tremor and steering fade, the fall slows. The fragment and the log's
+  `let-go` event come when the turn passes 0.9 — at 0.97 (the first cut) the eased turn took ~4.7 s
+  more, ~7.7 s from the last move; 0.9 looks the same and arrives ~1 s sooner. "Let go" from the
+  keyboard looks up for 5 s.
+
+- **The night above is drawn locally, not by reusing WhaleBody and Lamp** (as PLAN-2.md 6.5 sketched):
+  those use lit, fogged materials; the silhouettes need flat unlit colour and their own opacity. Four
+  small groups — a spiral stair, a whale, a lit door, the lamp — kept ones in their dream's tint with a
+  halo (the lamp amber), the rest as cut-outs in `--line-strong` (`--line` was invisible against the
+  sky). Placed clear of the title block; on a portrait screen they move up. Only drawn while looking up.
+
+- **Verified** (headless Chrome on the GPU, ?debug): entered from Wake the Fall is at its bottom
+  (REC 0.30 s), at its top 1.20 s; keeping still turns you up, keeps the fragment and types "being let
+  go of"; "Let go" from the keyboard keeps it; the Fall still melts into Wake; screenshots at 0 / 0.5 /
+  1, looking up (with stair, whale and ocean kept) and the burn, on desktop and phone — title and log
+  readable in all of them; no console errors or warnings. `pnpm lint`, `pnpm build`, `pnpm test`
+  clean.

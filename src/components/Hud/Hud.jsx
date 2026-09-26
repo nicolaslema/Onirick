@@ -65,6 +65,35 @@ function useScrubbedHud(dream, hud, play) {
   return moving && shown?.hud === hud ? shown : hud;
 }
 
+// The alarm in the HUD (PLAN-2.md 6.5): with `hud.recTo`, the REC dot's blink
+// period runs from 1.2 s down to recTo with the dream's scrub. Written as a
+// CSS variable on the HUD alone (TapeLabel's REC dots, inside the sections,
+// keep their pace), in 0.05 s steps so the animation isn't re-timed every
+// frame.
+const REC_PERIOD = 1.2;
+function useRecPace(root, dream, hud, play) {
+  useEffect(() => {
+    const el = root.current;
+    if (!el || !hud.recTo || !play) return undefined;
+    let raf = 0;
+    let shown = '';
+    const frame = () => {
+      const period = REC_PERIOD + (hud.recTo - REC_PERIOD) * Math.min(Math.max(fractionOf(dream, play), 0), 1);
+      const value = `${(Math.round(period * 20) / 20).toFixed(2)}s`;
+      if (value !== shown) {
+        shown = value;
+        el.style.setProperty('--rec-period', value);
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    frame();
+    return () => {
+      cancelAnimationFrame(raf);
+      el.style.removeProperty('--rec-period');
+    };
+  }, [root, dream, hud, play]);
+}
+
 // The current tape: lit (as before), or for a dream with its own scroll, a
 // bar filling with its progress — written straight to the DOM every frame.
 // Once full it blinks once: one more gesture and you're through.
@@ -187,10 +216,12 @@ const Hud = ({
   const reduced = useReducedMotion();
   const gated = gatedPlay(play);
   const { clock, counter } = useScrubbedHud(dream, hud, gated);
+  const root = useRef(null);
+  useRecPace(root, dream, hud, gated);
 
   return (
     <>
-      <div className="onk-hud" data-theme={theme} data-reduced={reduced || undefined} aria-hidden="true">
+      <div ref={root} className="onk-hud" data-theme={theme} data-reduced={reduced || undefined} aria-hidden="true">
         <div className="onk-hud-tl">
           <span className="onk-hud-mark">Onirick</span>
           <span>DR-1</span>

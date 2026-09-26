@@ -91,7 +91,8 @@ export const NIGHT = [
     tape: 5,
     title: 'The Fall',
     play: { model: 'scrub', length: 2700, stops: [0, 0.25, 0.5, 0.75, 1] },
-    hud: { state: 'rec', clock: '06:41 AM', clockTo: '07:01 AM', counter: '00:52:17', counterTo: '00:58:31' },
+    // recTo: the HUD's REC dot blinks faster with the fall, down to this period (s).
+    hud: { state: 'rec', clock: '06:41 AM', clockTo: '07:01 AM', counter: '00:52:17', counterTo: '00:58:31', recTo: 0.3 },
     melt: { duration: 1.7, ease: 'power3.inOut', intensity: 1.05, scale: 6, aberration: 0.5, drift: 0.55 }
   },
   {

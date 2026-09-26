@@ -83,3 +83,8 @@
 .onk-hud[data-reduced] .onk-hud-tapes span[data-full='true'] i {
   animation: none;
 }
+
+/* The Fall's alarm speeds the HUD's REC dot up (Hud.jsx useRecPace). */
+.onk-hud .onk-rec {
+  animation-duration: var(--rec-period, 1.2s);
+}
