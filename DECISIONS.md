@@ -1139,3 +1139,5 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   gains −43/−40 → −62 dB each, the hiss darkened (lowpass 9 → 7 kHz); standby −54 → −70. Measured in
   the Staircase, 10 s average: music −42.9, motor + hiss −68.8 (≈ 26 dB under the music), master −39.4;
   standby alone −72.7. PLAN-3.md 6 updated. One-offs (keys, clicks, STOP/eject) unchanged.
+- **And 3 dB more for the music** (user): trim −17.5 → −20.5 dB. Measured in the Staircase: music
+  −45.8 dB RMS, motor + hiss −68.8 (23 dB under), master −42.4.

@@ -15,8 +15,8 @@ export const MUSIC = {
   // its quiet passages) stay background; then a trim, because Web Audio's
   // compressor adds its own makeup gain. Rendered offline through this chain
   // at a −11.5 trim: ≈ −36 dB RMS overall, quiet passages ≈ −41, crests ≈ −32.
-  // Lowered 6 dB after the user's listen (phase 1): background, accompanying,
-  // ≈ −42 dB RMS on the music layer.
+  // Lowered after the user's listens (phase 1), 6 dB then 3 more: background,
+  // accompanying, ≈ −46 dB RMS on the music layer.
   compress: { threshold: -34, ratio: 2.5, knee: 6, attack: 0.3, release: 1 },
-  trimDb: -17.5
+  trimDb: -20.5
 };
