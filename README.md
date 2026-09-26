@@ -129,4 +129,5 @@ After the first deploy, make the Open Graph image absolute: set `og:image` in `i
 - Design, code and direction: Nicolás Lema.
 - Typefaces: [Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono), both SIL Open Font License, served by Google Fonts.
 - All 3D models are procedural (three.js primitives); no external assets.
+- Music (optional, SOUND ON): Chopin, from the Études Op. 10, a public-domain recording from [Musopen](https://musopen.org/music/610-etudes-op-10/) — see [CREDITS.md](CREDITS.md). The DR-1's own sounds are synthesized.
 - Libraries: React, Vite, three.js, React Three Fiber, drei, maath, ogl, GSAP, modern-screenshot.

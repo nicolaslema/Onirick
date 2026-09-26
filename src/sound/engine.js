@@ -1,22 +1,29 @@
-// The sound engine (PLAN-3.md 3.2, 3.3), loaded only when someone turns sound
-// on. It owns the graph and its lifecycle; what each section sounds like
-// arrives in later phases (night/score.js).
+// The sound engine (PLAN-3.md 3.2, 3.3): the graph and its lifecycle, knowing
+// nothing about the night. night/score.js builds on it.
 //
-//   global ──┐
-//   ambience ┼─→ mix ─→ master ─→ limiter ─→ out
-//   scene ───┘           ↑
-//   ui ──────────────────┘
+//   global ─┐
+//   music ──┼─→ mix ─→ wow ─→ under ─→ master ─→ limiter ─→ out
+//   scene ──┘                            ↑
+//   ui ──────────────────────────────────┘
 //
-// `mix` is where the melt's wow goes in phase 1 (PLAN-3.md 4.3); ui sounds
-// skip it on purpose — a button's click doesn't bend with the tape.
+// `wow` bends the pitch like stretched tape during a melt (PLAN-3.md 4.3);
+// `under` is a lowpass left wide open except in the Ocean (PLAN-3.md 5.5).
+// ui sounds skip both on purpose — a button's click doesn't bend with the
+// tape or go under water.
 
-import { dbToGain, envelope, filter, gain, noise, oscillator, rampTo } from './synth';
+import { dbToGain, envelope, filter, gain, oscillator, rampTo } from './synth';
 
 const FADE_IN = 1; // turning sound on is never a hit (PLAN-3.md 3.2)
 const FADE_BACK = 0.3; // coming back to the tab
 const FADE_OUT = 0.3;
 
-export const LAYERS = ['global', 'ambience', 'scene', 'ui'];
+export const LAYERS = ['global', 'music', 'scene', 'ui'];
+
+// The wow: an LFO swinging a short delay's time bends the pitch. Pitch swing
+// ≈ 2π · rate · depth — at intensity 1, ±3.5% (≈ 60 cents) at 1.6 Hz.
+const WOW_BASE = 0.02; // s of delay the swing moves around
+const WOW_DEPTH = 0.0035; // s of swing at intensity 1
+const WOW_RATE = [1.2, 0.8]; // Hz: base + per unit of intensity
 
 export function createEngine(ctx, bus) {
   // A safety net, not part of the sound (PLAN-3.md 3.3): in normal use it
@@ -31,21 +38,38 @@ export function createEngine(ctx, bus) {
 
   const master = gain(ctx, 0);
   master.connect(limiter);
+
+  const under = filter(ctx, { type: 'lowpass', frequency: 20000, Q: 0.5 });
+  under.connect(master);
+
+  const wow = ctx.createDelay(0.1);
+  wow.delayTime.value = WOW_BASE;
+  wow.connect(under);
+  const lfo = oscillator(ctx, { frequency: WOW_RATE[0] });
+  const wowDepth = gain(ctx, 0);
+  lfo.connect(wowDepth).connect(wow.delayTime);
+  lfo.start();
+
   const mix = gain(ctx, 1);
-  mix.connect(master);
+  mix.connect(wow);
 
   const layers = Object.fromEntries(LAYERS.map(name => [name, gain(ctx, 1)]));
   layers.global.connect(mix);
-  layers.ambience.connect(mix);
+  layers.music.connect(mix);
   layers.scene.connect(mix);
   layers.ui.connect(master);
 
+  // Who wants to know when the engine goes quiet (suspended) and loud again —
+  // the tape pauses its <audio> then, or it would keep running in silence.
+  const quietListeners = new Set();
+  const loudListeners = new Set();
   let stopTimer = 0;
 
   function fadeIn(seconds) {
     clearTimeout(stopTimer);
     ctx.resume();
     rampTo(master.gain, 1, seconds, ctx);
+    loudListeners.forEach(listener => listener());
   }
 
   // Fade, then suspend: a suspended context costs no CPU. Only if sound is
@@ -54,7 +78,9 @@ export function createEngine(ctx, bus) {
     clearTimeout(stopTimer);
     rampTo(master.gain, 0, FADE_OUT, ctx);
     stopTimer = setTimeout(() => {
-      if (stillQuiet()) ctx.suspend();
+      if (!stillQuiet()) return;
+      quietListeners.forEach(listener => listener());
+      ctx.suspend();
     }, FADE_OUT * 1000 + 50);
   }
 
@@ -65,8 +91,20 @@ export function createEngine(ctx, bus) {
   };
   document.addEventListener('visibilitychange', onVisibility);
 
-  // Phase 0's only sounds: a test tone (a one-off) and a test hum (held), so
-  // the lifecycle can be checked for clicks before anything real exists.
+  // One melt's wow: depth rises to its middle and falls back, faster and
+  // deeper the later in the night (intensity 0.45 → 1.25).
+  function melt(duration, intensity) {
+    const t = ctx.currentTime;
+    lfo.frequency.setValueAtTime(WOW_RATE[0] + WOW_RATE[1] * intensity, t);
+    const depth = wowDepth.gain;
+    const current = depth.value;
+    depth.cancelScheduledValues(t);
+    depth.setValueAtTime(current, t);
+    depth.linearRampToValueAtTime(WOW_DEPTH * intensity, t + duration / 2);
+    depth.linearRampToValueAtTime(0, t + duration);
+  }
+
+  // The dev panel's test tone (phase 0), still handy to check the chain.
   function testTone() {
     const t = ctx.currentTime + 0.01;
     const voice = gain(ctx, 0);
@@ -84,46 +122,23 @@ export function createEngine(ctx, bus) {
     low.onended = () => voice.disconnect();
   }
 
-  let hum = null;
-  function testHum(enabled) {
-    if (enabled && !hum) {
-      const level = gain(ctx, 0);
-      level.connect(layers.ambience);
-      const hiss = noise(ctx, 'pink');
-      const tone = oscillator(ctx, { frequency: 110 });
-      const toneLevel = gain(ctx, dbToGain(-6));
-      hiss.connect(filter(ctx, { frequency: 1200 })).connect(level);
-      tone.connect(toneLevel).connect(level);
-      hiss.start();
-      tone.start();
-      rampTo(level.gain, dbToGain(-30), 0.5, ctx);
-      hum = { level, sources: [hiss, tone] };
-    } else if (!enabled && hum) {
-      const { level, sources } = hum;
-      hum = null;
-      rampTo(level.gain, 0, 0.5, ctx);
-      sources.forEach(source => source.stop(ctx.currentTime + 0.6));
-      sources[0].onended = () => level.disconnect();
-    }
-  }
-
-  const CUES = { test: testTone };
-
   return {
     ctx,
-    nodes: { layers, mix, master, limiter },
+    nodes: { layers, mix, wow, wowDepth, under, master, limiter },
     start: () => fadeIn(FADE_IN),
     stop: () => fadeOutAndSuspend(() => !bus.isOn()),
-    cue(name, options) {
-      CUES[name]?.(options);
+    melt,
+    testTone,
+    onQuiet(listener) {
+      quietListeners.add(listener);
+      return () => quietListeners.delete(listener);
     },
-    testHum,
-    get humming() {
-      return !!hum;
+    onLoud(listener) {
+      loudListeners.add(listener);
+      return () => loudListeners.delete(listener);
     },
     dispose() {
       document.removeEventListener('visibilitychange', onVisibility);
-      testHum(false);
       ctx.close();
     }
   };

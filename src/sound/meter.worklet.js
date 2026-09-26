@@ -45,6 +45,8 @@ class Meter extends AudioWorkletProcessor {
         else if (Math.abs(d) > FLOOR && d * d > RATIO_SQ * energy) {
           this.clicks++;
           this.quiet = REFRACTORY;
+          // Where and what, to trace it back to what was sounding.
+          this.port.postMessage({ click: { time: currentTime + i / sampleRate, step: d, before: prev - d, after: x, rmsStep: Math.sqrt(energy) } });
         }
         energy += (d * d - energy) * SMOOTH;
       }

@@ -2,7 +2,8 @@
 
 > Tercer plan de desarrollo para un agente de IA. Continúa `Docs/PLAN.md` (noche 1) y `Docs/PLAN-2.md` (noche 2, cerrados). Repositorio: `nicolaslema/Onirick`, base: rama `develop`. Sale de la sección 1.2 de `Docs/FUTURO.md`, donde están las decisiones tomadas con el usuario.
 > Idioma de este documento: español. **Todo el texto visible de la web va en inglés.** El contenido sonoro de este plan es **borrador**: se ajusta de oído, fase por fase, con el usuario.
-> **Revisado el 2026-09-26, después de escuchar la fase 0:** la noche lleva **música** (una pieza de violín con licencia libre) en lugar de ambientes sintetizados por sueño, y la mezcla baja ~8 dB. Ver sección 2.
+> **Revisado el 2026-09-26, después de escuchar la fase 0:** la noche lleva **música** en lugar de ambientes sintetizados por sueño, y la mezcla baja ~8 dB. Ver sección 2.
+> **Fase 1:** el usuario eligió un estudio de Chopin para piano (Musopen, dominio público) en vez de un violín: más tranquilo para un sueño. Ver `DECISIONS · Sound — Phase 1` y `CREDITS.md`.
 
 ---
 
@@ -27,7 +28,7 @@
 
 La DR-1 es una grabadora: **ahora se la escucha grabar, y lo que suena es lo que hay en la cinta.**
 
-1. **La música es la cinta.** Una pieza de violín, oscura y clásica, suena **solo mientras la DR-1 graba** (`hud.state === 'rec'`): arranca con el motor al dormirte, se frena como una cinta cuando el motor para (el manual, el STOP de Wake) y retoma desde donde quedó. `REPLAY THE NIGHT` la rebobina.
+1. **La música es la cinta.** Una pieza tranquila (un estudio de Chopin para piano, elegido en la fase 1), suena **solo mientras la DR-1 graba** (`hud.state === 'rec'`): arranca con el motor al dormirte, se frena como una cinta cuando el motor para (el manual, el STOP de Wake) y retoma desde donde quedó. `REPLAY THE NIGHT` la rebobina.
 2. **La máquina se escucha debajo:** el hiss de la cinta y el motor, casi inaudibles.
 3. **El melt dobla la música como una cinta estirada**, y se intensifica igual que la imagen a lo largo de la noche.
 4. **Los sueños responden con pocos sonidos puntuales** (el canto de la ballena, una puerta, el agua sobre tu cabeza, la alarma), no con ambientes propios.
@@ -42,7 +43,7 @@ Vienen de `Docs/FUTURO.md` 1.2 y de la revisión de la fase 0 (usuario, 2026-09-
 
 | Tema | Decisión |
 | --- | --- |
-| Fondo | **Música:** una pieza de violín (clásica, oscura) con licencia libre, de fondo durante la grabación. **Reemplaza los ambientes sintetizados por sueño** del plan original. |
+| Fondo | **Música:** una pieza clásica tranquila con licencia libre, de fondo durante la grabación: Chopin, *Études* Op. 10 (Musopen, dominio público), elegida en la fase 1. **Reemplaza los ambientes sintetizados por sueño** del plan original. |
 | Capa de la DR-1 | **Sintetizada:** hiss, motor, wow del melt, STOP y eject, clic de fragmento, botones, rebobinado. |
 | Sonidos de los sueños | **Solo puntuales** y ligados a una interacción (5). |
 | Toggle | Botón `SOUND OFF` / `SOUND ON` en el HUD, siempre visible, **apagado por defecto** (hecho en la fase 0). |
@@ -293,7 +294,9 @@ Cada fase termina con `pnpm lint`, `pnpm build` y `pnpm test` limpios, sin error
 
 Hecha en `snd-phase-0-engine`: bus, motor, primitivas, toggle, ciclo de vida y panel con medidores. Ver `DECISIONS · Sound — Phase 0`. Pendiente de esa fase por la revisión: bajar el tono y el zumbido de prueba a los niveles nuevos (6) — hecho — y renombrar la capa `ambience` a `music` (en la fase 1, cuando la música exista).
 
-### Fase 1: La cinta (música + máquina)
+### Fase 1: La cinta (música + máquina) ✔ (a aprobar de oído)
+
+Hecha en `snd-phase-1-tape`: ver `DECISIONS · Sound — Phase 1`. Desvíos: la pieza es para piano; un solo MP3 de 4.1 MB sin reencodear (sin ffmpeg; MP3 suena en todos los navegadores).
 
 1. **Elegir la música** (2.2): 3 candidatos con licencia verificable; el usuario elige. Recortarla, normalizarla, `CREDITS.md`.
 2. `sound/tape.js`: los dos `<audio>` alternados y el loop (2.3), el desbloqueo en el click (3.2), arranque, stop de cinta y rebobinado (4.1).
@@ -372,7 +375,7 @@ Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de ca
 
 Se preguntan al usuario cuando llegue su fase:
 
-1. **La pieza de música** (fase 1): entre 3 candidatos con licencia.
+1. ~~**La pieza de música** (fase 1)~~ — resuelta: Chopin, *Études* Op. 10 (Musopen), elegida por el usuario.
 2. **Manual** (fase 5): la propuesta es silencio con la cinta frenada (5.4).
 3. **Pasos en la escalera** (fase 2): si suman o sobran con la música.
 4. **Cada puntual candidato a archivo** (pasos, agua): después de escuchar la versión sintetizada.
