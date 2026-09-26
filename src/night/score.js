@@ -201,7 +201,7 @@ export function createSound(ctx, env) {
     }),
     alarm: inDream('fall', () => dreams.alarm({ level: 1 })),
     'print-line': inDream('wake', dreams.printLine),
-    'print-feed': inDream('wake', dreams.printFeed),
+    recall: inDream('wake', dreams.recall),
     water: inDream('ocean', dreams.water),
     // The scene lets out ~18 bubbles a second: one sound for some of them.
     bubble: inDream('ocean', options => {

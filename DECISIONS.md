@@ -1312,3 +1312,12 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   hurried and the long final beep are gone. Silent at the top; from the first scroll down, from 10% to
   full (≈ −45 dB peak at 0.25, −39 at 0.5, −34 at the bottom); faded out across the whole melt into
   Wake. `night/recPace.js` stays, for the HUD. The rings' rush of air is unchanged.
+
+- **After review — each dream's line on the tape, heard for what it kept** (user: the sound under a
+  fragment or "— no signal —" wasn't liked). Those lines no longer get the printer's rasp: a kept
+  fragment rings a soft, warm chord (A4 then E5 90 ms later, each with a triangle an octave down,
+  lowpassed at 2.4 kHz, ringing out over ~1.5 s, ≈ −40 dB peak); "— no signal —" is a brief breath of
+  radio static (bandpassed noise at 2.6 kHz, crackling through an uneven square, ≈ −54…−63 dB). The
+  tier line and each tape's head keep the dot-matrix pass. The paper feed after each row is gone (it
+  sounded glued to those lines) — `printFeed` removed. Verified with 0 and 3 fragments kept: five
+  statics; then three chords and two statics. No clicks.

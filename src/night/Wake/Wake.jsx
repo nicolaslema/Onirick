@@ -85,8 +85,13 @@ function usePrinter(segments, printing, reduced) {
       }
       const s = segments[seg];
       if (char < s.text.length) {
-        // A line starts printing: the printer's head crosses it (PLAN-3.md 5.7).
-        if (char === 0) cue('print-line', { seconds: s.text.length / s.cps, cps: s.cps, head: s.key.endsWith('-head') });
+        // A line starts printing (PLAN-3.md 5.7): a dream's line is heard as
+        // what the tape kept of it — a fragment's chord, or no signal's
+        // static; the others, the printer's head crossing it.
+        if (char === 0) {
+          if (s.key.endsWith('-body')) cue('recall', { kept: s.kept });
+          else cue('print-line', { seconds: s.text.length / s.cps, cps: s.cps, head: s.key.endsWith('-head') });
+        }
         char += 1;
         const [at, n] = [seg, char];
         setCounts(prev => prev.map((c, i) => (i === at ? n : c)));
@@ -95,8 +100,6 @@ function usePrinter(segments, printing, reduced) {
       }
       seg += 1;
       char = 0;
-      // A row finished (a fragment, or the tier line): the paper advances.
-      if (!s.key.endsWith('-head')) cue('print-feed');
       timer = setTimeout(tick, s.pause);
     };
     timer = setTimeout(tick, START_MS);

@@ -22,7 +22,8 @@ export const LEVELS = {
   alarm: dbToGain(-34), // a beep at the Fall's bottom; it starts far quieter (alarm())
   ring: dbToGain(-40), // falling through a ring
   print: dbToGain(-46), // Wake's printer, a line printing
-  feed: dbToGain(-42) // and its paper advancing a row
+  recall: dbToGain(-40), // a dream's line on Wake's tape: a kept fragment's chord
+  static: dbToGain(-48) // … or no signal's static
 };
 
 const vary = amount => 1 + (Math.random() * 2 - 1) * amount;
@@ -287,7 +288,8 @@ export function createDreamSounds(ctx, { scene, ui }) {
     voice(noise(ctx, 'pink'), sweep, { at, peak: LEVELS.ring * level * vary(0.15), attack: 0.12, decay: 0.12, release: 0.2, pan: (Math.random() * 2 - 1) * 0.3 });
   }
 
-  // Wake's printer (PLAN-3.md 5.7): a dot-matrix head crossing the line as
+  // Wake's printer (PLAN-3.md 5.7), on the tier line and each tape's head: a
+  // dot-matrix head crossing the line as
   // it prints — a soft, muffled rasp for as long as the line takes, its
   // characters a flutter inside it (the rasp chopped at the line's typing
   // rate), a little brighter on a tape's head line. (First cut, a dry tick
@@ -316,13 +318,47 @@ export function createDreamSounds(ctx, { scene, ui }) {
     });
   }
 
-  function printFeed() {
-    const at = ctx.currentTime + 0.005;
-    const whirr = oscillator(ctx, { type: 'sawtooth', frequency: 170 });
-    whirr.frequency.setValueAtTime(150, at);
-    whirr.frequency.linearRampToValueAtTime(190, at + 0.12);
-    voice(whirr, filter(ctx, { type: 'lowpass', frequency: 1200 }), { at, peak: LEVELS.feed, attack: 0.015, decay: 0.12, sustain: 0.5, release: 0.05 });
+  // Each dream's line on Wake's tape (PLAN-3.md 5.7, changed with the user
+  // in phase 4 — the printer's rasp on these lines wasn't liked): what the
+  // tape kept of that dream, heard. A kept fragment: a soft, warm chord, two
+  // clean notes ringing out. "— no signal —": a brief breath of static, like
+  // a radio between stations.
+  function recall({ kept = false } = {}) {
+    const at = ctx.currentTime + 0.01;
+    if (kept) {
+      [440, 659.25].forEach((frequency, i) => {
+        const note = oscillator(ctx, { frequency });
+        const warmth = oscillator(ctx, { type: 'triangle', frequency: frequency / 2 });
+        const warmthLevel = gain(ctx, 0.25);
+        const mix = gain(ctx, 1);
+        note.connect(mix);
+        warmth.connect(warmthLevel).connect(mix);
+        const t = at + i * 0.09;
+        const end = voice(mix, filter(ctx, { type: 'lowpass', frequency: 2400 }), { at: t, peak: LEVELS.recall * (i ? 0.7 : 1), attack: 0.012, decay: 1.4, release: 0.6 });
+        [note, warmth].forEach(osc => {
+          osc.start(t);
+          osc.stop(end);
+        });
+      });
+      return;
+    }
+    // Static: noise, band-limited to where a radio's hiss sits, crackling
+    // (chopped by a fast, uneven square) and fading.
+    const hiss = noise(ctx, 'white');
+    const band = filter(ctx, { type: 'bandpass', frequency: 2600, Q: 0.8 });
+    const crackle = gain(ctx, 0.55);
+    const flicker = oscillator(ctx, { type: 'square', frequency: 31 });
+    flicker.frequency.setValueAtTime(31, at);
+    flicker.frequency.linearRampToValueAtTime(19, at + 0.6);
+    const flickerDepth = gain(ctx, 0.35);
+    flicker.connect(flickerDepth).connect(crackle.gain);
+    band.connect(crackle);
+    const soft = filter(ctx, { type: 'lowpass', frequency: 5000 });
+    crackle.connect(soft);
+    const end = voice(hiss, [band, soft], { at, peak: LEVELS.static, attack: 0.03, decay: 0.45, release: 0.2 });
+    flicker.start(at);
+    flicker.stop(end);
   }
 
-  return { step, whaleCall, door, water, bubble, alarm, ring, printLine, printFeed };
+  return { step, whaleCall, door, water, bubble, alarm, ring, printLine, recall };
 }
