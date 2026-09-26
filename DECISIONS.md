@@ -1246,3 +1246,10 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   the air the leaf moves, a soft swell of low pink noise. No creak. Distance, pan and the hallway's echo
   as before. Measured: a door you open ≈ −40…−43 dB peak, then +4 dB (short clicks read quieter than a
   long sound) → ≈ −38; the far, spontaneous ones lower still.
+- **After review — surfacing through the melt** (user: the Ocean → Fall melt didn't sound right). The
+  under-water lowpass stayed shut for the whole melt (the Ocean is still "heard" while it melts away),
+  then snapped open in ~0.15 s as the Fall settled — a jolt at the melt's end, over its strong wow. Now a
+  transition out of a dream fades that dream's continuous value with the transition itself (smoothstep
+  over its `duration`), and one into it fades it in: `through()` in score.js, for `ocean.under` and
+  `house.far`. Traced every 60 ms: Ocean → Fall opens 500 → 18 900 Hz across the 1.7 s melt, already open
+  when the Fall settles; Fall → Ocean closes 19 900 → 514 Hz and arrives under. No clicks.

@@ -45,6 +45,7 @@ export function createSound(ctx, env) {
   function onStage() {
     const next = getStage();
     const cue = tapeCue(prev, next, stateOf);
+    if (next.transition && next.transition !== prev.transition) transitionAt = performance.now();
     prev = next;
     // Rewinding is silent on the tape itself, so it happens even while quiet.
     if (cue.rewind) tape.rewind();
@@ -89,12 +90,22 @@ export function createSound(ctx, env) {
   // Continuous values the scenes write (bus.param), applied every frame
   // while sound is on: how far under water (the Ocean) and how far away the
   // kitchen is (the House, which takes the music with it). Outside their
-  // dream they ease back to nothing.
+  // dream they're 0 — and across a transition out of (or into) it they fade
+  // with the transition itself, so the sound surfaces as the Ocean melts
+  // into the Fall instead of snapping open when the Fall settles.
   let frame = 0;
+  let transitionAt = 0;
   const applied = { under: 0, far: 0 };
+  function through(id, value) {
+    const t = getStage().transition;
+    if (!t || t.fromId === t.toId || (t.fromId !== id && t.toId !== id)) return value;
+    const p = Math.min(Math.max((performance.now() - transitionAt) / (t.duration * 1000), 0), 1);
+    const eased = p * p * (3 - 2 * p);
+    return value * (t.fromId === id ? 1 - eased : eased);
+  }
   function follow() {
-    const under = heard('ocean') ? env.getParam('ocean.under', 0) : 0;
-    const far = heard('house') ? env.getParam('house.far', 0) : 0;
+    const under = heard('ocean') ? through('ocean', env.getParam('ocean.under', 0)) : 0;
+    const far = heard('house') ? through('house', env.getParam('house.far', 0)) : 0;
     if (Math.abs(under - applied.under) > 0.001) engine.setUnder((applied.under = under));
     if (Math.abs(far - applied.far) > 0.001) tape.setDistance((applied.far = far));
     frame = requestAnimationFrame(follow);
