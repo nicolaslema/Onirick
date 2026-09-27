@@ -153,8 +153,16 @@ export function configureSound(next) {
   }
 }
 
-// The toggle's click: a gesture of its own.
+// The toggle's click: a gesture of its own. While sound is on but hasn't
+// been able to start yet (it reads SOUND ON · CLICK TO START), the click
+// starts it — turning it off there read as a bug (user). Once it sounds, the
+// toggle turns it off as ever.
 export function toggle() {
+  if (on && !isLive()) {
+    if (begin()) ctx.resume().then(() => ctx.state === 'running' && disarm());
+    notify();
+    return;
+  }
   if (on) {
     on = false;
     params.clear();
