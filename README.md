@@ -31,7 +31,7 @@ pnpm lint       # oxlint
 pnpm posters    # regenerate public/posters/*.webp (needs `pnpm dev` running and Google Chrome installed)
 ```
 
-Navigation: mouse wheel / trackpad, touch swipe, arrow keys and Page Up/Down (one section per gesture), Home/End for the first and last section.
+Navigation: mouse wheel / trackpad, touch swipe, arrow keys and Page Up/Down (one section per gesture), Home/End for the first and last section. The night itself starts from the hero with BEGIN RECORDING or an arrow key — the wheel and a swipe don't leave the hero (they make the button pulse), so everyone clicks or types before the dreams and the sound can start.
 
 ## Stack
 
@@ -128,7 +128,7 @@ In development, `?debug` in the URL opens a panel with the current dream's play 
 
 ## Sound
 
-**On by default, and it waits for you.** The HUD's toggle reads SOUND ON from the first paint, but no browser plays audio before the visitor interacts — so the sound starts on the first click, tap or key anywhere (BEGIN RECORDING, an arrow key). The wheel and a trackpad don't count as a gesture to browsers: someone who only scrolls sees *SOUND ON · CLICK TO START* until they click. Nothing is downloaded before that gesture (the sound engine and the music load then), so it costs the page's first load nothing. The toggle turns it off; each visit starts on again. With the tab hidden it's suspended.
+**On by default, and it waits for you.** The HUD's toggle reads SOUND ON from the first paint, but no browser plays audio before the visitor interacts — so the sound starts on the first click, tap or key anywhere. The wheel and a trackpad don't count as a gesture to browsers, which is why the hero only lets the night begin from BEGIN RECORDING or an arrow key (`keysOnly` in `night/config.js`). Nothing is downloaded before that gesture (the sound engine and the music load then), so it costs the page's first load nothing. The toggle turns it off; each visit starts on again. With the tab hidden it's suspended.
 
 **The tape.** The music is what's on the DR-1's tape: it plays only while the DR-1 records (the five dreams), spins up with the motor as you fall asleep, tape-stops — speed and pitch falling — into the manual and at Wake, and carries on from where it stopped; REPLAY THE NIGHT rewinds it. Every melt bends it like stretched tape (a delay swung by an LFO), more deeply as the night goes on, and the burn into Wake stops it dead by the white. Under it, barely there, the motor and the tape's hiss; STOP and eject at Wake. Its level, a slow compressor and the loop across its two quietest seconds are in `night/music.js`.
 

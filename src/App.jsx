@@ -8,7 +8,7 @@ import { IntroContext } from './components/Loader/IntroContext'
 import { NIGHT } from './night/config'
 import { createNightGate } from './night/gate'
 import { DREAMS } from './night/dreams'
-import { setStage } from './night/stage'
+import { nudge, setStage } from './night/stage'
 import { HAS_WEBGL2 } from './lib/webgl'
 import { configureSound } from './sound/bus'
 import { MUSIC } from './night/music'
@@ -49,6 +49,8 @@ function App() {
   }, [])
   const [ready, setReady] = useState(false)
   const handleReady = useCallback(() => setReady(true), [])
+  // The hero keeps the wheel and swipes (keysOnly): its button answers.
+  const handleHeldGesture = useCallback(index => nudge(NIGHT[index]?.id), [])
 
   const current = NIGHT[nightState.currentIndex]
 
@@ -70,7 +72,7 @@ function App() {
         settled={!nightState.activeTransition}
       />
       <IntroContext.Provider value={ready}>
-        <ScrollSections sections={NIGHT} mode="snap" gate={nightGate} onStateChange={handleStateChange} onReady={handleReady} />
+        <ScrollSections sections={NIGHT} mode="snap" gate={nightGate} onStateChange={handleStateChange} onHeldGesture={handleHeldGesture} onReady={handleReady} />
       </IntroContext.Provider>
       <Loader ready={ready} />
       {DebugPanel && (

@@ -33,11 +33,6 @@ export const isOn = () => on;
 // toggle's bars only move then.
 export const isLive = () => on && ctx?.state === 'running';
 
-// On, not sounding yet, and the visitor has been scrolling (wheel, trackpad,
-// a swipe) — which browsers don't count as a gesture. The toggle shows a
-// hint then (CLICK TO START); someone who clicks or types first never sees it.
-let nudged = false;
-export const isWaiting = () => nudged && on && !isLive();
 
 export function subscribe(listener) {
   listeners.add(listener);
@@ -114,9 +109,9 @@ function begin() {
 // The first gestures, while sound is wanted but hasn't been able to start.
 // Browsers grant the right to play on mousedown/pointerdown (a mouse), on
 // pointerup/touchend (a touch), on keydown — and on the click after them.
+// (The wheel isn't one: the hero doesn't let the wheel start the night —
+// config.js, keysOnly — so everyone clicks or types before the dreams.)
 const GESTURES = ['keydown', 'pointerdown', 'mousedown', 'pointerup', 'touchend', 'click'];
-// Scrolling isn't one: it only brings up the hint.
-const SCROLLS = ['wheel', 'touchmove'];
 function onGesture(event) {
   // The toggle handles its own click (it turns sound off from here).
   if (event.target?.closest?.('.onk-sound')) return;
@@ -127,21 +122,12 @@ function onGesture(event) {
   if (ctx?.state === 'running') disarm();
   else ctx?.resume().then(() => ctx.state === 'running' && disarm());
 }
-function onScroll() {
-  if (nudged || !on) return;
-  nudged = true;
-  notify();
-}
 const hasWindow = () => typeof window !== 'undefined';
 function arm() {
-  if (!hasWindow()) return;
-  GESTURES.forEach(type => window.addEventListener(type, onGesture, true));
-  SCROLLS.forEach(type => window.addEventListener(type, onScroll, { capture: true, passive: true }));
+  if (hasWindow()) GESTURES.forEach(type => window.addEventListener(type, onGesture, true));
 }
 function disarm() {
-  if (!hasWindow()) return;
-  GESTURES.forEach(type => window.removeEventListener(type, onGesture, true));
-  SCROLLS.forEach(type => window.removeEventListener(type, onScroll, { capture: true }));
+  if (hasWindow()) GESTURES.forEach(type => window.removeEventListener(type, onGesture, true));
 }
 
 export function configureSound(next) {
@@ -154,9 +140,8 @@ export function configureSound(next) {
 }
 
 // The toggle's click: a gesture of its own. While sound is on but hasn't
-// been able to start yet (it reads SOUND ON · CLICK TO START), the click
-// starts it — turning it off there read as a bug (user). Once it sounds, the
-// toggle turns it off as ever.
+// been able to start yet, the click starts it — turning it off there (it
+// reads ON) read as a bug (user). Once it sounds, it turns it off as ever.
 export function toggle() {
   if (on && !isLive()) {
     if (begin()) ctx.resume().then(() => ctx.state === 'running' && disarm());

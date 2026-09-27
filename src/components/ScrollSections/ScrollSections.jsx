@@ -70,6 +70,10 @@ const RECAPTURE_DEBOUNCE_MS = 250;
 // - `plainDuration`: same idea for a crossfade whose destination is this
 //   section (used whenever either side of the transition is 'scroll', or
 //   for a goTo() jump landing here).
+// - `keysOnly`: the wheel and touch swipes never leave this section — only
+//   the keyboard and goTo() (its buttons) do. A wheel gesture or swipe that
+//   tries calls `onHeldGesture(index)` once (the hero: sound needs a click or
+//   a key to start, and browsers don't count the wheel as either).
 //
 // `gate` (optional) lets a section keep gestures for itself before they
 // change section — a dream's own scrub or beats (PLAN-2.md 3.2). Four
@@ -106,6 +110,7 @@ export default function ScrollSections({
   burn = 0,
   gate,
   onStateChange,
+  onHeldGesture,
   onReady
 }) {
   const stageRef = useRef(null);
@@ -117,6 +122,9 @@ export default function ScrollSections({
   // { y, lastY, consumed: changed section, stepped: took a gated beat, scrolled } | null
   const touchRef = useRef(null);
   const gateRef = useRef(gate);
+  // Mirrored like `gate`, so the handlers don't re-bind when it changes.
+  const onHeldGestureRef = useRef(onHeldGesture);
+  onHeldGestureRef.current = onHeldGesture;
   gateRef.current = gate;
   // One gesture that arrived before its captures were ready, retried once
   // they are (PLAN-2.md 3.2.8). { target, dir, at } | null.
@@ -684,6 +692,12 @@ export default function ScrollSections({
       }
 
       e.preventDefault();
+      // A keys-only section: the wheel stays put (once per gesture, say so).
+      if (sections[currentIndexRef.current]?.keysOnly) {
+        if (!gesture.scrolled) onHeldGestureRef.current?.(currentIndexRef.current);
+        gesture.scrolled = true;
+        return;
+      }
       // A gated section (a dream's scrub or beats) keeps the gesture until it
       // reaches its own end — same edge rule as the manual below.
       if (!gateCanLeave(currentIndexRef.current, wheelDir)) {
@@ -698,7 +712,7 @@ export default function ScrollSections({
       if (gesture.scrolled) return;
       goToIndex(currentIndexRef.current + wheelDir, wheelDir);
     },
-    [goToIndex, atScrollEdge, gateCanLeave]
+    [goToIndex, atScrollEdge, gateCanLeave, sections]
   );
 
   // 'scrub': progress follows the wheel in real time. `deltaPx` is signed
@@ -812,9 +826,14 @@ export default function ScrollSections({
       // this touch; calling preventDefault() then only logs an error.
       if (e.cancelable) e.preventDefault();
       start.consumed = true;
+      // A keys-only section: the swipe stays put, and says so.
+      if (sections[currentIndexRef.current]?.keysOnly) {
+        onHeldGestureRef.current?.(currentIndexRef.current);
+        return;
+      }
       goToIndex(currentIndexRef.current + dir, dir);
     },
-    [goToIndex, atScrollEdge, gateCanLeave]
+    [goToIndex, atScrollEdge, gateCanLeave, sections]
   );
 
   const handleTouchEnd = useCallback(() => {

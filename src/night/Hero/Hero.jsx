@@ -1,10 +1,11 @@
-import { lazy, useLayoutEffect, useRef } from 'react';
+import { lazy, useEffect, useLayoutEffect, useRef } from 'react';
 
 import TapeLabel from '../../components/TapeLabel/TapeLabel';
 import { useIntroStarted } from '../../components/Loader/IntroContext';
 import SceneCanvas from '../../components/SceneCanvas/SceneCanvas';
 import { useScrollSections } from '../../components/ScrollSections/ScrollSectionsContext';
 import { useReducedMotion } from '../../three/useReducedMotion';
+import { subscribeNudge } from '../stage';
 import './Hero.css';
 
 // Loaded with the 3D chunk, after the page has painted.
@@ -41,10 +42,29 @@ function useEntrance(ref) {
   }, [started, reduced, ref]);
 }
 
+// The night starts on BEGIN RECORDING or an arrow key — never the wheel or
+// a swipe, which don't let sound start (config.js: keysOnly). Scrolling here
+// makes the button pulse, to point at it.
+function useNudge(button) {
+  useEffect(
+    () =>
+      subscribeNudge(id => {
+        const el = button.current;
+        if (id !== 'hero' || !el) return;
+        el.removeAttribute('data-nudge');
+        void el.offsetWidth; // restart the animation on every nudge
+        el.setAttribute('data-nudge', '');
+      }),
+    [button]
+  );
+}
+
 const Hero = () => {
   const { goTo } = useScrollSections();
   const content = useRef(null);
+  const begin = useRef(null);
   useEntrance(content);
+  useNudge(begin);
   return (
     <section className="night-hero" aria-label="Onirick DR-1">
       <SceneCanvas camera={HERO_CAMERA}>
@@ -58,7 +78,13 @@ const Hero = () => {
           your eyes, and scroll.
         </p>
         <div className="night-hero-actions">
-          <button type="button" className="onk-btn" onClick={() => goTo('stair')}>
+          <button
+            type="button"
+            className="onk-btn night-hero-begin"
+            ref={begin}
+            onClick={() => goTo('stair')}
+            onAnimationEnd={e => e.currentTarget.removeAttribute('data-nudge')}
+          >
             Begin recording
           </button>
           <button type="button" className="onk-btn-secondary" onClick={() => goTo('manual')}>
@@ -66,7 +92,7 @@ const Hero = () => {
           </button>
         </div>
       </div>
-      <p className="night-hero-track">Scroll to fall asleep ↓</p>
+      <p className="night-hero-track">Press REC to fall asleep</p>
     </section>
   );
 };

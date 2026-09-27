@@ -1367,3 +1367,22 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   built, how to add a sound to a dream, the music's licence, iOS, `?debug`) and the new modules in the
   tree. PLAN-3.md's checklist marked — two items left to the user: the loop by ear, and Lighthouse on
   the deployed site. FUTURO.md 1.2: done.
+
+- **After review — the night starts on REC** (user: scrolling on past the hero left the music silent,
+  and clicking *CLICK TO START* turned the sound OFF). Two things:
+  - *The bug:* the hint lived on the toggle, whose click turned sound off since it read ON. Now, while
+    sound is on but hasn't been able to start, the toggle's click starts it; once it sounds, it turns it
+    off as ever.
+  - *The cause, removed at the root (the user's proposal):* the hero is **keys-only** — a new
+    ScrollSections section option, `keysOnly`: the wheel and touch swipes never leave it, the keyboard
+    and `goTo()` (its buttons) do. So the night begins from BEGIN RECORDING or an arrow key (the user
+    chose both), each a gesture browsers let start sound. A wheel or swipe there calls the new
+    `onHeldGesture` (once per gesture) → `night/stage.js`'s `nudge('hero')` → BEGIN RECORDING pulses
+    twice (a ring in `--rec` and its REC dot swelling; still under reduced motion). The line under the
+    hero reads **PRESS REC TO FALL ASLEEP** (was *SCROLL TO FALL ASLEEP ↓*); the body's "Press REC, close
+    your eyes, and scroll" still holds. With every visitor clicking or typing before the dreams, the
+    toggle's *CLICK TO START* hint became a second, competing cue — removed (bus: no scroll listeners).
+  - Verified (Chrome headless): the wheel stays in the hero and the button pulses; ArrowDown and BEGIN
+    RECORDING enter the Staircase with the music playing; the manual detour returns to the hero, whose
+    wheel stays put again; a phone swipe stays too (Chrome counts it as a gesture, so the sound is
+    already running), and a tap on the button enters; without WebGL2 the same. No console errors.

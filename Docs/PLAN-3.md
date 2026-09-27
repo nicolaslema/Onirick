@@ -319,7 +319,7 @@ Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de ca
 
 ### Fase 5: Manual, mezcla final y cierre ✔ (a aprobar de oído)
 
-Hecha en `snd-phase-5-close`: ver `DECISIONS · Sound — Phase 5`. Además, a pedido del usuario: el sonido también arranca al *presionar* el mouse, y quien solo scrollea con la rueda ve *SOUND ON · CLICK TO START* (la rueda no es un gesto para los navegadores).
+Hecha en `snd-phase-5-close`: ver `DECISIONS · Sound — Phase 5`. Además, a pedido del usuario: **el hero solo se deja con BEGIN RECORDING o las flechas** (la rueda y el deslizar no avanzan: hacen latir el botón; la línea de abajo dice *PRESS REC TO FALL ASLEEP*), porque la rueda no es un gesto para los navegadores y sin gesto no hay sonido. El sonido también arranca al *presionar* el mouse, y tocar el botón de sonido mientras espera lo arranca en vez de apagarlo.
 
 - **Manual:** confirmar con el usuario (5.4) y hacerlo.
 - **Pasada de mezcla** de la noche entera, de corrido, con el usuario.

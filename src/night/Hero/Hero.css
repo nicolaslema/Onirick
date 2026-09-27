@@ -84,3 +84,30 @@
     gap: var(--space-4);
   }
 }
+
+/* BEGIN RECORDING, pointed at: a wheel or a swipe on the hero doesn't move
+   the night (config.js: keysOnly), it makes the button pulse — a ring and
+   its REC dot swelling, twice. Nothing under reduced motion (the line
+   below, PRESS REC TO FALL ASLEEP, says it). */
+.night-hero-begin[data-nudge] {
+  animation: night-hero-nudge 0.55s ease-in-out 2;
+}
+.night-hero-begin[data-nudge]::before {
+  animation: night-hero-nudge-dot 0.55s ease-in-out 2;
+}
+@keyframes night-hero-nudge {
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--rec) 35%, transparent);
+  }
+}
+@keyframes night-hero-nudge-dot {
+  50% {
+    transform: scale(1.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .night-hero-begin[data-nudge],
+  .night-hero-begin[data-nudge]::before {
+    animation: none;
+  }
+}

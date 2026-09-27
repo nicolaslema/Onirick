@@ -45,6 +45,17 @@ export function subscribeNavigate(listener) {
   return () => navigateListeners.delete(listener);
 }
 
+// A section held a wheel or swipe it won't let leave (keysOnly: the hero) —
+// its screen answers (the hero's BEGIN RECORDING pulses).
+const nudgeListeners = new Set();
+export function nudge(id) {
+  nudgeListeners.forEach(listener => listener(id));
+}
+export function subscribeNudge(listener) {
+  nudgeListeners.add(listener);
+  return () => nudgeListeners.delete(listener);
+}
+
 // Runs `callback` once, the next time `id` is on screen and settled — e.g.
 // Replay's new night, once Wake has faded out behind the hero.
 export function onceSettledAt(id, callback) {

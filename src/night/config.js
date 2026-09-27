@@ -29,7 +29,11 @@ export const NIGHT = [
     // Not a melt neighbour's override — this is the crossfade for
     // REPLAY THE NIGHT jumping back here from Wake (PLAN.md 6.7: "una sola
     // transición, crossfade de 1.2s").
-    plainDuration: 1.2
+    plainDuration: 1.2,
+    // The night starts on BEGIN RECORDING or an arrow key, never the wheel or
+    // a swipe: both are gestures browsers let start sound, the wheel isn't
+    // (PLAN-3.md, phase 5 — decided with the user).
+    keysOnly: true
   },
   {
     id: 'stair',
