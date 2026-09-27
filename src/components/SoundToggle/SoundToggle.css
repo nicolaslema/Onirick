@@ -77,6 +77,50 @@
   transform: scaleY(0.7);
 }
 
+/* The hint while sound is on but waiting for a click (the wheel doesn't
+   count as a gesture): ink, and a slow pulse to be noticed — still under
+   reduced motion. */
+.onk-sound-hint {
+  color: var(--ink);
+  animation: onk-sound-hint 1.6s ease-in-out infinite alternate;
+}
+@keyframes onk-sound-hint {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+.onk-hud[data-reduced] .onk-sound-hint {
+  animation: none;
+}
+/* On a touch or narrow screen: "tap", and on a line of its own under the
+   toggle — beside DR-1 it reached the clock in the other corner (360 px).
+   Out of the flow, so the corner doesn't grow and the hero's DR-1 doesn't
+   move for a hint that lasts until the first tap. */
+.onk-sound-hint-tap {
+  display: none;
+}
+@media (pointer: coarse), (max-width: 640px) {
+  .onk-sound {
+    position: relative;
+  }
+  .onk-sound-hint {
+    position: absolute;
+    top: calc(100% - 10px);
+    left: 0;
+    white-space: nowrap;
+  }
+  .onk-sound-hint-sep,
+  .onk-sound-hint-click {
+    display: none;
+  }
+  .onk-sound-hint-tap {
+    display: inline;
+  }
+}
+
 /* Where it sits: under DR-1 on a wide screen; beside it on a narrow or
    portrait one, where the hero fits the DR-1 into the band under the HUD's
    top corners (DeviceScene) — a line of its own there took the band a short

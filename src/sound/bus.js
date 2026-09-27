@@ -33,6 +33,12 @@ export const isOn = () => on;
 // toggle's bars only move then.
 export const isLive = () => on && ctx?.state === 'running';
 
+// On, not sounding yet, and the visitor has been scrolling (wheel, trackpad,
+// a swipe) — which browsers don't count as a gesture. The toggle shows a
+// hint then (CLICK TO START); someone who clicks or types first never sees it.
+let nudged = false;
+export const isWaiting = () => nudged && on && !isLive();
+
 export function subscribe(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -106,7 +112,11 @@ function begin() {
 }
 
 // The first gestures, while sound is wanted but hasn't been able to start.
-const GESTURES = ['keydown', 'pointerup', 'touchend', 'click'];
+// Browsers grant the right to play on mousedown/pointerdown (a mouse), on
+// pointerup/touchend (a touch), on keydown — and on the click after them.
+const GESTURES = ['keydown', 'pointerdown', 'mousedown', 'pointerup', 'touchend', 'click'];
+// Scrolling isn't one: it only brings up the hint.
+const SCROLLS = ['wheel', 'touchmove'];
 function onGesture(event) {
   // The toggle handles its own click (it turns sound off from here).
   if (event.target?.closest?.('.onk-sound')) return;
@@ -117,12 +127,21 @@ function onGesture(event) {
   if (ctx?.state === 'running') disarm();
   else ctx?.resume().then(() => ctx.state === 'running' && disarm());
 }
+function onScroll() {
+  if (nudged || !on) return;
+  nudged = true;
+  notify();
+}
 const hasWindow = () => typeof window !== 'undefined';
 function arm() {
-  if (hasWindow()) GESTURES.forEach(type => window.addEventListener(type, onGesture, true));
+  if (!hasWindow()) return;
+  GESTURES.forEach(type => window.addEventListener(type, onGesture, true));
+  SCROLLS.forEach(type => window.addEventListener(type, onScroll, { capture: true, passive: true }));
 }
 function disarm() {
-  if (hasWindow()) GESTURES.forEach(type => window.removeEventListener(type, onGesture, true));
+  if (!hasWindow()) return;
+  GESTURES.forEach(type => window.removeEventListener(type, onGesture, true));
+  SCROLLS.forEach(type => window.removeEventListener(type, onScroll, { capture: true }));
 }
 
 export function configureSound(next) {

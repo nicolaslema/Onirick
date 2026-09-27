@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import { isLive, isOn, subscribe, toggle } from '../../sound/bus';
+import { isLive, isOn, isWaiting, subscribe, toggle } from '../../sound/bus';
 import './SoundToggle.css';
 
 // SOUND OFF / SOUND ON (PLAN-3.md 3.6), in the HUD's top-left corner under
@@ -14,8 +14,18 @@ import './SoundToggle.css';
 const SoundToggle = () => {
   const on = useSyncExternalStore(subscribe, isOn, () => false);
   const live = useSyncExternalStore(subscribe, isLive, () => false);
+  // Scrolled with the wheel before any click: say how to start it.
+  const waiting = useSyncExternalStore(subscribe, isWaiting, () => false);
   return (
-    <button type="button" className="onk-sound" aria-pressed={on} data-on={on || undefined} data-live={live || undefined} onClick={toggle}>
+    <button
+      type="button"
+      className="onk-sound"
+      aria-pressed={on}
+      data-on={on || undefined}
+      data-live={live || undefined}
+      data-waiting={waiting || undefined}
+      onClick={toggle}
+    >
       <span className="onk-sound-bars" aria-hidden="true">
         <i />
         <i />
@@ -23,6 +33,13 @@ const SoundToggle = () => {
       </span>
       <span>
         Sound<span aria-hidden="true"> {on ? 'on' : 'off'}</span>
+        {waiting && (
+          <span className="onk-sound-hint" aria-hidden="true">
+            <span className="onk-sound-hint-sep"> · </span>
+            <span className="onk-sound-hint-click">click</span>
+            <span className="onk-sound-hint-tap">tap</span> to start
+          </span>
+        )}
       </span>
     </button>
   );

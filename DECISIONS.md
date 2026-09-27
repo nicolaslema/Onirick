@@ -1321,3 +1321,18 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   tier line and each tape's head keep the dot-matrix pass. The paper feed after each row is gone (it
   sounded glued to those lines) — `printFeed` removed. Verified with 0 and 3 fragments kept: five
   statics; then three chords and two statics. No clicks.
+
+## Sound — Phase 5
+
+- **The hero with the wheel only** (user: sometimes the music only started from BEGIN RECORDING, never
+  when moving on by scrolling). Browsers don't count the wheel or a trackpad as a gesture, so a visitor
+  who only scrolls can't start audio at all — nothing to fix there. Two changes: (1) the bus listened
+  to `pointerup` for the mouse, but browsers grant the right to play on the *press* — `pointerdown` and
+  `mousedown` are now heard too; (2) the toggle says what to do: once the visitor scrolls (wheel,
+  trackpad, a swipe) while sound is on but not running yet, it reads **SOUND ON · CLICK TO START**
+  (pulsing slowly; still under reduced motion), gone at the first click. Someone who clicks or types
+  first never sees it. On a touch or narrow screen it's **TAP TO START**, on its own line under the
+  toggle and out of the flow: beside DR-1 it reached the clock in the other corner at 360 px, and in
+  the flow it would have grown the corner (and moved the hero's DR-1) for a hint that lasts one tap.
+  Verified: wheel → hint, no sound; click → sound, no hint; a phone's swipe already counts as a gesture
+  in Chrome (sound starts, no hint); the hint clear of the clock at 390 and 360 px.
