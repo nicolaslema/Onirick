@@ -239,7 +239,7 @@ Con la música de fondo, cada sueño suma **pocos sonidos, solo ligados a lo que
 
 ### 5.4 Manual
 
-- **Propuesta (a confirmar):** es el momento despierto y la DR-1 está en standby, así que **la cinta se frena al entrar** (4.1) y el manual queda en silencio, con el zumbido de standby. Al volver a un sueño, la música retoma desde donde quedó.
+- **Decidido (fase 5):** es el momento despierto y la DR-1 está en standby, así que **la cinta se frena al entrar** (4.1) y el manual queda en silencio, con el zumbido de standby (≈ −73 dB, casi inaudible). Al volver a un sueño, la música retoma desde donde quedó.
 
 ### 5.5 Dream 04: The Ocean Indoors
 
@@ -317,7 +317,9 @@ Hecha en `snd-phase-4-fall-wake`: ver `DECISIONS · Sound — Phase 4`. La alarm
 
 Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de cada sección, los niveles están dentro de la tabla 6 en el peor caso, y el usuario aprobó el sonido. Si un puntual pasa a archivo (2.4), se resuelve dentro de su fase.
 
-### Fase 5: Manual, mezcla final y cierre
+### Fase 5: Manual, mezcla final y cierre ✔ (a aprobar de oído)
+
+Hecha en `snd-phase-5-close`: ver `DECISIONS · Sound — Phase 5`. Además, a pedido del usuario: el sonido también arranca al *presionar* el mouse, y quien solo scrollea con la rueda ve *SOUND ON · CLICK TO START* (la rueda no es un gesto para los navegadores).
 
 - **Manual:** confirmar con el usuario (5.4) y hacerlo.
 - **Pasada de mezcla** de la noche entera, de corrido, con el usuario.
@@ -329,21 +331,21 @@ Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de ca
 
 ## 8. Checklist de QA
 
-- [ ] Con el sonido apagado, la noche es idéntica a la de `develop` (navegación, capturas, rendimiento) y la música no se descarga.
-- [ ] Encender no suena de golpe (fade-in); apagar y encender no dejan clics.
-- [ ] Ocultar la pestaña silencia y pausa la música; volver retoma, solo si estaba encendido.
-- [ ] Recargar arranca en ON, esperando el primer gesto; nada de sonido se descarga antes.
-- [ ] La música suena solo mientras la DR-1 graba, se frena como cinta y retoma donde quedó.
-- [ ] El loop de la música no se nota.
-- [ ] Cada melt dobla la música y más fuerte a medida que avanza la noche; los crossfades, no.
-- [ ] El blanco antes de Wake es silencio.
-- [ ] Cada sueño suena según su sección 5, y en el peor caso los niveles están dentro de la tabla 6.
-- [ ] Reduced motion: sin wow, sin tics de impresora; todo lo demás suena.
-- [ ] Sin WebGL2: música, cinta y puntuales globales, sin errores.
-- [ ] El toggle es accesible (teclado, lector de pantalla, 44 px en touch) y no tapa nada en 390 px.
-- [ ] `CREDITS.md` y el README tienen la música con su licencia.
-- [ ] Sin errores ni advertencias en consola, con y sin sonido.
-- [ ] Lighthouse desplegado: mobile ≥ 80, desktop sin bajar, 100 en Accessibility, Best Practices y SEO.
+- [x] Con el sonido apagado, la noche es idéntica a la de `develop` (navegación, capturas, rendimiento) y la música no se descarga. *(fases 0–1; con ON por defecto, nada se descarga antes del primer gesto)*
+- [x] Encender no suena de golpe (fade-in); apagar y encender no dejan clics. *(medido: 0 clics)*
+- [x] Ocultar la pestaña silencia y pausa la música; volver retoma, solo si estaba encendido.
+- [x] Recargar arranca en ON, esperando el primer gesto; nada de sonido se descarga antes. *(verificado en el build de producción)*
+- [x] La música suena solo mientras la DR-1 graba, se frena como cinta y retoma donde quedó.
+- [ ] El loop de la música no se nota. *(técnicamente: cruza 3 s entre sus dos momentos más tranquilos; falta el oído del usuario)*
+- [x] Cada melt dobla la música y más fuerte a medida que avanza la noche; los crossfades, no. *(medido: profundidad del wow por intensidad)*
+- [x] El blanco antes de Wake es silencio. *(música y máquina; el bip bip de la alarma se apaga hasta el final del melt, como pidió el usuario)*
+- [x] Cada sueño suena según su sección 5 (con los cambios pedidos por el usuario, en DECISIONS), y en el peor caso los niveles están dentro de la tabla 6. *(pasada de mezcla, fase 5: el limitador nunca actúa)*
+- [x] Reduced motion: sin wow, sin impresora (el registro aparece completo, así que tampoco suenan los acordes de Wake); todo lo demás suena.
+- [x] Sin WebGL2: música, cinta y puntuales globales, sin errores. *(y Wake completo)*
+- [x] El toggle es accesible (teclado, lector de pantalla, 44 px en touch) y no tapa nada en 390 px. *(ni su pista en 360 px)*
+- [x] `CREDITS.md` y el README tienen la música con su licencia.
+- [x] Sin errores ni advertencias en consola, con y sin sonido.
+- [ ] Lighthouse desplegado: mobile ≥ 80, desktop sin bajar, 100 en Accessibility, Best Practices y SEO. *(en local, `vite preview`, igual que `develop` el mismo día: 78–79 / 79; falta medir el sitio desplegado)*
 
 ---
 
@@ -381,6 +383,6 @@ Para las fases 2 a 4: **terminado cuando** se cumple el "terminado cuando" de ca
 Se preguntan al usuario cuando llegue su fase:
 
 1. ~~**La pieza de música** (fase 1)~~ — resuelta: Chopin, *Études* Op. 10 (Musopen), elegida por el usuario.
-2. **Manual** (fase 5): la propuesta es silencio con la cinta frenada (5.4).
-3. **Pasos en la escalera** (fase 2): si suman o sobran con la música.
-4. **Cada puntual candidato a archivo** (pasos, agua): después de escuchar la versión sintetizada.
+2. ~~**Manual** (fase 5)~~ — resuelta: silencio con la cinta frenada (5.4).
+3. ~~**Pasos en la escalera** (fase 2)~~ — resuelta: quedan, más presentes (fase 2, después de la revisión).
+4. ~~**Cada puntual candidato a archivo**~~ — ninguno: todos quedaron sintetizados (la puerta de House se rehízo más natural en vez de pasar a archivo).

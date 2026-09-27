@@ -1336,3 +1336,34 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
   the flow it would have grown the corner (and moved the hero's DR-1) for a hint that lasts one tap.
   Verified: wheel → hint, no sound; click → sound, no hint; a phone's swipe already counts as a gesture
   in Chrome (sound starts, no hint); the hint clear of the clock at 390 and 360 px.
+
+- **The manual: silence** (PLAN-3.md 5.4, as proposed): the tape stops as you wake at 03:40 and only the
+  standby hum is left (≈ −73 dB, all but inaudible); the music resumes where it stopped.
+
+- **The mix pass** — the whole night walked with each dream's thing done (`?debug` meters, averaged per
+  section; dB RMS unless peak):
+
+  | Section | Music | Motor + hiss | Scene peak | UI peak | Master |
+  | --- | --- | --- | --- | --- | --- |
+  | Hero | — | −72.6 (standby) | — | — | −69.2 |
+  | Stair (climbing, stopping) | −45.5 | −69.0 | −34.1 | −32.0 | −41.8 |
+  | Whale (a wave; the music ducks) | −46.8 | −69.0 | −34.7 | −31.8 | −41.0 |
+  | House (a door) | −42.5 | −69.0 | −36.6 | −31.9 | −38.9 |
+  | Manual | — | −72.6 (standby) | — | — | −69.2 |
+  | Ocean (beats, under) | −41.3 | −69.0 | −35.4 | — | −37.6 |
+  | Fall (top → 0.5) | −39.0 | −69.0 | −39.0 | −31.6 | −35.5 |
+  | Wake (printing) | — | — | −39.2 | — | −49.7 |
+
+  The limiter never acts; no clicks; no console errors or warnings. The loudest peaks are the ui
+  layer's (~−32: a button's key click, a fragment's tape click) — left as they are for the user's ear.
+  Reduced motion: the same, except Wake is silent (its log appears whole: no printer, no chords). No
+  WebGL2: the music and the machine as ever, and Wake with its printer, chords and static.
+
+- **Lighthouse mobile** (`vite preview`, alternating, same session): `develop` 79 / 79, this branch
+  78 / 79 — within the noise; Accessibility, SEO 100, Best Practices 96 on both (`vite preview`'s
+  missing charset header). The deployed site still has to be measured (PLAN-3.md 8).
+
+- **README:** a Sound section (on by default and the first gesture, the tape, the dreams, how it's
+  built, how to add a sound to a dream, the music's licence, iOS, `?debug`) and the new modules in the
+  tree. PLAN-3.md's checklist marked — two items left to the user: the loop by ear, and Lighthouse on
+  the deployed site. FUTURO.md 1.2: done.

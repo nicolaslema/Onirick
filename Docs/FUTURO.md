@@ -32,7 +32,7 @@ Revisado con el usuario el 2026-09-26: quedan estas cuatro. Lo que se sacó est�
 
 ### 1.2 Sonido
 
-**En desarrollo: ver `Docs/PLAN-3.md`**, que es la fuente de verdad (decisiones, arquitectura y fases). `PLAN-2 §2` (Después) y `§12`. Resumen de lo decidido con el usuario el 2026-09-26:
+**Hecho (fases 0–5 de `Docs/PLAN-3.md`)**, a falta de la aprobación de oído de la fase 5 y de medir Lighthouse en el sitio desplegado. `PLAN-3.md` es la fuente de verdad (decisiones, arquitectura y fases). `PLAN-2 §2` (Después) y `§12`. Resumen de lo decidido con el usuario el 2026-09-26:
 
 - Toggle `SOUND OFF` / `SOUND ON` en el HUD, **encendido por defecto** (arranca con el primer click, toque o tecla), sin guardar la preferencia.
 - **Música de fondo:** una pieza de violín (clásica, oscura) con licencia libre verificable, que suena mientras la DR-1 graba y se frena como una cinta. Reemplaza los ambientes sintetizados por sueño que proponía el análisis original.
@@ -156,6 +156,6 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 1. **Ajuste de números y verificaciones sueltas** (2.1, 2.2). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
 2. **`og:image` absoluto y `og:url`** (3.2): dos líneas en `index.html`, el dominio ya se conoce.
 3. **Títulos en un solo lugar** (4, primer ítem), para que cualquier retoque de narrativa futuro (1.1) toque un solo archivo.
-4. **Sonido** (1.2): en desarrollo según `PLAN-3.md`.
+4. **Sonido** (1.2): hecho según `PLAN-3.md`; queda medir Lighthouse desplegado.
 5. **Manual interactivo** (1.3).
 6. **Cursor propio** (1.4), si se confirma.

@@ -10,6 +10,8 @@
 
 The melt is the act of passing from one dream to another, so it **intensifies through the night**: the first transition is subtle, the last one almost breaks the page.
 
+The night has sound, on by default: the DR-1's tape plays a piece of music while it records, and each dream answers what you do with a sound of its own (see [Sound](#sound)).
+
 Each dream can also be *played*: it has one intentional thing to do — stop climbing, wave at the whale, open a door, sink, let go — and doing it lets the DR-1 keep a **fragment** of the dream. Wake prints what you kept, and you can save the tape as an image. Someone who only scrolls still sees a whole night; the tape just comes out blank.
 
 It's fiction, and the last screen says so — a portfolio piece in scroll-driven motion. There's no store and no real form.
@@ -43,7 +45,11 @@ src/
   night/play.js                per-dream play state (progress, beats, events) — a store outside React
   night/gate.js                the gate: which gestures a dream keeps before the night moves on
   night/recording.js           what the DR-1 kept tonight (fragments; lucidity is their count)
-  night/stage.js               which section is on screen and settled, for the scenes
+  night/stage.js               which section is on screen and settled (and the transition in flight), for the scenes and the sound
+  night/score.js               the night's sound: what plays where, tied to the stage, the play state and the recording
+  night/dreamSounds.js         each dream's own sounds (steps, the whale's call, doors, water, the alarm, Wake's lines)
+  night/tapeRules.js           when the tape starts, stops, rewinds — a pure function, tested
+  night/music.js               the piece on the tape: its file, loop points and level
   night/<Section>/             one folder per screen (copy + its 3D scene)
   components/ScrollSections/   the scroll engine: gestures, captures, melts and crossfades
   components/SceneCanvas/      R3F canvas wrapper with the capture rules below
@@ -52,6 +58,8 @@ src/
   components/DreamAction/      the keyboard/screen-reader way to do a dream's thing
   components/DebugPanel/       ?debug (dev only)
   three/                       shared 3D pieces: the DR-1, camera drift, materials, usePlayProgress
+  sound/                       the sound engine, knowing nothing of the night: bus (first chunk), engine, tape, machine, synthesis
+  components/SoundToggle/      SOUND ON / OFF, in the HUD
 scripts/posters.mjs            renders one poster per 3D section
 ```
 
@@ -117,6 +125,24 @@ The state lives in `night/play.js`, outside React: `target` (the progress or bea
 ### `?debug`
 
 In development, `?debug` in the URL opens a panel with the current dream's play state and buttons to set its stops, beats and events, keep or forget any fragment, and reset the night — so every Wake variant can be checked without playing through. It's never in a production build.
+
+## Sound
+
+**On by default, and it waits for you.** The HUD's toggle reads SOUND ON from the first paint, but no browser plays audio before the visitor interacts — so the sound starts on the first click, tap or key anywhere (BEGIN RECORDING, an arrow key). The wheel and a trackpad don't count as a gesture to browsers: someone who only scrolls sees *SOUND ON · CLICK TO START* until they click. Nothing is downloaded before that gesture (the sound engine and the music load then), so it costs the page's first load nothing. The toggle turns it off; each visit starts on again. With the tab hidden it's suspended.
+
+**The tape.** The music is what's on the DR-1's tape: it plays only while the DR-1 records (the five dreams), spins up with the motor as you fall asleep, tape-stops — speed and pitch falling — into the manual and at Wake, and carries on from where it stopped; REPLAY THE NIGHT rewinds it. Every melt bends it like stretched tape (a delay swung by an LFO), more deeply as the night goes on, and the burn into Wake stops it dead by the white. Under it, barely there, the motor and the tape's hiss; STOP and eject at Wake. Its level, a slow compressor and the loop across its two quietest seconds are in `night/music.js`.
+
+**The dreams.** Each answers what happens in it, in the same frame it happens: the Staircase's steps as each foot lands, the whale's call when you wave (the music ducks under it), a door's latch, the kitchen taking the music with it as it recedes, the Ocean's water rising, everything muffled once you're under — crossing with the camera, and surfacing through the melt out —, bubbles, the Fall's *bip bip* growing louder as you fall, a rush of air through each ring, and on Wake a printer pass for each line, a soft chord for each fragment kept and static for each *no signal*. Everything but the music is synthesized in the browser (Web Audio: oscillators, generated noise, filters, generated reverbs) — no sound files.
+
+**How it's built.** `sound/bus.js` is the only piece in the first chunk: `cue(name, options)` for a one-off and `param(name, value)` for a continuous value, both a no-op while sound is off, so scenes call them freely (even every frame). `night/score.js` builds the engine (`sound/engine.js`: layers → melt wow → under-water lowpass → master → limiter), the tape (`sound/tape.js`: two `<audio>` decks through `MediaElementSource`, taking turns at the loop) and the DR-1 (`sound/machine.js`), and ties them to `night/stage.js`, `night/play.js` and `night/recording.js`. A dream's sounds only play while that dream is on screen or melting in or out.
+
+**Adding a sound to a dream:** write it in `night/dreamSounds.js` (into the `scene` layer, so melts bend it), give it a cue in `night/score.js` wrapped in `inDream('<id>', …)`, and call `cue('<name>', …)` from the scene where the thing happens. For something continuous, have the scene write `param('<dream>.<name>', value)` every frame and apply it in the score's `follow()` loop, through `through()` so it fades across transitions.
+
+**Music:** Chopin, from the *Études* Op. 10, a public-domain recording from Musopen — see [CREDITS.md](CREDITS.md).
+
+**iOS:** Web Audio respects the iPhone's silent switch: with it on, there's no sound. Not verified on devices yet.
+
+`?debug` also shows the sound: the context's state, a meter per layer (RMS and peak) and on the master, the limiter's reduction, the melt's wow, the under-water filter and the music's distance, a click counter, the tape's state with buttons to start, stop, rewind or jump near its loop, and one button per sound.
 
 ## Deploy
 
