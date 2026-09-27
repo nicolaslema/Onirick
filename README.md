@@ -148,7 +148,7 @@ In development, `?debug` in the URL opens a panel with the current dream's play 
 
 A static site: `pnpm build` produces `dist/`. On Vercel, import the repository — Vite is detected (build `pnpm build`, output `dist`); `vercel.json` adds long-term caching for hashed assets.
 
-After the first deploy, make the Open Graph image absolute: set `og:image` in `index.html` to `https://<your-domain>/posters/hero.webp`.
+The Open Graph tags in `index.html` (`og:url`, `og:image`) point at `https://onirick.vercel.app/` — update both if the domain changes.
 
 ## Credits
 

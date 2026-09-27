@@ -103,8 +103,8 @@ Cumple la regla del plan (mobile ≥ 80, Accessibility 100). Las mediciones de 7
 
 ### 3.2 Pendiente
 
-- [ ] **`og:image` absoluto:** hoy es `/posters/hero.webp` en `index.html`. Pasarlo a `https://onirick.vercel.app/posters/hero.webp`, porque las vistas previas de links (WhatsApp, X, LinkedIn) pueden no resolver una URL relativa. El README dice dónde (`DECISIONS · Phase 6/7`).
-- [ ] **`og:url`:** no existe. Sumarlo con `https://onirick.vercel.app/`, junto al anterior.
+- [x] **`og:image` absoluto:** `https://onirick.vercel.app/posters/hero.webp` (verificado: responde 200). Hecho antes de `main` (`DECISIONS · Before main`).
+- [x] **`og:url`:** `https://onirick.vercel.app/`. Si el dominio cambia, se actualizan los dos.
 - Si el dominio cambia (por ejemplo, a uno propio), se actualizan los dos.
 
 ### 3.3 Presupuesto para lo que viene
@@ -154,7 +154,7 @@ Descartado o decidido con el usuario. Si alguno vuelve, preguntar primero.
 ## 6. Orden sugerido
 
 1. **Ajuste de números y verificaciones sueltas** (2.1, 2.2). Es deuda del plan 2 y puede cambiar valores que las features nuevas van a heredar.
-2. **`og:image` absoluto y `og:url`** (3.2): dos líneas en `index.html`, el dominio ya se conoce.
+2. ~~**`og:image` absoluto y `og:url`** (3.2)~~ — hecho.
 3. **Títulos en un solo lugar** (4, primer ítem), para que cualquier retoque de narrativa futuro (1.1) toque un solo archivo.
 4. **Sonido** (1.2): hecho según `PLAN-3.md`; queda medir Lighthouse desplegado.
 5. **Manual interactivo** (1.3).

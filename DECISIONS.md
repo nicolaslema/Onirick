@@ -1386,3 +1386,11 @@ system, per section 0.5 ("para detalles menores, elegí lo más simple y dejalo 
     RECORDING enter the Staircase with the music playing; the manual detour returns to the hero, whose
     wheel stays put again; a phone swipe stays too (Chrome counts it as a gesture, so the sound is
     already running), and a tap on the button enters; without WebGL2 the same. No console errors.
+
+## Before main — cleanup
+
+- **`Docs/mp3/Lament.mp3` removed:** the user had committed it to `develop`; byte-identical to
+  `public/sound/night.mp3` (same git hash), which is the one the site uses — 4 MB fewer in the repo.
+- **Open Graph:** `og:image` absolute (`https://onirick.vercel.app/posters/hero.webp`, checked: 200,
+  image/webp) and a new `og:url` (`https://onirick.vercel.app/`), so link previews resolve the image
+  (FUTURO.md 3.2). The README says to update both if the domain changes.
